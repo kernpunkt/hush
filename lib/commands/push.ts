@@ -12,7 +12,7 @@ class PushCommand {
 
   public execute() {
     const command = "npx";
-    const stackFile = path.resolve("./dist/lib/hush-stack.js");
+    const stackFile = path.resolve(__dirname, "../hush-stack.js");
     const args = [
       "cdk",
       "deploy",
