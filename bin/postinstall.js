@@ -12,7 +12,4 @@ packageJson.scripts["hush:push"] =
 packageJson.scripts["hush:pull"] =
   "node node_modules/@kernpunkt/hush/bin/hush.ts bin/hush.ts <secret> --file=./.env";
 
-fs.writeFileSync(
-  path.join(rootDir, "package.json"),
-  JSON.stringify(packageJson, null, 2)
-);
+fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
