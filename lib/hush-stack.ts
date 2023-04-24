@@ -5,10 +5,13 @@ import * as fs from "fs";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 
 export class HushStack extends cdk.Stack {
+  private envName = "default";
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const secretsFile = this.node.tryGetContext("HushStack:secretsFile");
+    const secretsFile = this.node.tryGetContext("secretsFile");
+    this.envName = this.node.tryGetContext("envName") || "default";
 
     let secretsRaw: string;
     try {
@@ -30,6 +33,7 @@ export class HushStack extends cdk.Stack {
       const trimmedSecretLine = secretLine.replace(/"/g, "");
 
       const [key, value] = trimmedSecretLine.split("=");
+
       secretArray.push({
         key,
         value,
@@ -37,7 +41,7 @@ export class HushStack extends cdk.Stack {
     }
 
     // @todo get rid of password
-    const awsSecret = new Secret(this, "HushSecret", {
+    const awsSecret = new Secret(this, `HushSecret-${this.envName}`, {
       generateSecretString: {
         secretStringTemplate: JSON.stringify({ secrets: secretArray }),
         generateStringKey: "password",
