@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const fs = require("fs");
+const path = require("path");
 
 let rootDir = process.cwd();
 while (!fs.existsSync(path.join(rootDir, "package.json"))) {
