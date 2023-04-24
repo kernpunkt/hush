@@ -19,7 +19,7 @@
     "eslint": "eslint .",
     "eslint:fix": "eslint --fix .",
     "cdk": "cdk",
-    "postinstall": "cd node_modules/@kernpunkt/hush && npm ci && cd - && node node_modules/@kernpunkt/hush/bin/postinstall.js"
+    "postinstall": "npm ci && ./bin/postinstall.js"
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",
