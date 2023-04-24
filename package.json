@@ -5,7 +5,6 @@
     "stack": "bin/stack.js"
   },
   "scripts": {
-    "hude": "fude",
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",

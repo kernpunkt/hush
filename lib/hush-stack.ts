@@ -10,9 +10,9 @@ export class HushStack extends cdk.Stack {
 
     const secretsFile = this.node.tryGetContext("HushStack:secretsFile");
 
-    let secrets: string;
+    let secretsRaw: string;
     try {
-      secrets = fs.readFileSync(secretsFile, "utf-8");
+      secretsRaw = fs.readFileSync(secretsFile, "utf-8");
     } catch (e) {
       throw new Error(
         "Could not read secrets file or no file was provided. Aborting."
@@ -21,13 +21,22 @@ export class HushStack extends cdk.Stack {
 
     const secretArray = [];
 
-    for (const secretString of JSON.parse(secrets)) {
+    for (const secretLine of secretsRaw.split("\n")) {
+      // Skip empty lines or comments
+      if (!secretLine.trim() && secretLine.startsWith("#")) {
+        continue;
+      }
+
+      const trimmedSecretLine = secretLine.replace(/"/g, "");
+
+      const [key, value] = trimmedSecretLine.split("=");
       secretArray.push({
-        key: secretString,
-        value: "",
+        key,
+        value,
       });
     }
 
+    // @todo get rid of password
     const awsSecret = new Secret(this, "HushSecret", {
       generateSecretString: {
         secretStringTemplate: JSON.stringify({ secrets: secretArray }),
