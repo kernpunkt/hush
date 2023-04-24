@@ -1,6 +1,6 @@
 {
   "name": "@kernpunkt/hush",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "bin": {
     "stack": "bin/stack.js"
   },
@@ -20,7 +20,7 @@
     "eslint:fix": "eslint --fix .",
     "cdk": "cdk",
     "prepare": "tsc",
-    "postinstall": "./bin/postinstall.js"
+    "postinstall": "./dist/bin/postinstall.js"
   },
   "devDependencies": {
     "@types/jest": "^29.4.0",
