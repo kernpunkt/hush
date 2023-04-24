@@ -1,6 +1,6 @@
 {
   "name": "@kernpunkt/hush",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "bin": {
     "stack": "bin/stack.js"
   },

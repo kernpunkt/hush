@@ -2,13 +2,11 @@
 const fs = require("fs");
 const path = require("path");
 
-let rootDir = process.cwd();
-while (!fs.existsSync(path.join(rootDir, "package.json"))) {
-  rootDir = path.dirname(rootDir);
-}
-const fileContent = fs.readFileSync(path.join(rootDir, "package.json"));
-const packageJson = JSON.parse(fileContent.toString());
+const packageJsonPath = path.resolve(process.cwd(), "../../package.json");
+const packageJsonFileContent = fs.readFileSync(packageJsonPath);
+const packageJson = JSON.parse(packageJsonFileContent);
 
+packageJson.scripts = packageJson.scripts || {};
 packageJson.scripts["hush:push"] =
   "cd node_modules/@kernpunkt/hush && cdk deploy --context HushStack:secretsFile=../../../.env && cd -";
 packageJson.scripts["hush:pull"] =
