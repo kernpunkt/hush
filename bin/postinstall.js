@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require("fs");
 
-const projectPackage = require(`${process.cwd()}/package.json`);
+const projectPackage = require("../../../../package.json");
 projectPackage.scripts["hush:push"] =
   "cd node_modules/@kernpunkt/hush && cdk deploy --context HushStack:secretsFile=../../../.env && cd -";
 projectPackage.scripts["hush:pull"] =
