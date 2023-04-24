@@ -2,7 +2,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const packageJsonPath = path.resolve(process.cwd(), "../../package.json");
+const packageJsonPath = path.resolve(process.cwd(), "../../../package.json");
 const packageJsonFileContent = fs.readFileSync(packageJsonPath);
 const packageJson = JSON.parse(packageJsonFileContent);
 
