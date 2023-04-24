@@ -5,7 +5,6 @@ import { HushStack } from "../lib/hush-stack";
 
 const app = new cdk.App();
 
-// @todo Prefix
 new HushStack(app, "HushStack", {
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
