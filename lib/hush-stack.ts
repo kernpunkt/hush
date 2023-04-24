@@ -23,7 +23,7 @@ export class HushStack extends cdk.Stack {
 
     for (const secretLine of secretsRaw.split("\n")) {
       // Skip empty lines or comments
-      if (!secretLine.trim() && secretLine.startsWith("#")) {
+      if (!secretLine.trim().length && secretLine.startsWith("#")) {
         continue;
       }
 
