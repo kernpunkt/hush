@@ -38,3 +38,8 @@ After pushing for the first time, the CDK stack will output the generated name o
 ## Limitations
 
 Hush! currently strips comments from your `.env` file when pushing/pulling.
+
+[joern-avatar]: https://joern.url.lol/avatar-100-round
+[joern-link]: https://joern.url.lol/🧑‍💻
+[joern-link-email]: mailto:joern.meyer@kernpunkt.de
+[logo-funkeys]: https://res.cloudinary.com/ddux8vytr/image/upload/w_100/v1674478625/kpotkgezxhtytnhsrhlk.jpg
