@@ -1,4 +1,5 @@
 {
+  "ignorePatterns": ["**/*.test.ts"],
   "parser": "@typescript-eslint/parser",
   "overrides": [
     {
