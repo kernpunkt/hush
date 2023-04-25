@@ -36,7 +36,7 @@ class PullCommand {
           } else {
             console.log(
               `${chalk.green(
-                "✨ Done!"
+                "Done!"
               )} Secrets successfully written to ${chalk.bold(
                 path.basename(filename)
               )}.`

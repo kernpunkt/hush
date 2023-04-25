@@ -34,7 +34,7 @@ class PushCommand {
     try {
       await client.send(command);
       console.log(
-        `${chalk.green("✨ Done!")} Your secret ${chalk.bold(
+        `${chalk.green("Done!")} Your secret ${chalk.bold(
           this.getKey()
         )} was successfully updated.`
       );
@@ -48,7 +48,7 @@ class PushCommand {
       await client.send(createCommand);
       console.log(
         `${chalk.green(
-          "✨ Done!"
+          "Done!"
         )} Your secret ${this.getKey()} was successfully created.`
       );
     }
