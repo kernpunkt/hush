@@ -19,7 +19,7 @@ program
     "Path to the .env file containing the secrets you want to push."
   )
   .action((key: string, envFile: string) => {
-    console.log(`${chalk.bold("Hush! 🤫")} — Push`);
+    console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
     const command = new PushCommand(key, envFile);
     command.execute();
   });
@@ -35,7 +35,7 @@ program
     "Path to the .env file containing the secrets you want to push."
   )
   .action(async (key, envFile: string) => {
-    console.log(`${chalk.bold("Hush! 🤫")} — Pull`);
+    console.log(`${chalk.bold("Hush! 🤫")} — Pull\n`);
     const command = new PullCommand(key, envFile);
     await command.execute();
   });
