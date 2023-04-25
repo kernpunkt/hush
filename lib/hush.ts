@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import PushCommand from "./commands/push";
 import PullCommand from "./commands/pull";
+import chalk from "chalk";
 
 const program = new Command();
 
@@ -10,31 +11,32 @@ program.name("hush").argument("<command>", "The command to run.");
 program
   .command("push")
   .argument(
+    "<key>",
+    "A designator to store this secret as. Can be something like 'customer-prod' or 'your-name'. All keys get prefixed with 'hush-'"
+  )
+  .argument(
     "<env-file>",
     "Path to the .env file containing the secrets you want to push."
   )
-  .option(
-    "-k, --key <key>",
-    "A key to store the .env files with. Something like 'prod' or your name."
-  )
-  .action((envFile: string, options: any) => {
-    const command = new PushCommand(envFile, options);
+  .action((key: string, envFile: string) => {
+    console.log(`${chalk.bold("Hush! 🤫")} — Push`);
+    const command = new PushCommand(key, envFile);
     command.execute();
   });
 
 program
   .command("pull")
   .argument(
-    "<secretName>",
-    "The secret name in AWS Secret Manager. You will get this from the output of the push command."
+    "<key>",
+    "The designator you stored your secret with. Remember that it was prefixed with 'hush-'."
   )
-  .option(
-    "-f, --file <file>",
-    "Which file to store the .env secrets in",
-    "./.env"
+  .argument(
+    "<env-file>",
+    "Path to the .env file containing the secrets you want to push."
   )
-  .action(async (envFile: string, options: any) => {
-    const command = new PullCommand(envFile, options);
+  .action(async (key, envFile: string) => {
+    console.log(`${chalk.bold("Hush! 🤫")} — Pull`);
+    const command = new PullCommand(key, envFile);
     await command.execute();
   });
 

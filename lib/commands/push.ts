@@ -7,14 +7,15 @@ import {
   PutSecretValueCommandInput,
   SecretsManagerClient,
 } from "@aws-sdk/client-secrets-manager";
+import chalk from "chalk";
 
 class PushCommand {
+  private key: string;
   private envFile: string;
-  private options: any;
 
-  constructor(envFile: string, options: any) {
+  constructor(key: string, envFile: string) {
+    this.key = key;
     this.envFile = path.resolve(envFile);
-    this.options = options;
   }
 
   public async execute() {
@@ -31,8 +32,12 @@ class PushCommand {
     const command = new PutSecretValueCommand(payload);
 
     try {
-      const response = await client.send(command);
-      console.log(`Your secret ${this.getKey()} was successfully updated.`);
+      await client.send(command);
+      console.log(
+        `${chalk.green("Done!")} Your secret ${chalk.bold(
+          this.getKey()
+        )} was successfully updated.`
+      );
     } catch (err) {
       const createPayload: CreateSecretCommandInput = {
         Name: this.getKey(),
@@ -41,12 +46,16 @@ class PushCommand {
       const createCommand = new CreateSecretCommand(createPayload);
 
       await client.send(createCommand);
-      console.log(`Your secret ${this.getKey()} was successfully created.`);
+      console.log(
+        `${chalk.green(
+          "Done!"
+        )} Your secret ${this.getKey()} was successfully created.`
+      );
     }
   }
 
   private getKey(): string {
-    return `hush-${this.options.key || "default"}`;
+    return `hush-${this.key}`;
   }
 
   private readSecrets(): any {
