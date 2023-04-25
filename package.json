@@ -1,6 +1,6 @@
 {
   "name": "@kernpunkt/hush",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "bin": {
     "hush": "dist/lib/hush.js"
   },
