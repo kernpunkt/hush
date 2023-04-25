@@ -46,6 +46,8 @@ So for example:
 
 **Note:** All keys get prefixed with `hush-` in the AWS SecretsManager to avoid namespace pollution.
 
+If the newly pulled version of the `.env` file contains **additions, changes or deletions**, your local `.env` file will not be overwritten. You can review those changes and then **re-run the command with the `--force` flag**.
+
 ## Limitations
 
 **Hush!** currently strips comments from your `.env` file when pushing/pulling.
