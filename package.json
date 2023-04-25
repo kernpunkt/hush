@@ -1,5 +1,11 @@
 {
   "name": "@kernpunkt/hush",
+  "description": "Command line tool to store and retrieve the contents of .env files in AWS SecertsManager.",
+  "author": {
+    "name": "Jörn Meyer",
+    "email": "joern.meyer@kernpunkt.de",
+    "url": "https://joern.url.lol/🧑‍💻"
+  },
   "version": "0.3.3",
   "license": "MIT",
   "bin": {
