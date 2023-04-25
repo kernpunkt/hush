@@ -1,4 +1,4 @@
-import { SecretsManager } from "aws-sdk";
+import { SecretsManager } from "@aws-sdk/client-secrets-manager";
 import path from "path";
 import { writeFile } from "fs";
 
@@ -25,7 +25,7 @@ class PullCommand {
         } else {
           const secretsOutput: string[] = [];
 
-          const { secrets } = JSON.parse(data.SecretString!);
+          const secrets = JSON.parse(data?.SecretString || "[]");
 
           for (const secret of secrets) {
             secretsOutput.push(`${secret.key}="${secret.value}"`);

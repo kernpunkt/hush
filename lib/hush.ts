@@ -33,9 +33,9 @@ program
     "Which file to store the .env secrets in",
     "./.env"
   )
-  .action((envFile: string, options: any) => {
+  .action(async (envFile: string, options: any) => {
     const command = new PullCommand(envFile, options);
-    command.execute();
+    await command.execute();
   });
 
 program.parse();

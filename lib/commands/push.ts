@@ -1,5 +1,12 @@
-import { spawn } from "child_process";
+import { readFileSync } from "fs";
 import path from "path";
+import {
+  CreateSecretCommand,
+  CreateSecretCommandInput,
+  PutSecretValueCommand,
+  PutSecretValueCommandInput,
+  SecretsManagerClient,
+} from "@aws-sdk/client-secrets-manager";
 
 class PushCommand {
   private envFile: string;
@@ -10,51 +17,68 @@ class PushCommand {
     this.options = options;
   }
 
-  public execute() {
-    const command = "npx";
-    const stackFile = path.resolve(__dirname, "../hush-stack.js");
+  public async execute() {
+    const secretArray = this.readSecrets();
+    const payload: PutSecretValueCommandInput = {
+      SecretId: this.getKey(),
+      SecretString: JSON.stringify(secretArray),
+    };
 
-    const args = [
-      "cdk",
-      "deploy",
-      "-a",
-      stackFile,
-      "--context",
-      `secretsFile=${this.envFile}`,
-      "--context",
-      `envName=${this.options.key}`,
-    ];
-    const subCommand = spawn(command, args);
-    console.log(subCommand.spawnargs.join(" "));
-
-    const output: string[] = [];
-
-    subCommand.stdout.on("data", (data) => {
-      output.push(data.toString());
+    const client = new SecretsManagerClient({
+      region: "eu-central-1",
     });
 
-    subCommand.stderr.on("data", (data) => {
-      output.push(data.toString());
-    });
+    const command = new PutSecretValueCommand(payload);
 
-    subCommand.on("close", (code) => {
-      console.log(output);
-      const outputLine = output.find((line) =>
-        line.startsWith("HushStack.SecretNameOutput =")
+    try {
+      const response = await client.send(command);
+      console.log(`Your secret ${this.getKey()} was successfully updated.`);
+    } catch (err) {
+      const createPayload: CreateSecretCommandInput = {
+        Name: this.getKey(),
+        SecretString: JSON.stringify(secretArray),
+      };
+      const createCommand = new CreateSecretCommand(createPayload);
+
+      await client.send(createCommand);
+      console.log(`Your secret ${this.getKey()} was successfully created.`);
+    }
+  }
+
+  private getKey(): string {
+    return `hush-${this.options.key || "default"}`;
+  }
+
+  private readSecrets(): any {
+    let secretsRaw: string;
+
+    try {
+      secretsRaw = readFileSync(this.envFile, "utf-8");
+    } catch (e) {
+      throw new Error(
+        "Could not read secrets file or no file was provided. Aborting."
       );
+    }
 
-      if (!outputLine) {
-        console.log("outputline ", outputLine);
-        throw new Error(
-          "Output of the secret name could not be detected. Maybe the deployment did not work?"
-        );
+    const secretArray = [];
+
+    for (const secretLine of secretsRaw.split("\n")) {
+      // Skip empty lines or comments
+      if (!secretLine.trim().length || secretLine.startsWith("#")) {
+        continue;
       }
 
-      const secretName = outputLine!.split(" = ").slice(-1);
-      console.log(
-        `Done! Your new secret is named \x1b[1m${secretName}\x1b[0m.`
-      );
-    });
+      const trimmedSecretLine = secretLine.replace(/"/g, "");
+
+      const [key, value] = trimmedSecretLine.split("=");
+
+      secretArray.push({
+        key,
+        value,
+      });
+    }
+
+    return secretArray;
   }
 }
 
