@@ -42,9 +42,7 @@ class HushCommand extends Command {
             console.log(result);
             process.exit(0);
           })
-          .catch((error) => {
-            this.handleError(error);
-          });
+          .catch(this.handleError);
       });
   }
 
@@ -61,7 +59,13 @@ class HushCommand extends Command {
       .action(async (key: string, envFile: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
         const command = new PushCommand(key, envFile);
-        await command.execute();
+        command
+          .execute()
+          .then((result) => {
+            console.log(result);
+            process.exit(0);
+          })
+          .catch(this.handleError);
       });
   }
 
@@ -113,9 +117,7 @@ class HushCommand extends Command {
             console.log(result);
             process.exit(0);
           })
-          .catch((err) => {
-            this.handleError(err);
-          });
+          .catch(this.handleError);
       });
   }
 

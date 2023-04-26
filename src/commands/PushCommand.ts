@@ -34,11 +34,9 @@ class PushCommand extends BaseCommand {
 
     try {
       await client.send(command);
-      console.log(
-        `${chalk.green("Done!")} Your secret ${chalk.bold(
-          this.getKey()
-        )} was successfully updated.`
-      );
+      return `${chalk.green("Done!")} Your secret ${chalk.bold(
+        this.getKey()
+      )} was successfully updated.`;
     } catch (err) {
       const createPayload: CreateSecretCommandInput = {
         Name: this.getKey(),
@@ -47,11 +45,9 @@ class PushCommand extends BaseCommand {
       const createCommand = new CreateSecretCommand(createPayload);
 
       await client.send(createCommand);
-      console.log(
-        `${chalk.green(
-          "Done!"
-        )} Your secret ${this.getKey()} was successfully created.`
-      );
+      return `${chalk.green(
+        "Done!"
+      )} Your secret ${this.getKey()} was successfully created.`;
     }
   }
 
