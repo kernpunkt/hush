@@ -43,7 +43,7 @@ class PullCommand {
             for (const secret of secrets) {
               secretsOutput.push(`${secret.key}="${secret.value}"`);
             }
-            if (!this.force && currentLines) {
+            if (!this.force && currentLines.length) {
               const { added, removed, changed } = envDiff(
                 currentLines,
                 secretsOutput
