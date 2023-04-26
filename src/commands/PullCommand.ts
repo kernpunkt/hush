@@ -3,7 +3,7 @@ import path from "path";
 import { createReadStream, existsSync, writeFile } from "fs";
 import chalk from "chalk";
 import { createInterface } from "readline";
-import envDiff, { EnvDiffResult } from "../envDiff";
+import envDiff, { EnvDiffResult } from "../utils/envDiff";
 
 export type PullCommandOptions = {
   force?: boolean;

@@ -1,4 +1,4 @@
-import envDiff from "../src/envDiff";
+import envDiff from "../src/utils/envDiff";
 
 describe("envDiff", () => {
   it("notices additions", () => {

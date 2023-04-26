@@ -3,10 +3,21 @@ import { Command } from "commander";
 import PushCommand from "./commands/PushCommand";
 import PullCommand, { PullCommandOptions } from "./commands/PullCommand";
 import chalk from "chalk";
-import { EnvDiffResult } from "./envDiff";
+import { EnvDiffResult } from "./utils/envDiff";
+
+const awsProfile = process.env["AWS_PROFILE"];
+if (!awsProfile) {
+  console.log(
+    `${chalk.bold("Hush! 🤫")} — ${chalk.red.bold(
+      "Error!"
+    )} You do not have an AWS profile selected. Please export it by running ${chalk.bold(
+      "export AWS_PROFILE=your-profile-name"
+    )}.`
+  );
+  process.exit(1);
+}
 
 const program = new Command();
-
 program.name("hush").argument("<command>", "The command to run.");
 
 program
