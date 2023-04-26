@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, ParseOptions } from "commander";
 import PushCommand from "./commands/PushCommand";
 import chalk from "chalk";
 import PullCommand, { PullCommandOptions } from "./commands/PullCommand";
@@ -10,6 +10,19 @@ class HushCommand extends Command {
     this.name("hush").argument("<command>", "The command to run.");
     this.pushCommand();
     this.pullCommand();
+  }
+
+  run(argv?: readonly string[], options?: ParseOptions): this {
+    const awsProfile = process.env["AWS_PROFILE"];
+    if (!awsProfile) {
+      throw new Error(
+        `You do not have an AWS profile selected. Please export it by running ${chalk.bold(
+          "export AWS_PROFILE=your-profile-name"
+        )}.`
+      );
+    }
+
+    return super.parse(argv, options);
   }
 
   private pushCommand(): void {

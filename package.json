@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.319.0",
+    "@types/commander": "^2.12.2",
     "@types/diff": "^5.0.3",
     "chalk": "^4.1.0-commonjs",
     "commander": "^10.0.1",
