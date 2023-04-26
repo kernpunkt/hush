@@ -1,4 +1,3 @@
-import { readFileSync } from "fs";
 import path from "path";
 import {
   CreateSecretCommand,
@@ -8,18 +7,26 @@ import {
 } from "@aws-sdk/client-secrets-manager";
 import chalk from "chalk";
 import BaseCommand from "./BaseCommand";
+import LineReader from "../utils/LineReader";
 
 class PushCommand extends BaseCommand {
   private envFile: string;
+  private lineReader: LineReader;
 
   constructor(key: string, envFile: string) {
     super();
     this.key = key;
     this.envFile = path.resolve(envFile);
+    this.setLineReader(new LineReader());
+  }
+
+  public setLineReader(lineReader: LineReader): this {
+    this.lineReader = lineReader;
+    return this;
   }
 
   public async execute() {
-    const secretArray = this.readSecrets();
+    const secretArray = this.lineReader.readLines(this.envFile);
     const payload: PutSecretValueCommandInput = {
       SecretId: this.getKey(),
       SecretString: JSON.stringify(secretArray),
@@ -45,38 +52,6 @@ class PushCommand extends BaseCommand {
         "Done!"
       )} Your secret ${this.getKey()} was successfully created.`;
     }
-  }
-
-  private readSecrets(): any {
-    let secretsRaw: string;
-
-    try {
-      secretsRaw = readFileSync(this.envFile, "utf-8");
-    } catch (e) {
-      throw new Error(
-        "Could not read secrets file or no file was provided. Aborting."
-      );
-    }
-
-    const secretArray = [];
-
-    for (const secretLine of secretsRaw.split("\n")) {
-      // Skip empty lines or comments
-      if (!secretLine.trim().length || secretLine.startsWith("#")) {
-        continue;
-      }
-
-      const trimmedSecretLine = secretLine.replace(/"/g, "");
-
-      const [key, value] = trimmedSecretLine.split("=");
-
-      secretArray.push({
-        key,
-        value,
-      });
-    }
-
-    return secretArray;
   }
 }
 
