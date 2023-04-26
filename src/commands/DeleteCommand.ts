@@ -1,7 +1,6 @@
 import {
   DeleteSecretCommand,
   DeleteSecretCommandInput,
-  SecretsManagerClient,
 } from "@aws-sdk/client-secrets-manager";
 import BaseCommand from "./BaseCommand";
 import chalk from "chalk";
@@ -14,9 +13,7 @@ class DeleteCommand extends BaseCommand {
   }
 
   public async execute(): Promise<string> {
-    const client = new SecretsManagerClient({
-      region: "eu-central-1",
-    });
+    const client = this.getClient();
     const payload: DeleteSecretCommandInput = {
       SecretId: this.getKey(),
     };

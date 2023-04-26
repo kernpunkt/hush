@@ -5,7 +5,6 @@ import {
   CreateSecretCommandInput,
   PutSecretValueCommand,
   PutSecretValueCommandInput,
-  SecretsManagerClient,
 } from "@aws-sdk/client-secrets-manager";
 import chalk from "chalk";
 import BaseCommand from "./BaseCommand";
@@ -26,10 +25,7 @@ class PushCommand extends BaseCommand {
       SecretString: JSON.stringify(secretArray),
     };
 
-    const client = new SecretsManagerClient({
-      region: "eu-central-1",
-    });
-
+    const client = this.getClient();
     const command = new PutSecretValueCommand(payload);
 
     try {

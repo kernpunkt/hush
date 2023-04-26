@@ -1,6 +1,9 @@
-import { SecretsManager } from "@aws-sdk/client-secrets-manager";
+import {
+  GetSecretValueCommand,
+  GetSecretValueCommandInput,
+} from "@aws-sdk/client-secrets-manager";
 import path from "path";
-import { createReadStream, existsSync, writeFile } from "fs";
+import { createReadStream, existsSync, writeFileSync } from "fs";
 import chalk from "chalk";
 import { createInterface } from "readline";
 import envDiff, { EnvDiffResult } from "../utils/envDiff";
@@ -24,55 +27,54 @@ class PullCommand extends BaseCommand {
   public async execute(): Promise<string | EnvDiffResult> {
     const currentLines = await this.readLines();
 
-    return new Promise((resolve, reject) => {
-      const filename = path.resolve(this.envFile);
-      const secretsManager = new SecretsManager({
-        region: "eu-central-1",
-      });
+    const filename = path.resolve(this.envFile);
+    const client = this.getClient();
 
-      secretsManager.getSecretValue(
-        { SecretId: this.getKey() },
-        (err, data) => {
-          if (err) {
-            reject(`Error retrieving secret: ${err}`);
-            return;
-          } else {
-            const secretsOutput: string[] = [];
+    const getSecretValuePayload: GetSecretValueCommandInput = {
+      SecretId: this.getKey(),
+    };
+    const getSecretValueCommand = new GetSecretValueCommand(
+      getSecretValuePayload
+    );
 
-            const secrets = JSON.parse(data?.SecretString || "[]");
+    const data = await client.send(getSecretValueCommand).catch((error) => {
+      if (
+        error instanceof Error &&
+        "__type" in error &&
+        error["__type"] === "ResourceNotFoundException"
+      ) {
+        throw new Error(
+          `AWS SecretManager could not find ${chalk.bold(
+            this.getKey()
+          )}. Are you sure it exists and you have read access?`
+        );
+      }
 
-            for (const secret of secrets) {
-              secretsOutput.push(`${secret.key}="${secret.value}"`);
-            }
-            if (!this.force && currentLines.length) {
-              const { added, removed, changed } = envDiff(
-                currentLines,
-                secretsOutput
-              );
-
-              if (added.length || removed.length || changed.length) {
-                resolve({ added, removed, changed });
-                return;
-              }
-            }
-
-            writeFile(filename, secretsOutput.join("\n"), (err) => {
-              if (err) {
-                reject(`Error writing secrets to .env file: ${err}`);
-              } else {
-                resolve(
-                  `${chalk.green(
-                    "Done!"
-                  )} Secrets successfully written to ${chalk.bold(
-                    path.basename(filename)
-                  )}.`
-                );
-              }
-            });
-          }
-        }
+      throw new Error(
+        `Error receiving secret ${chalk.bold(this.getKey())}: ${error.message}`
       );
     });
+
+    const secretsOutput: string[] = [];
+
+    const secrets = JSON.parse(data?.SecretString || "[]");
+
+    for (const secret of secrets) {
+      secretsOutput.push(`${secret.key}="${secret.value}"`);
+    }
+    if (!this.force && currentLines.length) {
+      const { added, removed, changed } = envDiff(currentLines, secretsOutput);
+
+      if (added.length || removed.length || changed.length) {
+        return { added, removed, changed };
+      }
+    }
+
+    writeFileSync(filename, secretsOutput.join("\n"));
+
+    return `${chalk.green(
+      "Done!"
+    )} Secrets successfully written to ${chalk.bold(path.basename(filename))}.`;
   }
 
   private async readLines(): Promise<string[]> {
