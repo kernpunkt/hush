@@ -8,12 +8,13 @@ import {
   SecretsManagerClient,
 } from "@aws-sdk/client-secrets-manager";
 import chalk from "chalk";
+import BaseCommand from "./BaseCommand";
 
-class PushCommand {
-  private key: string;
+class PushCommand extends BaseCommand {
   private envFile: string;
 
   constructor(key: string, envFile: string) {
+    super();
     this.key = key;
     this.envFile = path.resolve(envFile);
   }
@@ -52,10 +53,6 @@ class PushCommand {
         )} Your secret ${this.getKey()} was successfully created.`
       );
     }
-  }
-
-  private getKey(): string {
-    return `hush-${this.key}`;
   }
 
   private readSecrets(): any {

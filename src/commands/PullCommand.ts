@@ -4,17 +4,18 @@ import { createReadStream, existsSync, writeFile } from "fs";
 import chalk from "chalk";
 import { createInterface } from "readline";
 import envDiff, { EnvDiffResult } from "../utils/envDiff";
+import BaseCommand from "./BaseCommand";
 
 export type PullCommandOptions = {
   force?: boolean;
 };
 
-class PullCommand {
-  private key: string;
+class PullCommand extends BaseCommand {
   private envFile: string;
   private force: boolean;
 
   constructor(key: string, envFile: string, options: PullCommandOptions) {
+    super();
     this.key = key;
     this.envFile = path.resolve(envFile);
     this.force = options.force || false;
@@ -92,10 +93,6 @@ class PullCommand {
       readline.on("close", () => resolve(lines));
       readline.on("error", () => reject(lines));
     });
-  }
-
-  private getKey(): string {
-    return `hush-${this.key}`;
   }
 }
 

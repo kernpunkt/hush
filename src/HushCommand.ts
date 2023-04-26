@@ -3,6 +3,7 @@ import PushCommand from "./commands/PushCommand";
 import chalk from "chalk";
 import PullCommand, { PullCommandOptions } from "./commands/PullCommand";
 import { EnvDiffResult } from "./utils/envDiff";
+import DeleteCommand from "./commands/DeleteCommand";
 
 class HushCommand extends Command {
   constructor() {
@@ -10,6 +11,7 @@ class HushCommand extends Command {
     this.name("hush").argument("<command>", "The command to run.");
     this.pushCommand();
     this.pullCommand();
+    this.deleteCommand();
   }
 
   run(argv?: readonly string[], options?: ParseOptions): this {
@@ -23,6 +25,27 @@ class HushCommand extends Command {
     }
 
     return super.parse(argv, options);
+  }
+
+  private deleteCommand(): void {
+    this.command("delete")
+      .argument(
+        "<key>",
+        "A designator to store this secret as. Can be something like 'customer-prod' or 'your-name'. All keys get prefixed with 'hush-'"
+      )
+      .action(async (key: string) => {
+        console.log(`${chalk.bold("Hush! 🤫")} — Delete\n`);
+        const command = new DeleteCommand(key);
+        command
+          .execute()
+          .then((result) => {
+            console.log(result);
+            process.exit(0);
+          })
+          .catch((error) => {
+            this.handleError(error);
+          });
+      });
   }
 
   private pushCommand(): void {
@@ -91,10 +114,14 @@ class HushCommand extends Command {
             process.exit(0);
           })
           .catch((err) => {
-            console.error(err);
-            process.exit(1);
+            this.handleError(err);
           });
       });
+  }
+
+  private handleError(err: Error): void {
+    console.error(`${chalk.red.bold("🙈 Error!")} — ${err.message}`);
+    process.exit(1);
   }
 }
 
