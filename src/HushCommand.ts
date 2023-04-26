@@ -31,7 +31,7 @@ class HushCommand extends Command {
     this.command("delete")
       .argument(
         "<key>",
-        "A designator to store this secret as. Can be something like 'customer-prod' or 'your-name'. All keys get prefixed with 'hush-'"
+        "The designator of a secret to delete. All keys get prefixed with 'hush-'"
       )
       .action(async (key: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Delete\n`);
