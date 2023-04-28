@@ -1,13 +1,13 @@
 import path from "path";
 import {
-  CreateSecretCommand,
   CreateSecretCommandInput,
-  PutSecretValueCommand,
   PutSecretValueCommandInput,
 } from "@aws-sdk/client-secrets-manager";
 import chalk from "chalk";
 import BaseCommand from "./BaseCommand";
 import LineReader from "../utils/LineReader";
+import PutSecretValueRequest from "../requests/PutSecretValueRequest";
+import CreateSecretRequest from "../requests/CreateSecretRequest";
 
 class PushCommand extends BaseCommand {
   private envFile: string;
@@ -32,11 +32,9 @@ class PushCommand extends BaseCommand {
       SecretString: JSON.stringify(secretArray),
     };
 
-    const client = this.getClient();
-    const command = new PutSecretValueCommand(payload);
-
     try {
-      await client.send(command);
+      await new PutSecretValueRequest().execute(payload);
+
       return `${chalk.green("Done!")} Your secret ${chalk.bold(
         this.getKey()
       )} was successfully updated.`;
@@ -45,9 +43,7 @@ class PushCommand extends BaseCommand {
         Name: this.getKey(),
         SecretString: JSON.stringify(secretArray),
       };
-      const createCommand = new CreateSecretCommand(createPayload);
-
-      await client.send(createCommand);
+      await new CreateSecretRequest().execute(createPayload);
 
       return `${chalk.green(
         "Done!"

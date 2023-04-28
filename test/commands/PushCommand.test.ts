@@ -1,6 +1,8 @@
-import { CreateSecretCommand, PutSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
+import { CreateSecretCommand, PutSecretValueCommandInput, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import PushCommand from "../../src/commands/PushCommand";
 import LineReader from "../../src/utils/LineReader";
+import PutSecretValueRequest from "../../src/requests/PutSecretValueRequest";
+import CreateSecretRequest from "../../src/requests/CreateSecretRequest";
 
 class MockLineReader extends LineReader {
     public readLines(envFile: string) {
@@ -12,28 +14,30 @@ describe("PushCommand", () => {
     it("tries to overwrite a secret first", () => {
         const command = new PushCommand("hello-world", ".env.test");
         command.setLineReader(new MockLineReader());
-        const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
+        const spy = jest.spyOn(PutSecretValueRequest.prototype, "execute");
 
-        spy.mockReturnValue();
+        spy.mockImplementation(() => {
+            return new Promise((resolve, reject) => {
+                resolve();
+            });
+        });
         command.execute();
-        expect(spy).toHaveBeenCalledWith(expect.any(PutSecretValueCommand));
+        expect(spy.mock.calls[0][0].SecretId === "hello-world");
         spy.mockReset();
     });
-    it("will create a new secret if none exist first", () => {
+    it("will create a new secret if none exist first", async () => {
         const command = new PushCommand("hello-world", ".env.test");
         command.setLineReader(new MockLineReader());
-        const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
 
-        spy.mockImplementationOnce(() => { throw new Error("Already exists") });
-        spy.mockReturnValue();
+        const putSpy = jest.spyOn(PutSecretValueRequest.prototype, "execute");
+        putSpy.mockImplementation(() => { throw new Error("Already exists") });
 
-        command.execute();
+        const createSpy = jest.spyOn(CreateSecretRequest.prototype, "execute");
+        createSpy.mockImplementation();
 
-        expect(spy).toBeCalledTimes(2);
-        expect(spy.mock.calls[0][0]).toBeInstanceOf(PutSecretValueCommand);
-        expect(spy.mock.calls[1][0]).toBeInstanceOf(CreateSecretCommand);
-
-        spy.mockReset();
+        await command.execute();
+        expect(putSpy).toHaveBeenCalled();
+        expect(createSpy).toHaveBeenCalled();
     });
         
 });
