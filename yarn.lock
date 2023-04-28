@@ -1354,6 +1354,11 @@
   dependencies:
     "@sinonjs/commons" "^2.0.0"
 
+"@thinkinglabs/aws-iam-policy@^2.5.1":
+  version "2.5.1"
+  resolved "https://registry.yarnpkg.com/@thinkinglabs/aws-iam-policy/-/aws-iam-policy-2.5.1.tgz#7e8c74350f70152560803d7c709143ba64e7a0d5"
+  integrity sha512-pPjrzuJ58ry/UdkoC65F6PP8ti3++cJjoEp1KVV9BSfh1XhfVcY3BL7/9j7bCzbrhFX/HbD4+qvdbMHHEJLgEQ==
+
 "@tsconfig/node10@^1.0.7":
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/@tsconfig/node10/-/node10-1.0.9.tgz#df4907fc07a886922637b15e02d4cebc4c0021b2"

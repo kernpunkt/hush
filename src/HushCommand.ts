@@ -4,6 +4,7 @@ import chalk from "chalk";
 import PullCommand, { PullCommandOptions } from "./commands/PullCommand";
 import { EnvDiffResult } from "./utils/envDiff";
 import DeleteCommand from "./commands/DeleteCommand";
+import GrantCommand from "./commands/GrantCommand";
 
 class HushCommand extends Command {
   constructor() {
@@ -12,6 +13,7 @@ class HushCommand extends Command {
     this.pushCommand();
     this.pullCommand();
     this.deleteCommand();
+    this.grantCommand();
   }
 
   run(argv?: readonly string[], options?: ParseOptions): this {
@@ -25,6 +27,29 @@ class HushCommand extends Command {
     }
 
     return super.parse(argv, options);
+  }
+
+  private grantCommand(): void {
+    this.command("grant")
+      .argument(
+        "<key>",
+        "The designator of a secret to grant access to. All keys get prefixed with 'hush-'"
+      )
+      .argument(
+        "<iam-arn>",
+        "The ARN of an IAM user to grant access to the secret to."
+      )
+      .action(async (key: string, iamARN: string) => {
+        console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
+        const command = new GrantCommand(key, iamARN);
+        command
+          .execute()
+          .then((result) => {
+            console.log(result);
+            process.exit(0);
+          })
+          .catch(this.handleError);
+      });
   }
 
   private deleteCommand(): void {

@@ -48,6 +48,7 @@ class PushCommand extends BaseCommand {
       const createCommand = new CreateSecretCommand(createPayload);
 
       await client.send(createCommand);
+
       return `${chalk.green(
         "Done!"
       )} Your secret ${this.getKey()} was successfully created.`;
