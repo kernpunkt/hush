@@ -5,6 +5,7 @@ import PullCommand, { PullCommandOptions } from "./commands/PullCommand";
 import { EnvDiffResult } from "./utils/envDiff";
 import DeleteCommand from "./commands/DeleteCommand";
 import GrantCommand from "./commands/GrantCommand";
+import RevokeCommand from "./commands/RevokeCommand";
 
 class HushCommand extends Command {
   constructor() {
@@ -14,6 +15,7 @@ class HushCommand extends Command {
     this.pullCommand();
     this.deleteCommand();
     this.grantCommand();
+    this.revokeCommand();
   }
 
   run(argv?: readonly string[], options?: ParseOptions): this {
@@ -42,6 +44,29 @@ class HushCommand extends Command {
       .action(async (key: string, iamARN: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
         const command = new GrantCommand(key, iamARN);
+        command
+          .execute()
+          .then((result) => {
+            console.log(result);
+            process.exit(0);
+          })
+          .catch(this.handleError);
+      });
+  }
+
+  private revokeCommand(): void {
+    this.command("revoke")
+      .argument(
+        "<key>",
+        "The designator of a secret to revoke access from. All keys get prefixed with 'hush-'"
+      )
+      .argument(
+        "<iam-arn>",
+        "The ARN of an IAM user to remove access to the secret to."
+      )
+      .action(async (key: string, iamARN: string) => {
+        console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
+        const command = new RevokeCommand(key, iamARN);
         command
           .execute()
           .then((result) => {

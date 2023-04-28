@@ -7,12 +7,10 @@ import {
 import BaseCommand from "./BaseCommand";
 import chalk from "chalk";
 import TypedErrorHandler from "../utils/TypedErrorHandler";
-import {
-  AbstractBasePrincipal,
-  ArnPrincipal,
-  PolicyDocument,
-  Statement,
-} from "@thinkinglabs/aws-iam-policy";
+import { ArnPrincipal, Statement } from "@thinkinglabs/aws-iam-policy";
+import GetResourcePolicyRequest from "../requests/GetResourcePolicyRequest";
+import findStatementByArn from "../utils/findStatementByArn";
+import PutResourcePolicyRequest from "../requests/PutResourcePolicyRequest";
 
 class GrantCommand extends BaseCommand {
   private iamARN: string;
@@ -24,38 +22,11 @@ class GrantCommand extends BaseCommand {
   }
 
   public async execute(): Promise<string> {
-    const client = this.getClient();
-
-    const getResourcePolicyPayload: GetResourcePolicyCommandInput = {
+    const policy = await new GetResourcePolicyRequest().execute({
       SecretId: this.getKey(),
-    };
-    const getResourcePolicyCommand = new GetResourcePolicyCommand(
-      getResourcePolicyPayload
-    );
-    const policyResult = await client
-      .send(getResourcePolicyCommand)
-      .catch((error) => {
-        new TypedErrorHandler().handleError(error, {
-          ResourceNotFoundException: `Could not grant access to secret ${chalk.bold(
-            this.getKey()
-          )} because the secret could not be found.`,
-        });
-      });
-
-    let policy: PolicyDocument;
-    if (policyResult?.ResourcePolicy) {
-      policy = PolicyDocument.fromJson(policyResult.ResourcePolicy);
-    } else {
-      policy = new PolicyDocument();
-    }
-
-    const existingPolicy = policy.statements.find((statement) => {
-      return statement.principals.find((principal: AbstractBasePrincipal) => {
-        return principal.toJSON()?.AWS === this.iamARN;
-      });
     });
 
-    if (existingPolicy) {
+    if (findStatementByArn(policy, this.iamARN)) {
       return `User ${chalk.bold(
         this.iamARN
       )} already has access to secret ${chalk.bold(this.getKey())}.`;
@@ -70,22 +41,12 @@ class GrantCommand extends BaseCommand {
       })
     );
 
-    const putResourcePolicyPayload: PutResourcePolicyCommandInput = {
-      SecretId: this.getKey(),
-      ResourcePolicy: policy.json,
-    };
-    const putResourcePolicyCommand = new PutResourcePolicyCommand(
-      putResourcePolicyPayload
-    );
-
-    await client.send(putResourcePolicyCommand).catch((error) => {
-      new TypedErrorHandler().handleError(error, {
-        MalformedPolicyDocumentException: `Could not grant access to secret ${chalk.bold(
-          this.getKey()
-        )} because the user with the ARN ${chalk.bold(
-          this.iamARN
-        )} could not be found.`,
-      });
+    await new PutResourcePolicyRequest().execute(this.getKey(), policy, {
+      MalformedPolicyDocumentException: `Could not grant access to secret ${chalk.bold(
+        this.getKey()
+      )} because the user with the ARN ${chalk.bold(
+        this.iamARN
+      )} could not be found.`,
     });
 
     return `Access to secret ${chalk.bold(

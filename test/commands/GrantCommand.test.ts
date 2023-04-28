@@ -9,11 +9,13 @@ class MalformedPolicyDocumentException extends Error {
     public __type: string = "MalformedPolicyDocumentException";
 }
 
+const secretName = "hush-secret";
+const arnDoesNotExist = "arn:aws:iam::123456789876:user/does.not.exist";
+const arnDoesExist = "arn:aws:iam::123456789876:user/does.exist";
+
 describe("GrantCommand", () => {
     it("throws an error when the secret can't be found", async () => {
-        const secretName = "does-not-exist";
-        const grantCommand = new GrantCommand(secretName, "hudefude");
-
+        const grantCommand = new GrantCommand(secretName, arnDoesExist);
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
@@ -26,16 +28,13 @@ describe("GrantCommand", () => {
         try {
             await grantCommand.execute();
         } catch(error: any) {
+            expect(error.toString()).toContain("Could not find secret");
             expect(error.toString()).toContain(secretName);
-            expect(error.toString()).toContain("could not be found.");
         }
         spy.mockReset();
     });
 
     it("throws an error when the user to grant access to can't be found", async () => {
-        const secretName = "does-exist";
-        const arnDoesNotExist = "arn:aws:iam::123456789:user/hudefude";
-        
         const grantCommand = new GrantCommand(secretName, arnDoesNotExist);
 
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
@@ -62,8 +61,6 @@ describe("GrantCommand", () => {
     });
 
     it("can grant access to a user", async () => {
-        const secretName = "does-exist";
-        const arnDoesExist = "arn:aws:iam::123456789:user/hudefude";
         
         const grantCommand = new GrantCommand(secretName, arnDoesExist);
 
@@ -83,9 +80,6 @@ describe("GrantCommand", () => {
     });
 
     it("will not duplicate policy statements when granted twice", async () => {
-        const secretName = "does-exist";
-        const arnDoesExist = "arn:aws:iam::123457898765:user/hudefude";
-        
         const grantCommand = new GrantCommand(secretName, arnDoesExist);
 
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
