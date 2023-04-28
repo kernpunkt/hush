@@ -44,7 +44,6 @@ class GrantCommand extends BaseCommand {
 
     let policy: PolicyDocument;
     if (policyResult?.ResourcePolicy) {
-      console.log(policyResult.ResourcePolicy);
       policy = PolicyDocument.fromJson(policyResult.ResourcePolicy);
     } else {
       policy = new PolicyDocument();
