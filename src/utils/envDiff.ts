@@ -4,6 +4,14 @@ export type EnvDiffResult = {
   removed: string[];
 };
 
+export function isEnvDiffResult(item: any): item is EnvDiffResult {
+  return (
+    (item as EnvDiffResult).added !== undefined &&
+    (item as EnvDiffResult).removed !== undefined &&
+    (item as EnvDiffResult).changed !== undefined
+  );
+}
+
 export default function envDiff(
   currentLines: string[],
   newLines: string[]

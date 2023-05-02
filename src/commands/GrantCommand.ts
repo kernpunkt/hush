@@ -1,12 +1,5 @@
-import {
-  GetResourcePolicyCommand,
-  GetResourcePolicyCommandInput,
-  PutResourcePolicyCommand,
-  PutResourcePolicyCommandInput,
-} from "@aws-sdk/client-secrets-manager";
 import BaseCommand from "./BaseCommand";
 import chalk from "chalk";
-import TypedErrorHandler from "../utils/TypedErrorHandler";
 import { ArnPrincipal, Statement } from "@thinkinglabs/aws-iam-policy";
 import GetResourcePolicyRequest from "../requests/GetResourcePolicyRequest";
 import findStatementByArn from "../utils/findStatementByArn";

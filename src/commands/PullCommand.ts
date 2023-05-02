@@ -1,13 +1,10 @@
-import {
-  GetSecretValueCommand,
-  GetSecretValueCommandInput,
-} from "@aws-sdk/client-secrets-manager";
 import path from "path";
-import { createReadStream, existsSync, writeFileSync } from "fs";
+import { writeFileSync } from "fs";
 import chalk from "chalk";
-import { createInterface } from "readline";
 import envDiff, { EnvDiffResult } from "../utils/envDiff";
 import BaseCommand from "./BaseCommand";
+import GetSecretValueRequest from "../requests/GetSecretValueRequest";
+import LineReader from "../utils/LineReader";
 
 export type PullCommandOptions = {
   force?: boolean;
@@ -16,44 +13,32 @@ export type PullCommandOptions = {
 class PullCommand extends BaseCommand {
   private envFile: string;
   private force: boolean;
+  private lineReader: LineReader;
 
   constructor(key: string, envFile: string, options: PullCommandOptions) {
     super();
     this.key = key;
     this.envFile = path.resolve(envFile);
     this.force = options.force || false;
+    this.setLineReader(new LineReader());
+  }
+
+  public setLineReader(lineReader: LineReader): this {
+    this.lineReader = lineReader;
+    return this;
   }
 
   public async execute(): Promise<string | EnvDiffResult> {
-    const currentLines = await this.readLines();
+    let currentLines: string[];
+    try {
+      currentLines = this.lineReader.readLines(this.envFile);
+    } catch (error) {
+      currentLines = [];
+    }
 
     const filename = path.resolve(this.envFile);
-    const client = this.getClient();
 
-    const getSecretValuePayload: GetSecretValueCommandInput = {
-      SecretId: this.getKey(),
-    };
-    const getSecretValueCommand = new GetSecretValueCommand(
-      getSecretValuePayload
-    );
-
-    const data = await client.send(getSecretValueCommand).catch((error) => {
-      if (
-        error instanceof Error &&
-        "__type" in error &&
-        error["__type"] === "ResourceNotFoundException"
-      ) {
-        throw new Error(
-          `AWS SecretManager could not find ${chalk.bold(
-            this.getKey()
-          )}. Are you sure it exists and you have read access?`
-        );
-      }
-
-      throw new Error(
-        `Error receiving secret ${chalk.bold(this.getKey())}: ${error.message}`
-      );
-    });
+    const data = await new GetSecretValueRequest().execute(this.getKey());
 
     const secretsOutput: string[] = [];
 
@@ -75,26 +60,6 @@ class PullCommand extends BaseCommand {
     return `${chalk.green(
       "Done!"
     )} Secrets successfully written to ${chalk.bold(path.basename(filename))}.`;
-  }
-
-  private async readLines(): Promise<string[]> {
-    return new Promise<string[]>((resolve, reject) => {
-      if (!existsSync(this.envFile)) {
-        resolve([]);
-      }
-
-      const readline = createInterface({
-        input: createReadStream(this.envFile),
-        crlfDelay: Infinity,
-      });
-      const lines: string[] = [];
-      readline.on("line", (line) => {
-        lines.push(line);
-      });
-
-      readline.on("close", () => resolve(lines));
-      readline.on("error", () => reject(lines));
-    });
   }
 }
 

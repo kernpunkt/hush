@@ -1,19 +1,12 @@
-import { CreateSecretCommand, PutSecretValueCommandInput, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import PushCommand from "../../src/commands/PushCommand";
-import LineReader from "../../src/utils/LineReader";
+import MockLineReader from "../support/MockLineReader";
 import PutSecretValueRequest from "../../src/requests/PutSecretValueRequest";
 import CreateSecretRequest from "../../src/requests/CreateSecretRequest";
-
-class MockLineReader extends LineReader {
-    public readLines(envFile: string) {
-        return ['HELLO="WORLD"']; 
-    }
-}
 
 describe("PushCommand", () => {
     it("tries to overwrite a secret first", () => {
         const command = new PushCommand("hello-world", ".env.test");
-        command.setLineReader(new MockLineReader());
+        command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
         const spy = jest.spyOn(PutSecretValueRequest.prototype, "execute");
 
         spy.mockImplementation(() => {
