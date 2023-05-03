@@ -18,15 +18,16 @@ class DeleteRequest extends BaseRequest {
         key
       )} could not be deleted because it was not found.`,
     };
-    const client = this.getClient();
     const payload: DeleteSecretCommandInput = {
       SecretId: key,
     };
     const command = new DeleteSecretCommand(payload);
 
-    return client.send(command).catch((error) => {
-      new TypedErrorHandler().handleError(error, mapping);
-    });
+    return this.getClient()
+      .send(command)
+      .catch((error: any) => {
+        new TypedErrorHandler().handleError(error, mapping);
+      });
   }
 }
 
