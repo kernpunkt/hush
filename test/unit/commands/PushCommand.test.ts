@@ -1,7 +1,7 @@
-import PushCommand from "../../src/commands/PushCommand";
-import MockLineReader from "../support/MockLineReader";
-import PutSecretValueRequest from "../../src/requests/PutSecretValueRequest";
-import CreateSecretRequest from "../../src/requests/CreateSecretRequest";
+import PushCommand from "../../../src/commands/PushCommand";
+import MockLineReader from "../../support/MockLineReader";
+import PutSecretValueRequest from "../../../src/requests/PutSecretValueRequest";
+import CreateSecretRequest from "../../../src/requests/CreateSecretRequest";
 
 describe("PushCommand", () => {
     it("tries to overwrite a secret first", () => {

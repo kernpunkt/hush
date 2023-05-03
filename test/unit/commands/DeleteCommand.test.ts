@@ -1,7 +1,7 @@
 import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
-import DeleteCommand from "../../src/commands/DeleteCommand";
+import DeleteCommand from "../../../src/commands/DeleteCommand";
 import moment from "moment";
-import DeleteRequest from "../../src/requests/DeleteRequest";
+import DeleteRequest from "../../../src/requests/DeleteRequest";
 
 class ResourceNotFoundException extends Error {
     public __type: string = "ResourceNotFoundException";

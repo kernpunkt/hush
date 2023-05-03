@@ -1,5 +1,5 @@
 import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
-import GrantCommand from "../../src/commands/GrantCommand";
+import GrantCommand from "../../../src/commands/GrantCommand";
 import { ArnPrincipal, PolicyDocument, Statement } from "@thinkinglabs/aws-iam-policy";
 
 class ResourceNotFoundException extends Error {

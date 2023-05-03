@@ -25,7 +25,8 @@
     "eslint": "eslint .",
     "eslint:fix": "eslint --fix .",
     "test": "jest",
-    "prepare": "rm -rf dist && npm run build && npm test"
+    "prepare": "rm -rf dist && npm run build && npm test",
+    "test:unit": "jest test/unit"
   },
   "devDependencies": {
     "@types/jest": "^29.5.1",

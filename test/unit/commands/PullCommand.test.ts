@@ -1,7 +1,7 @@
-import PullCommand from "../../src/commands/PullCommand";
-import GetSecretValueRequest from "../../src/requests/GetSecretValueRequest";
-import MockLineReader from "../support/MockLineReader";
-import { EnvDiffResult, isEnvDiffResult } from "../../src/utils/envDiff";
+import PullCommand from "../../../src/commands/PullCommand";
+import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
+import MockLineReader from "../../support/MockLineReader";
+import { EnvDiffResult, isEnvDiffResult } from "../../../src/utils/envDiff";
 import fs from "fs";
 
 describe("PullCommand", () => {
