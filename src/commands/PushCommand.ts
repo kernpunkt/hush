@@ -8,15 +8,16 @@ import BaseCommand from "./BaseCommand";
 import LineReader from "../utils/LineReader";
 import PutSecretValueRequest from "../requests/PutSecretValueRequest";
 import CreateSecretRequest from "../requests/CreateSecretRequest";
+import PushCommandInput from "../@types/PushCommandInput";
 
 class PushCommand extends BaseCommand {
   private envFile: string;
   private lineReader: LineReader;
 
-  constructor(key: string, envFile: string) {
+  constructor(input: PushCommandInput) {
     super();
-    this.key = key;
-    this.envFile = path.resolve(envFile);
+    this.key = input.key;
+    this.envFile = path.resolve(input.envFile);
     this.setLineReader(new LineReader());
   }
 

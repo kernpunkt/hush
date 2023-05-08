@@ -9,7 +9,7 @@ class ResourceNotFoundException extends Error {
 
 describe("DeleteCommand", () => {
     it("will schedule a secret for deletion", async () => {
-        const deleteCommand = new DeleteCommand("hello-world", {});
+        const deleteCommand = new DeleteCommand({ key: "hello-world" });
         const spy = jest.spyOn(DeleteRequest.prototype, "execute");
 
         const now = new Date();
@@ -29,7 +29,7 @@ describe("DeleteCommand", () => {
     });
 
     it("will give a helpful error message if the secret can't be found", async () => {
-        const deleteCommand = new DeleteCommand("hello-world", {});
+        const deleteCommand = new DeleteCommand({ key: "hello-world" });
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
 
         spy.mockImplementation(() => {
@@ -50,7 +50,7 @@ describe("DeleteCommand", () => {
     });
 
     it("will just display other errors", async () => {
-        const deleteCommand = new DeleteCommand("hello-world", {});
+        const deleteCommand = new DeleteCommand({key: "hello-world"});
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
 
         spy.mockImplementation(() => {
@@ -70,7 +70,7 @@ describe("DeleteCommand", () => {
     });
 
     it("can use the force option to delete a secret without scheduling for deletion", async () => {
-        const deleteCommand = new DeleteCommand("hello-world", {force: true});
+        const deleteCommand = new DeleteCommand({ key: "hello-world", force: true});
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockReset();
 

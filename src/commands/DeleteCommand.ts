@@ -2,6 +2,7 @@ import BaseCommand from "./BaseCommand";
 import chalk from "chalk";
 import moment from "moment";
 import DeleteRequest from "../requests/DeleteRequest";
+import DeleteCommandInput from "../@types/DeleteCommandInput";
 
 export type DeleteCommandOptions = {
   force?: boolean;
@@ -10,10 +11,10 @@ export type DeleteCommandOptions = {
 class DeleteCommand extends BaseCommand {
   private force: boolean;
 
-  constructor(key: string, options: DeleteCommandOptions) {
+  constructor(input: DeleteCommandInput) {
     super();
-    this.key = key;
-    this.force = options.force || false;
+    this.key = input.key;
+    this.force = input.force || false;
   }
 
   public async execute(): Promise<string> {

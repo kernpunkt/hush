@@ -6,7 +6,7 @@ import fs from "fs";
 
 describe("PullCommand", () => {
     it("makes you aware of changes before writing to file", async() => {
-        const command = new PullCommand("secret-name", "./.env.test", {});
+        const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
         command.setLineReader(new MockLineReader([
             { key: "HELLO", value: "WORLD"},
             { key: "RAX", value: "KNAX" }
@@ -43,7 +43,7 @@ describe("PullCommand", () => {
         writeFileSyncSpy.mockReset();
     });
     it("can be forced to write changes with the force option", async () => {
-        const command = new PullCommand("secret-name", "./.env.test", {force: true});
+        const command = new PullCommand({ key: "secret-name", envFile: "./.env.test", force: true});
         command.setLineReader(new MockLineReader(['HELLO="WORLD"','RAX="KNAX"']));
 
         const spy = jest.spyOn(GetSecretValueRequest.prototype, "execute")
@@ -74,7 +74,7 @@ describe("PullCommand", () => {
         writeFileSyncSpy.mockReset();
     });
     it("will write without force if secret file is empty", async () => {
-        const command = new PullCommand("secret-name", "./.env.test", {force: true});
+        const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
         command.setLineReader(new MockLineReader([]));
 
         const spy = jest.spyOn(GetSecretValueRequest.prototype, "execute")

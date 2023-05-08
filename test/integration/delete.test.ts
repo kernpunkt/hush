@@ -19,7 +19,7 @@ describe("DeleteCommand", () => {
         await client.send(createSecretCommand);
     });
     it("can delete a secret that was previously created by AWS SDK", async () => {
-        const deleteCommand = new DeleteCommand(secretName, { force: true });
+        const deleteCommand = new DeleteCommand({ key: secretName, force: true });
         deleteCommand.setPrefix(prefix);
         await deleteCommand.execute();
 

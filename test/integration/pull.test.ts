@@ -22,7 +22,7 @@ describe("Pull command", () => {
         await client.send(putSecretValueCommand);
     });
     it("can pull a secret", async () => {
-        const pullCommand = new PullCommand(secretName, ".env.test", {});
+        const pullCommand = new PullCommand({ key: secretName, envFile: ".env.test"});
         pullCommand.setPrefix(prefix);
         pullCommand.setLineReader(new MockLineReader([]));
 

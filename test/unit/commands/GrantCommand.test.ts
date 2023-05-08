@@ -15,7 +15,7 @@ const arnDoesExist = "arn:aws:iam::123456789876:user/does.exist";
 
 describe("GrantCommand", () => {
     it("throws an error when the secret can't be found", async () => {
-        const grantCommand = new GrantCommand(secretName, arnDoesExist);
+        const grantCommand = new GrantCommand({ key: secretName, iamARN: arnDoesExist});
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
@@ -35,7 +35,7 @@ describe("GrantCommand", () => {
     });
 
     it("throws an error when the user to grant access to can't be found", async () => {
-        const grantCommand = new GrantCommand(secretName, arnDoesNotExist);
+        const grantCommand = new GrantCommand({ key: secretName, iamARN: arnDoesNotExist});
 
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockImplementationOnce(() => {
@@ -61,8 +61,7 @@ describe("GrantCommand", () => {
     });
 
     it("can grant access to a user", async () => {
-        
-        const grantCommand = new GrantCommand(secretName, arnDoesExist);
+        const grantCommand = new GrantCommand({ key: secretName, iamARN: arnDoesExist});
 
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockImplementation(() => {
@@ -80,7 +79,7 @@ describe("GrantCommand", () => {
     });
 
     it("will not duplicate policy statements when granted twice", async () => {
-        const grantCommand = new GrantCommand(secretName, arnDoesExist);
+        const grantCommand = new GrantCommand({  key: secretName, iamARN: arnDoesExist});
 
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockImplementationOnce(() => {

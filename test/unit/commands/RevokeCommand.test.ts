@@ -10,7 +10,7 @@ import PutResourcePolicyRequest from "../../../src/requests/PutResourcePolicyReq
 
 describe("RevokeCommand", () => {
     it("throws an error if no statement could be found to revoke it", async () => {
-        const revokeCommand = new RevokeCommand(secretName, arnDoesExist);
+        const revokeCommand = new RevokeCommand({ key: secretName, iamARN: arnDoesExist});
         const spy = jest.spyOn(GetResourcePolicyRequest.prototype, "execute");
         spy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
@@ -30,7 +30,7 @@ describe("RevokeCommand", () => {
     });
 
     it("revokes access to a secret", async () => {
-        const revokeCommand = new RevokeCommand(secretName, arnDoesExist);
+        const revokeCommand = new RevokeCommand({ key: secretName, iamARN: arnDoesExist});
         const policy = new PolicyDocument([new Statement({
             effect: "Allow",
             principals: [new ArnPrincipal(arnDoesExist)],
@@ -61,7 +61,7 @@ describe("RevokeCommand", () => {
     });
 
     it("throws an error when the secret does not exist", async () => {
-        const revokeCommand = new RevokeCommand(secretName, arnDoesExist);
+        const revokeCommand = new RevokeCommand({ key: secretName, iamARN: arnDoesExist});
 
         const spy = jest.spyOn(GetResourcePolicyRequest.prototype, "execute");
         spy.mockImplementation(() => {

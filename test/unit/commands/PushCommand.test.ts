@@ -5,7 +5,7 @@ import CreateSecretRequest from "../../../src/requests/CreateSecretRequest";
 
 describe("PushCommand", () => {
     it("tries to overwrite a secret first", () => {
-        const command = new PushCommand("hello-world", ".env.test");
+        const command = new PushCommand({ key: "hello-world", envFile: ".env.test"});
         command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
         const spy = jest.spyOn(PutSecretValueRequest.prototype, "execute");
 
@@ -19,7 +19,7 @@ describe("PushCommand", () => {
         spy.mockReset();
     });
     it("will create a new secret if none exist first", async () => {
-        const command = new PushCommand("hello-world", ".env.test");
+        const command = new PushCommand({ key: "hello-world", envFile: ".env.test"});
         command.setLineReader(new MockLineReader());
 
         const putSpy = jest.spyOn(PutSecretValueRequest.prototype, "execute");

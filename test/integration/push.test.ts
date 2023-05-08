@@ -9,7 +9,7 @@ const client = new SecretsManagerClient({region: "eu-central-1"});
 
 describe("PushCommand", () => {
     it("can create a new secret, given an .env file", async () => {
-        const pushCommand = new PushCommand(secretName, ".env.test");
+        const pushCommand = new PushCommand({ key: secretName, envFile: ".env.test"});
         pushCommand.setPrefix(prefix);
         pushCommand.setLineReader(new MockLineReader([{key:"HUDE", value: "FUDE"}]));
         await pushCommand.execute();

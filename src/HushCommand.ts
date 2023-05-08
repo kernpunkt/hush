@@ -6,6 +6,8 @@ import { EnvDiffResult } from "./utils/envDiff";
 import DeleteCommand, { DeleteCommandOptions } from "./commands/DeleteCommand";
 import GrantCommand from "./commands/GrantCommand";
 import RevokeCommand from "./commands/RevokeCommand";
+import DeleteCommandInput from "./@types/DeleteCommandInput";
+import PullCommandInput from "./@types/PullCommandInput";
 
 class HushCommand extends Command {
   constructor() {
@@ -43,7 +45,7 @@ class HushCommand extends Command {
       )
       .action(async (key: string, iamARN: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
-        const command = new GrantCommand(key, iamARN);
+        const command = new GrantCommand({ key, iamARN });
         command
           .execute()
           .then((result) => {
@@ -66,7 +68,7 @@ class HushCommand extends Command {
       )
       .action(async (key: string, iamARN: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
-        const command = new RevokeCommand(key, iamARN);
+        const command = new RevokeCommand({ key, iamARN });
         command
           .execute()
           .then((result) => {
@@ -89,7 +91,11 @@ class HushCommand extends Command {
       )
       .action(async (key: string, options: DeleteCommandOptions) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Delete\n`);
-        const command = new DeleteCommand(key, options);
+        const input: DeleteCommandInput = { key };
+        if (options.force) {
+          input.force = options.force;
+        }
+        const command = new DeleteCommand(input);
         command
           .execute()
           .then((result) => {
@@ -112,7 +118,7 @@ class HushCommand extends Command {
       )
       .action(async (key: string, envFile: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
-        const command = new PushCommand(key, envFile);
+        const command = new PushCommand({ key, envFile });
         command
           .execute()
           .then((result) => {
@@ -140,7 +146,12 @@ class HushCommand extends Command {
       .action(async (key, envFile: string, options: PullCommandOptions) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Pull\n`);
 
-        const command = new PullCommand(key, envFile, options);
+        const input: PullCommandInput = { key, envFile };
+        if (options.force) {
+          input.force = options.force;
+        }
+
+        const command = new PullCommand(input);
         command
           .execute()
           .then((result) => {

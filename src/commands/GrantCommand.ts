@@ -4,14 +4,15 @@ import { ArnPrincipal, Statement } from "@thinkinglabs/aws-iam-policy";
 import GetResourcePolicyRequest from "../requests/GetResourcePolicyRequest";
 import findStatementByArn from "../utils/findStatementByArn";
 import PutResourcePolicyRequest from "../requests/PutResourcePolicyRequest";
+import GrantCommandInput from "../@types/GrantCommandInput";
 
 class GrantCommand extends BaseCommand {
   private iamARN: string;
 
-  constructor(key: string, iamARN: string) {
+  constructor(input: GrantCommandInput) {
     super();
-    this.key = key;
-    this.iamARN = iamARN;
+    this.key = input.key;
+    this.iamARN = input.iamARN;
   }
 
   public async execute(): Promise<string> {

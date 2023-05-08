@@ -4,13 +4,14 @@ import findStatementByArn from "../utils/findStatementByArn";
 import chalk from "chalk";
 import removeStatementByArn from "../utils/removeStatementByArn";
 import PutResourcePolicyRequest from "../requests/PutResourcePolicyRequest";
+import { RevokeCommandInput } from "../@types/RevokeCommandInput";
 class RevokeCommand extends BaseCommand {
   private iamARN: string;
 
-  constructor(key: string, iamARN: string) {
+  constructor(input: RevokeCommandInput) {
     super();
-    this.key = key;
-    this.iamARN = iamARN;
+    this.key = input.key;
+    this.iamARN = input.iamARN;
   }
 
   public async execute(): Promise<string> {

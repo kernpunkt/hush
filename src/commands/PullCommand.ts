@@ -6,6 +6,7 @@ import BaseCommand from "./BaseCommand";
 import GetSecretValueRequest from "../requests/GetSecretValueRequest";
 import LineReader from "../utils/LineReader";
 import SecretEntry from "../@types/SecretEntry";
+import PullCommandInput from "../@types/PullCommandInput";
 
 export type PullCommandOptions = {
   force?: boolean;
@@ -16,11 +17,11 @@ class PullCommand extends BaseCommand {
   private force: boolean;
   private lineReader: LineReader;
 
-  constructor(key: string, envFile: string, options: PullCommandOptions) {
+  constructor(input: PullCommandInput) {
     super();
-    this.key = key;
-    this.envFile = path.resolve(envFile);
-    this.force = options.force || false;
+    this.key = input.key;
+    this.envFile = path.resolve(input.envFile);
+    this.force = input.force || false;
     this.setLineReader(new LineReader());
   }
 
