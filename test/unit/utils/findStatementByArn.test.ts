@@ -1,5 +1,5 @@
 import { ArnPrincipal, PolicyDocument, Statement } from "@thinkinglabs/aws-iam-policy";
-import findStatementByArn from "../../src/utils/findStatementByArn";
+import findStatementByArn from "../../../src/utils/findStatementByArn";
 
 const alice = "arn:aws:iam::123456789876:user/alice";
 const bob = "arn:aws:iam::123456789876:user/bob";

@@ -1,7 +1,7 @@
-import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
-import DeleteCommand from "../../src/commands/DeleteCommand";
+import { SecretsManagerClient, DeleteSecretCommandInput } from "@aws-sdk/client-secrets-manager";
+import DeleteCommand from "../../../src/commands/DeleteCommand";
 import moment from "moment";
-import DeleteRequest from "../../src/requests/DeleteRequest";
+import DeleteRequest from "../../../src/requests/DeleteRequest";
 
 class ResourceNotFoundException extends Error {
     public __type: string = "ResourceNotFoundException";
@@ -9,7 +9,7 @@ class ResourceNotFoundException extends Error {
 
 describe("DeleteCommand", () => {
     it("will schedule a secret for deletion", async () => {
-        const deleteCommand = new DeleteCommand("hello-world");
+        const deleteCommand = new DeleteCommand("hello-world", {});
         const spy = jest.spyOn(DeleteRequest.prototype, "execute");
 
         const now = new Date();
@@ -29,7 +29,7 @@ describe("DeleteCommand", () => {
     });
 
     it("will give a helpful error message if the secret can't be found", async () => {
-        const deleteCommand = new DeleteCommand("hello-world");
+        const deleteCommand = new DeleteCommand("hello-world", {});
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
 
         spy.mockImplementation(() => {
@@ -50,7 +50,7 @@ describe("DeleteCommand", () => {
     });
 
     it("will just display other errors", async () => {
-        const deleteCommand = new DeleteCommand("hello-world");
+        const deleteCommand = new DeleteCommand("hello-world", {});
         const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
 
         spy.mockImplementation(() => {
@@ -69,4 +69,20 @@ describe("DeleteCommand", () => {
         spy.mockReset();
     });
 
+    it("can use the force option to delete a secret without scheduling for deletion", async () => {
+        const deleteCommand = new DeleteCommand("hello-world", {force: true});
+        const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
+        spy.mockReset();
+
+        spy.mockImplementation(() => {
+            return new Promise((resolve, reject) => {
+                resolve({$metadata: {}})
+            });
+        });
+        const result = await deleteCommand.execute();
+        expect(spy).toHaveBeenCalled();
+        expect(result).toContain("hush-hello-world");
+        expect(result).toContain("successfully deleted.");
+        spy.mockReset();
+    });
 });

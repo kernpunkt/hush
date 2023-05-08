@@ -24,8 +24,10 @@
     "prettier": "prettier --write --ignore-unknown .",
     "eslint": "eslint .",
     "eslint:fix": "eslint --fix .",
+    "prepare": "rm -rf dist && npm run build && npm test",
     "test": "jest",
-    "prepare": "rm -rf dist && npm run build && npm test"
+    "test:integration": "jest test/integration",
+    "test:unit": "jest test/unit"
   },
   "devDependencies": {
     "@types/jest": "^29.5.1",

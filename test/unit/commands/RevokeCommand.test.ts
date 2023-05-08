@@ -2,12 +2,11 @@ const secretName = "hush-secret";
 const arnDoesNotExist = "arn:aws:iam::123456789876:user/does.not.exist";
 const arnDoesExist = "arn:aws:iam::123456789876:user/does.exist";
 
-import removeStatementByArn from "../../src/utils/removeStatementByArn";
+import removeStatementByArn from "../../../src/utils/removeStatementByArn";
 import { ArnPrincipal, PolicyDocument, Statement } from "@thinkinglabs/aws-iam-policy";
-import RevokeCommand from "../../src/commands/RevokeCommand";
-import GetResourcePolicyRequest from "../../src/requests/GetResourcePolicyRequest";
-import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
-import PutResourcePolicyRequest from "../../src/requests/PutResourcePolicyRequest";
+import RevokeCommand from "../../../src/commands/RevokeCommand";
+import GetResourcePolicyRequest from "../../../src/requests/GetResourcePolicyRequest";
+import PutResourcePolicyRequest from "../../../src/requests/PutResourcePolicyRequest";
 
 describe("RevokeCommand", () => {
     it("throws an error if no statement could be found to revoke it", async () => {

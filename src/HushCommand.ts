@@ -3,7 +3,7 @@ import PushCommand from "./commands/PushCommand";
 import chalk from "chalk";
 import PullCommand, { PullCommandOptions } from "./commands/PullCommand";
 import { EnvDiffResult } from "./utils/envDiff";
-import DeleteCommand from "./commands/DeleteCommand";
+import DeleteCommand, { DeleteCommandOptions } from "./commands/DeleteCommand";
 import GrantCommand from "./commands/GrantCommand";
 import RevokeCommand from "./commands/RevokeCommand";
 
@@ -83,9 +83,13 @@ class HushCommand extends Command {
         "<key>",
         "The designator of a secret to delete. All keys get prefixed with 'hush-'"
       )
-      .action(async (key: string) => {
+      .option(
+        "-f, --force",
+        "Force the secret to be deleted without prior scheduling for deletion."
+      )
+      .action(async (key: string, options: DeleteCommandOptions) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Delete\n`);
-        const command = new DeleteCommand(key);
+        const command = new DeleteCommand(key, options);
         command
           .execute()
           .then((result) => {

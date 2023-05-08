@@ -1,5 +1,5 @@
 import { Command, ParseOptions } from "commander";
-import HushCommand from "../src/HushCommand";
+import HushCommand from "../../src/HushCommand";
 
 describe("HushCommand", () => {
     it("throws an error if no AWS_PROFILE can be found", () => {
