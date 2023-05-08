@@ -1,12 +1,12 @@
 {
   "name": "@kernpunkt/hush",
-  "description": "Command line tool to store and retrieve the contents of .env files in AWS SecertsManager.",
+  "description": "Command line tool to store and retrieve the contents of .env files in AWS SecretsManager.",
   "author": {
     "name": "Jörn Meyer",
     "email": "joern.meyer@kernpunkt.de",
     "url": "https://joern.url.lol/🧑‍💻"
   },
-  "version": "0.6.1",
+  "version": "0.6.2",
   "license": "MIT",
   "bin": {
     "hush": "dist/hush.js"
@@ -21,6 +21,7 @@
   "scripts": {
     "build": "rm -rf ./dist && tsc",
     "watch": "rm -rf ./dist && tsc -w",
+    "hush": "yarn build && node dist/hush.js",
     "prettier": "prettier --write --ignore-unknown .",
     "eslint": "eslint .",
     "eslint:fix": "eslint --fix .",

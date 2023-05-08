@@ -23,11 +23,14 @@ class HushCommand extends Command {
   run(argv?: readonly string[], options?: ParseOptions): this {
     const awsProfile = process.env["AWS_PROFILE"];
     if (!awsProfile) {
-      throw new Error(
-        `You do not have an AWS profile selected. Please export it by running ${chalk.bold(
+      console.log(
+        `${chalk.bold(
+          "Hush! 🤫 — Error"
+        )}: You do not have an AWS profile selected. Please export it by running ${chalk.bold(
           "export AWS_PROFILE=your-profile-name"
         )}.`
       );
+      process.exit(1);
     }
 
     return super.parse(argv, options);
