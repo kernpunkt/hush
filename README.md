@@ -64,6 +64,26 @@ So for example:
 
 `yarn hush delete joern-prod`
 
+You can specify the `--force` parameter to force deletion of the secret without scheduling the deletion for a later date.
+
+## Granting access to secrets
+
+(_Not illustrated in a gif to not expose secret information_)
+
+To grant another IAM user **in the same AWS account** access to your secret, use the `grant` command like this:
+
+`yarn hush grant joern-prod <IAM ARN>`
+
+## Revoking access to secrets
+
+(_Not illustrated in a gif to not expose secret information_)
+
+To prevent another IAM user **in the same AWS account** from accessing your secret, use the `revoke` command like this:
+
+`yarn hush revoke joern-prod <IAM ARN>`
+
+Please keep in mind that users with higher privileges than you might still be able to access the secrets.
+
 ## Tests
 
 ### Unit tests
