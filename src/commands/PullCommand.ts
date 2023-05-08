@@ -5,6 +5,7 @@ import envDiff, { EnvDiffResult } from "../utils/envDiff";
 import BaseCommand from "./BaseCommand";
 import GetSecretValueRequest from "../requests/GetSecretValueRequest";
 import LineReader from "../utils/LineReader";
+import SecretEntry from "../@types/SecretEntry";
 
 export type PullCommandOptions = {
   force?: boolean;
@@ -29,7 +30,7 @@ class PullCommand extends BaseCommand {
   }
 
   public async execute(): Promise<string | EnvDiffResult> {
-    let currentLines: string[];
+    let currentLines: SecretEntry[];
     try {
       currentLines = this.lineReader.readLines(this.envFile);
     } catch (error) {
@@ -40,12 +41,12 @@ class PullCommand extends BaseCommand {
 
     const data = await new GetSecretValueRequest().execute(this.getKey());
 
-    const secretsOutput: string[] = [];
+    const secretsOutput: SecretEntry[] = [];
 
     const secrets = JSON.parse(data?.SecretString || "[]");
 
     for (const secret of secrets) {
-      secretsOutput.push(`${secret.key}="${secret.value}"`);
+      secretsOutput.push(secret);
     }
     if (!this.force && currentLines.length) {
       const { added, removed, changed } = envDiff(currentLines, secretsOutput);

@@ -1,7 +1,8 @@
 import { readFileSync } from "fs";
+import SecretEntry from "../@types/SecretEntry";
 
 class LineReader {
-  readLines(envFile: string): any {
+  readLines(envFile: string): SecretEntry[] {
     let secretsRaw: string;
 
     try {

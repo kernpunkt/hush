@@ -1,3 +1,5 @@
+import SecretEntry from "../@types/SecretEntry";
+
 export type EnvDiffResult = {
   changed: string[];
   added: string[];
@@ -13,9 +15,15 @@ export function isEnvDiffResult(item: any): item is EnvDiffResult {
 }
 
 export default function envDiff(
-  currentLines: string[],
-  newLines: string[]
+  currentSecrets: SecretEntry[],
+  newSecrets: SecretEntry[]
 ): EnvDiffResult {
+  // Transform currentSecrets and newSecrets to an array of strings
+  const currentLines = currentSecrets.map(
+    (item) => `${item.key}="${item.value}"`
+  );
+  const newLines = newSecrets.map((item) => `${item.key}="${item.value}"`);
+
   const addedRaw = newLines.filter((item) => !currentLines.includes(item));
   const removedRaw = currentLines.filter((item) => !newLines.includes(item));
   const changesObject =

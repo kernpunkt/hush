@@ -7,7 +7,10 @@ import fs from "fs";
 describe("PullCommand", () => {
     it("makes you aware of changes before writing to file", async() => {
         const command = new PullCommand("secret-name", "./.env.test", {});
-        command.setLineReader(new MockLineReader(['HELLO="WORLD"','RAX="KNAX"']));
+        command.setLineReader(new MockLineReader([
+            { key: "HELLO", value: "WORLD"},
+            { key: "RAX", value: "KNAX" }
+        ]));
 
         const spy = jest.spyOn(GetSecretValueRequest.prototype, "execute")
         spy.mockImplementation(() => {
