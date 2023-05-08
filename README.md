@@ -66,7 +66,15 @@ So for example:
 
 ## Tests
 
-You can run unit tests with Jest by running: `yarn test`
+### Unit tests
+
+You can run unit tests by running: `yarn test:unit`.
+
+### Integration tests
+
+**Hush!** integration tests work by interfacing with a working AWS accoung. Thus, you need to be authenticated by exporting a valid `AWS_PROFILE` environment variable before running them.
+
+**The integration tests will create and delete secrets in your SecretsManager.** You can run them byh executing: `yarn test:integration`.
 
 ## Limitations
 

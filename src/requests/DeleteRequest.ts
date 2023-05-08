@@ -11,6 +11,7 @@ import chalk from "chalk";
 class DeleteRequest extends BaseRequest {
   public async execute(
     key: string,
+    force: boolean,
     providedMapping?: StringMap
   ): Promise<DeleteSecretCommandOutput | void> {
     const mapping = providedMapping || {
@@ -21,6 +22,12 @@ class DeleteRequest extends BaseRequest {
     const payload: DeleteSecretCommandInput = {
       SecretId: key,
     };
+
+    // If force is set, delete the secret regardless of its current state.
+    if (force) {
+      payload.ForceDeleteWithoutRecovery = true;
+    }
+
     const command = new DeleteSecretCommand(payload);
 
     return this.getClient()

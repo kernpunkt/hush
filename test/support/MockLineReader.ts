@@ -1,9 +1,9 @@
 import LineReader from "../../src/utils/LineReader";
 
 class MockLineReader extends LineReader {
-    private lines:string[];
+    private lines:any[];
 
-    constructor(lines?:string[]) {
+    constructor(lines?:any[]) {
         super();
         this.lines = lines || [];
     }
