@@ -1,5 +1,5 @@
 type GrantCommandInput = {
   key: string;
-  iamARN: string;
+  userIdentifier: string;
 };
 export default GrantCommandInput;

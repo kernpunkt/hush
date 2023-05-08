@@ -6,7 +6,7 @@
     "email": "joern.meyer@kernpunkt.de",
     "url": "https://joern.url.lol/🧑‍💻"
   },
-  "version": "0.6.2",
+  "version": "0.6.3",
   "license": "MIT",
   "bin": {
     "hush": "dist/hush.js"
@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.319.0",
+    "@aws-sdk/client-sts": "^3.328.0",
     "@thinkinglabs/aws-iam-policy": "^2.5.1",
     "@types/diff": "^5.0.3",
     "chalk": "^4.1.0-commonjs",

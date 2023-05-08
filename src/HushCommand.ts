@@ -43,12 +43,12 @@ class HushCommand extends Command {
         "The designator of a secret to grant access to. All keys get prefixed with 'hush-'"
       )
       .argument(
-        "<iam-arn>",
-        "The ARN of an IAM user to grant access to the secret to."
+        "<user-identifier>",
+        "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
       )
-      .action(async (key: string, iamARN: string) => {
+      .action(async (key: string, userIdentifier: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
-        const command = new GrantCommand({ key, iamARN });
+        const command = new GrantCommand({ key, userIdentifier });
         command
           .execute()
           .then((result) => {
@@ -66,12 +66,12 @@ class HushCommand extends Command {
         "The designator of a secret to revoke access from. All keys get prefixed with 'hush-'"
       )
       .argument(
-        "<iam-arn>",
-        "The ARN of an IAM user to remove access to the secret to."
+        "<user-identifier>",
+        "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
       )
-      .action(async (key: string, iamARN: string) => {
+      .action(async (key: string, userIdentifier: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
-        const command = new RevokeCommand({ key, iamARN });
+        const command = new RevokeCommand({ key, userIdentifier });
         command
           .execute()
           .then((result) => {
