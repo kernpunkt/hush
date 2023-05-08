@@ -5,31 +5,36 @@ import GetResourcePolicyRequest from "../requests/GetResourcePolicyRequest";
 import findStatementByArn from "../utils/findStatementByArn";
 import PutResourcePolicyRequest from "../requests/PutResourcePolicyRequest";
 import GrantCommandInput from "../@types/GrantCommandInput";
+import GetCallerIdentityRequest from "../requests/GetCallerIdentityRequest";
 
 class GrantCommand extends BaseCommand {
-  private iamARN: string;
+  private userIdentifier: string;
 
   constructor(input: GrantCommandInput) {
     super();
     this.key = input.key;
-    this.iamARN = input.iamARN;
+    this.userIdentifier = input.userIdentifier;
   }
 
   public async execute(): Promise<string> {
+    const iamARN = await new GetCallerIdentityRequest().execute(
+      this.userIdentifier
+    );
+
     const policy = await new GetResourcePolicyRequest().execute({
       SecretId: this.getKey(),
     });
 
-    if (findStatementByArn(policy, this.iamARN)) {
+    if (findStatementByArn(policy, iamARN)) {
       return `User ${chalk.bold(
-        this.iamARN
+        iamARN
       )} already has access to secret ${chalk.bold(this.getKey())}.`;
     }
 
     policy.addStatements(
       new Statement({
         effect: "Allow",
-        principals: [new ArnPrincipal(this.iamARN)],
+        principals: [new ArnPrincipal(iamARN)],
         actions: ["secretsmanager:*"],
         resources: ["*"],
       })
@@ -39,13 +44,13 @@ class GrantCommand extends BaseCommand {
       MalformedPolicyDocumentException: `Could not grant access to secret ${chalk.bold(
         this.getKey()
       )} because the user with the ARN ${chalk.bold(
-        this.iamARN
+        iamARN
       )} could not be found.`,
     });
 
     return `Access to secret ${chalk.bold(
       this.getKey()
-    )} successfully granted to user ${chalk.bold(this.iamARN)}.`;
+    )} successfully granted to user ${chalk.bold(iamARN)}.`;
   }
 }
 

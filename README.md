@@ -72,7 +72,9 @@ You can specify the `--force` parameter to force deletion of the secret without 
 
 To grant another IAM user **in the same AWS account** access to your secret, use the `grant` command like this:
 
-`yarn hush grant joern-prod <IAM ARN>`
+`yarn hush grant joern-prod <user-identifier>`
+
+**`user-identifier` has to be _either_ an AWS ARN _or_ a username for a user that shares an AWS account with you.**
 
 ## Revoking access to secrets
 
@@ -80,7 +82,9 @@ To grant another IAM user **in the same AWS account** access to your secret, use
 
 To prevent another IAM user **in the same AWS account** from accessing your secret, use the `revoke` command like this:
 
-`yarn hush revoke joern-prod <IAM ARN>`
+`yarn hush revoke joern-prod <user-identifier>`
+
+**`user-identifier` has to be _either_ an AWS ARN _or_ a username for a user that shares an AWS account with you.**
 
 Please keep in mind that users with higher privileges than you might still be able to access the secrets.
 
