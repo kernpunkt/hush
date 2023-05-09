@@ -3,11 +3,19 @@ import MockLineReader from "../../support/MockLineReader";
 import PutSecretValueRequest from "../../../src/requests/PutSecretValueRequest";
 import CreateSecretRequest from "../../../src/requests/CreateSecretRequest";
 
+const spy = jest.spyOn(PutSecretValueRequest.prototype, "execute");
+const putSpy = jest.spyOn(PutSecretValueRequest.prototype, "execute");
+const createSpy = jest.spyOn(CreateSecretRequest.prototype, "execute");
+
 describe("PushCommand", () => {
+    beforeEach(() => {
+        spy.mockReset();
+        putSpy.mockReset();
+        createSpy.mockReset();
+    });
     it("tries to overwrite a secret first", () => {
         const command = new PushCommand({ key: "hello-world", envFile: ".env.test"});
         command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
-        const spy = jest.spyOn(PutSecretValueRequest.prototype, "execute");
 
         spy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
@@ -22,15 +30,30 @@ describe("PushCommand", () => {
         const command = new PushCommand({ key: "hello-world", envFile: ".env.test"});
         command.setLineReader(new MockLineReader());
 
-        const putSpy = jest.spyOn(PutSecretValueRequest.prototype, "execute");
         putSpy.mockImplementation(() => { throw new Error("Already exists") });
 
-        const createSpy = jest.spyOn(CreateSecretRequest.prototype, "execute");
         createSpy.mockImplementation();
 
         await command.execute();
         expect(putSpy).toHaveBeenCalled();
         expect(createSpy).toHaveBeenCalled();
     });
-        
+    it("will encrypt a secret file with a password if one is provided", async () => {
+        const command = new PushCommand({ key: "hello-world", envFile: ".env.test", password: "password"});
+        command.setLineReader(new MockLineReader([ { key: "HELLO", value: "WORLD"}]));
+
+        const putSpy = jest.spyOn(PutSecretValueRequest.prototype, "execute");
+        putSpy.mockImplementation(() => {
+            return new Promise((resolve, reject) => {
+                resolve();
+            });
+        });
+        await command.execute();
+        const inputString = putSpy.mock.calls[0][0].SecretString || "";
+        expect(inputString).toMatch(/^encrypted:/);
+
+        expect(() => {
+            JSON.parse(inputString)
+        }).toThrow(); 
+    });
 });
