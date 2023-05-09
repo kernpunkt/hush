@@ -50,7 +50,7 @@ describe("PushCommand", () => {
         });
         await command.execute();
         const inputString = putSpy.mock.calls[0][0].SecretString || "";
-        expect(inputString).toMatch(/^encrypted:/);
+        expect(inputString).toMatch(/^[a-f0-9]{32}:/);
 
         expect(() => {
             JSON.parse(inputString)

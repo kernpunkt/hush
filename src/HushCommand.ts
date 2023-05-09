@@ -157,13 +157,20 @@ class HushCommand extends Command {
         "-f, --force",
         "Force the destination file to be overwritten, even if changes are incoming."
       )
+      .option(
+        "-p, --password",
+        "Provide a password to encrypt the secret before it is sent to the server."
+      )
       .action(async (key, envFile: string, options: PullCommandOptions) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Pull\n`);
-
         const input: PullCommandInput = { key, envFile };
+        if (options.password) {
+          input.password = PromptSync().hide("Please provide a password: ");
+        }
         if (options.force) {
           input.force = options.force;
         }
+
+        console.log(`${chalk.bold("Hush! 🤫")} — Pull\n`);
 
         const command = new PullCommand(input);
         command

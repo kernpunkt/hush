@@ -22,7 +22,9 @@ Install hush to your project by running `yarn add -D @kernpunkt/hush` or `npm in
 
 Before running either of the commands Hush! provides (see below), it's important to export select your AWS profile by running **`export AWS_PROFILE=your-profile-name`** in the shell. If you don't have an AWS profile for your command line yet, [create one first using this guide](https://gist.github.com/joerncodes/6d96114dbbd84f3acd70a2ddb9f056b1).
 
-## Pushing `.env` file
+## Commands
+
+### Pushing `.env` file
 
 ![](/docs/hush-push.gif)
 
@@ -36,7 +38,7 @@ So for example:
 
 **Note:** All keys get prefixed with `hush-` in the AWS SecretsManager to avoid namespace pollution.
 
-## Pulling `.env` file
+### Pulling `.env` file
 
 ![](/docs/hush-pull.gif)
 
@@ -52,7 +54,7 @@ So for example:
 
 If the newly pulled version of the `.env` file contains **additions, changes or deletions**, your local `.env` file will not be overwritten. You can review those changes and then **re-run the command with the `--force` flag**.
 
-## Deleting secrets
+### Deleting secrets
 
 ![](/docs/hush-delete.gif)
 
@@ -66,7 +68,7 @@ So for example:
 
 You can specify the `--force` parameter to force deletion of the secret without scheduling the deletion for a later date.
 
-## Granting access to secrets
+### Granting access to secrets
 
 (_Not illustrated in a gif to not expose secret information_)
 
@@ -76,7 +78,7 @@ To grant another IAM user **in the same AWS account** access to your secret, use
 
 **`user-identifier` has to be _either_ an AWS ARN _or_ a username for a user that shares an AWS account with you.**
 
-## Revoking access to secrets
+### Revoking access to secrets
 
 (_Not illustrated in a gif to not expose secret information_)
 
@@ -87,6 +89,12 @@ To prevent another IAM user **in the same AWS account** from accessing your secr
 **`user-identifier` has to be _either_ an AWS ARN _or_ a username for a user that shares an AWS account with you.**
 
 Please keep in mind that users with higher privileges than you might still be able to access the secrets.
+
+## Encrypting secrets
+
+Both `push` and `pull` can receive an optional `--password` flag. If the flag is present, you will be prompted to provide a password, which is then used to encrypt your `.env` file before uploading it to AWS SecretsManager.
+
+Hush! uses a salted `aes-256-cbc` algorithm for encrypting.
 
 ## Tests
 

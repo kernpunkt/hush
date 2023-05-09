@@ -9,7 +9,7 @@ import LineReader from "../utils/LineReader";
 import PutSecretValueRequest from "../requests/PutSecretValueRequest";
 import CreateSecretRequest from "../requests/CreateSecretRequest";
 import PushCommandInput from "../@types/PushCommandInput";
-import AES from "crypto-js/aes";
+import Encrypter from "../utils/Encrypter";
 
 class PushCommand extends BaseCommand {
   private envFile: string;
@@ -29,16 +29,12 @@ class PushCommand extends BaseCommand {
     return this;
   }
 
-  private encrypt(secretString: string, password: string): string {
-    return AES.encrypt(secretString, password).toString();
-  }
-
   public async execute() {
     const secretArray = this.lineReader.readLines(this.envFile);
     let secretString = JSON.stringify(secretArray);
 
     if (this.password) {
-      secretString = `encrypted:${this.encrypt(secretString, this.password)}`;
+      secretString = new Encrypter().encrypt(secretString, this.password);
     }
 
     const payload: PutSecretValueCommandInput = {
