@@ -6,7 +6,7 @@
     "email": "joern.meyer@kernpunkt.de",
     "url": "https://joern.url.lol/🧑‍💻"
   },
-  "version": "0.6.3",
+  "version": "1.0.0",
   "license": "MIT",
   "bin": {
     "hush": "dist/hush.js"
@@ -25,12 +25,13 @@
     "prettier": "prettier --write --ignore-unknown .",
     "eslint": "eslint .",
     "eslint:fix": "eslint --fix .",
-    "prepare": "rm -rf dist && npm run build && npm test",
+    "prepack": "rm -rf dist && npm run build && npm test",
     "test": "jest",
     "test:integration": "jest test/integration",
     "test:unit": "jest test/unit"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.1.1",
     "@types/jest": "^29.5.1",
     "@types/node": "^18.16.0",
     "@typescript-eslint/eslint-plugin": "^5.59.0",
@@ -51,11 +52,15 @@
     "@aws-sdk/client-sts": "^3.328.0",
     "@thinkinglabs/aws-iam-policy": "^2.5.1",
     "@types/diff": "^5.0.3",
+    "@types/prompt-sync": "^4.2.0",
     "chalk": "^4.1.0-commonjs",
     "commander": "^10.0.1",
+    "crypto-js": "^4.1.1",
     "diff": "^5.1.0",
     "husky": "^8.0.3",
     "moment": "^2.29.4",
+    "prompt-sync": "^4.2.0",
+    "read": "isaacs/read",
     "source-map-support": "^0.5.21"
   }
 }
