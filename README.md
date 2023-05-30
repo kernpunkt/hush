@@ -90,12 +90,6 @@ To prevent another IAM user **in the same AWS account** from accessing your secr
 
 Please keep in mind that users with higher privileges than you might still be able to access the secrets.
 
-## Encrypting secrets
-
-Both `push` and `pull` can receive an optional `--password` flag. If the flag is present, you will be prompted to provide a password, which is then used to encrypt your `.env` file before uploading it to AWS SecretsManager.
-
-Hush! uses a salted `aes-256-cbc` algorithm for encrypting.
-
 ## Tests
 
 ### Unit tests

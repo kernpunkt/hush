@@ -9,18 +9,15 @@ import LineReader from "../utils/LineReader";
 import PutSecretValueRequest from "../requests/PutSecretValueRequest";
 import CreateSecretRequest from "../requests/CreateSecretRequest";
 import PushCommandInput from "../@types/PushCommandInput";
-import Encrypter from "../utils/Encrypter";
 
 class PushCommand extends BaseCommand {
   private envFile: string;
   private lineReader: LineReader;
-  private password?: string;
 
   constructor(input: PushCommandInput) {
     super();
     this.key = input.key;
     this.envFile = path.resolve(input.envFile);
-    this.password = input.password;
     this.setLineReader(new LineReader());
   }
 
@@ -31,11 +28,7 @@ class PushCommand extends BaseCommand {
 
   public async execute() {
     const secretArray = this.lineReader.readLines(this.envFile);
-    let secretString = JSON.stringify(secretArray);
-
-    if (this.password) {
-      secretString = new Encrypter().encrypt(secretString, this.password);
-    }
+    const secretString = JSON.stringify(secretArray);
 
     const payload: PutSecretValueCommandInput = {
       SecretId: this.getKey(),

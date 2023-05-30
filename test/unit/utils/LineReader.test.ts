@@ -11,8 +11,7 @@ describe("LineReader", () => {
     });
     it("reads line from an .env file and returns SecretEntry[]", () => {
         const lineReader = new LineReader(); 
-        spy.mockReturnValue(`HUDE=FUDE
-RAX=KNAX`);
+        spy.mockReturnValue("HUDE=FUDE\nRAX=KNAX");
         const secrets = lineReader.readLines(".env.test");
         expect(isSecretEntry(secrets[0])).toBeTruthy();
         expect(isSecretEntry(secrets[1])).toBeTruthy();
@@ -34,5 +33,8 @@ RAX=KNAX`);
         } catch (error:any) {
             expect(error.message).toContain("Could not read secrets file");
         }
+    });
+    afterEach(() => {
+        spy.mockReset();
     });
 });

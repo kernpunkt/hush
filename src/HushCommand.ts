@@ -9,7 +9,6 @@ import RevokeCommand from "./commands/RevokeCommand";
 import DeleteCommandInput from "./@types/DeleteCommandInput";
 import PullCommandInput from "./@types/PullCommandInput";
 import PushCommandInput from "./@types/PushCommandInput";
-import PromptSync from "prompt-sync";
 
 class HushCommand extends Command {
   constructor() {
@@ -121,15 +120,8 @@ class HushCommand extends Command {
         "<env-file>",
         "Path to the .env file containing the secrets you want to push."
       )
-      .option(
-        "-p, --password",
-        "Provide a password to encrypt the secret before it is sent to the server."
-      )
-      .action(async (key: string, envFile: string, options: any) => {
+      .action(async (key: string, envFile: string) => {
         const input: PushCommandInput = { key, envFile };
-        if (options.password) {
-          input.password = PromptSync().hide("Please provide a password: ");
-        }
 
         console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
         const command = new PushCommand(input);
@@ -157,15 +149,8 @@ class HushCommand extends Command {
         "-f, --force",
         "Force the destination file to be overwritten, even if changes are incoming."
       )
-      .option(
-        "-p, --password",
-        "Provide a password to encrypt the secret before it is sent to the server."
-      )
       .action(async (key, envFile: string, options: PullCommandOptions) => {
         const input: PullCommandInput = { key, envFile };
-        if (options.password) {
-          input.password = PromptSync().hide("Please provide a password: ");
-        }
         if (options.force) {
           input.force = options.force;
         }

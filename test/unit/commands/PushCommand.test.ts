@@ -38,22 +38,4 @@ describe("PushCommand", () => {
         expect(putSpy).toHaveBeenCalled();
         expect(createSpy).toHaveBeenCalled();
     });
-    it("will encrypt a secret file with a password if one is provided", async () => {
-        const command = new PushCommand({ key: "hello-world", envFile: ".env.test", password: "password"});
-        command.setLineReader(new MockLineReader([ { key: "HELLO", value: "WORLD"}]));
-
-        const putSpy = jest.spyOn(PutSecretValueRequest.prototype, "execute");
-        putSpy.mockImplementation(() => {
-            return new Promise((resolve, reject) => {
-                resolve();
-            });
-        });
-        await command.execute();
-        const inputString = putSpy.mock.calls[0][0].SecretString || "";
-        expect(inputString).toMatch(/^[a-f0-9]{32}:/);
-
-        expect(() => {
-            JSON.parse(inputString)
-        }).toThrow(); 
-    });
 });

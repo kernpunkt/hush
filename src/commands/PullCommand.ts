@@ -7,46 +7,22 @@ import GetSecretValueRequest from "../requests/GetSecretValueRequest";
 import LineReader from "../utils/LineReader";
 import SecretEntry from "../@types/SecretEntry";
 import PullCommandInput from "../@types/PullCommandInput";
-import Encrypter from "../utils/Encrypter";
 
 export type PullCommandOptions = {
   force?: boolean;
-  password?: string;
 };
 
 class PullCommand extends BaseCommand {
   private envFile: string;
   private force: boolean;
   private lineReader: LineReader;
-  private password?: string;
 
   constructor(input: PullCommandInput) {
     super();
     this.key = input.key;
     this.envFile = path.resolve(input.envFile);
     this.force = input.force || false;
-    this.password = input.password;
     this.setLineReader(new LineReader());
-  }
-
-  private parsePassword(input: string): SecretEntry[] {
-    if (input.match(/^[0-9a-f]{32}:/)) {
-      if (!this.password) {
-        throw new Error("Secret is encrypted, but no password was provided.");
-      }
-
-      let decrypted;
-      try {
-        decrypted = new Encrypter().decrypt(input, this.password);
-      } catch (error: any) {
-        throw new Error(
-          "The secret could not be decrypted. Did you use the wrong password?"
-        );
-      }
-
-      return JSON.parse(decrypted);
-    }
-    return JSON.parse(input);
   }
 
   public setLineReader(lineReader: LineReader): this {
@@ -68,7 +44,7 @@ class PullCommand extends BaseCommand {
 
     const secretsOutput: SecretEntry[] = [];
 
-    const secrets = this.parsePassword(data?.SecretString || "[]");
+    const secrets = JSON.parse(data?.SecretString || "[]");
 
     for (const secret of secrets) {
       secretsOutput.push(secret);
