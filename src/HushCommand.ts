@@ -9,6 +9,7 @@ import RevokeCommand from "./commands/RevokeCommand";
 import DeleteCommandInput from "./@types/DeleteCommandInput";
 import PullCommandInput from "./@types/PullCommandInput";
 import PushCommandInput from "./@types/PushCommandInput";
+import ListCommand from "./commands/ListCommand";
 
 class HushCommand extends Command {
   constructor() {
@@ -19,6 +20,7 @@ class HushCommand extends Command {
     this.deleteCommand();
     this.grantCommand();
     this.revokeCommand();
+    this.listCommand();
   }
 
   run(argv?: readonly string[], options?: ParseOptions): this {
@@ -35,6 +37,21 @@ class HushCommand extends Command {
     }
 
     return super.parse(argv, options);
+  }
+
+  private listCommand(): void {
+    this.command("list").action(async () => {
+      console.log(`${chalk.bold("Hush! 🤫")} — List\n`);
+
+      const command = new ListCommand();
+      command
+        .execute()
+        .then((result) => {
+          console.log(result);
+          process.exit(0);
+        })
+        .catch(this.handleError);
+    });
   }
 
   private grantCommand(): void {

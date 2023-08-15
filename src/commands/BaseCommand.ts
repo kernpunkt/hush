@@ -1,6 +1,6 @@
 abstract class BaseCommand {
   protected key: string;
-  private prefix: string;
+  protected prefix: string;
 
   constructor() {
     this.prefix = "hush";

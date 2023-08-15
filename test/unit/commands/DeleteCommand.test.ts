@@ -1,7 +1,7 @@
 import { SecretsManagerClient, DeleteSecretCommandInput } from "@aws-sdk/client-secrets-manager";
 import DeleteCommand from "../../../src/commands/DeleteCommand";
-import moment from "moment";
 import DeleteRequest from "../../../src/requests/DeleteRequest";
+import DateFormatter from "../../../src/utils/DateFormatter";
 
 class ResourceNotFoundException extends Error {
     public __type: string = "ResourceNotFoundException";
@@ -20,7 +20,7 @@ describe("DeleteCommand", () => {
             });
         });
 
-        const dateString = moment(now).format("YYYY-MM-DD HH:mm");
+        const dateString = DateFormatter.formatDate(new Date());
 
         const result = await deleteCommand.execute();
         expect(result).toContain("hush-hello-world");

@@ -6,7 +6,7 @@
     "email": "joern.meyer@kernpunkt.de",
     "url": "https://joern.url.lol/🧑‍💻"
   },
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "MIT",
   "bin": {
     "hush": "dist/hush.js"
@@ -54,11 +54,12 @@
     "@types/diff": "^5.0.3",
     "@types/prompt-sync": "^4.2.0",
     "chalk": "^4.1.0-commonjs",
+    "chalk-table": "^1.0.2",
     "commander": "^10.0.1",
     "crypto-js": "^4.1.1",
+    "date-fns": "^2.30.0",
     "diff": "^5.1.0",
     "husky": "^8.0.3",
-    "moment": "^2.29.4",
     "prompt-sync": "^4.2.0",
     "read": "isaacs/read",
     "source-map-support": "^0.5.21"

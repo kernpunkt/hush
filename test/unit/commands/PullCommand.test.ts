@@ -6,11 +6,31 @@ import fs from "fs";
 
 const spy = jest.spyOn(GetSecretValueRequest.prototype, "execute")
 const writeFileSyncSpy = jest.spyOn(fs, "writeFileSync");
+writeFileSyncSpy.mockImplementation();
 
 describe("PullCommand", () => {
     beforeEach(() => {
         spy.mockReset();
-        writeFileSyncSpy.mockReset();
+        writeFileSyncSpy.mockClear();
+    });
+    it("adds a note to the file, informing you that the file is managed by Hush!", async () => {
+        const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
+        command.setLineReader(new MockLineReader([
+            { key: "HELLO", value: "WORLD"},
+            { key: "RAX", value: "KNAX" }
+        ]));
+        spy.mockResolvedValue({
+            $metadata: {},
+            SecretString: JSON.stringify(
+                [
+                    { key: "HELLO", value: "WORLD"},
+                    { key: "RAX", value: "KNAX" }
+                ]
+            )
+        });
+        const result = await command.execute();
+        const argument = writeFileSyncSpy.mock.calls[0][0];
+        expect((argument as string).startsWith("# Managed by Hush!"));
     });
     it("makes you aware of changes before writing to file", async() => {
         const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
