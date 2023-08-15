@@ -6,6 +6,7 @@
 
 - Added the `list` command
 - Improved date formatting throughout the tool
+- `pull` comamnd provides a comment at the top of the file, including the name of the secret
 
 ## v1.1.0
 
