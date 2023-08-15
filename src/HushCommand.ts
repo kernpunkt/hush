@@ -120,8 +120,16 @@ class HushCommand extends Command {
         "<env-file>",
         "Path to the .env file containing the secrets you want to push."
       )
-      .action(async (key: string, envFile: string) => {
+      .option(
+        "-m, --message <message>",
+        "A message you want to store with this version of the secret."
+      )
+      .action(async (key: string, envFile: string, options: any) => {
         const input: PushCommandInput = { key, envFile };
+
+        if (options.message) {
+          input.message = options.message;
+        }
 
         console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
         const command = new PushCommand(input);

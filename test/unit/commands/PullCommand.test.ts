@@ -19,19 +19,15 @@ describe("PullCommand", () => {
             { key: "RAX", value: "KNAX" }
         ]));
 
-        spy.mockImplementation(() => {
-            return new Promise((resolve, reject) => {
-                resolve({
-                    $metadata: {},
-                    SecretString: JSON.stringify(
-                        [
-                            {key: "HELLO", value: "MUNDO"},
-                            {key: "HUDE", value: "FUDE"},
-                        ]
-                    )
-                });
-            });
-        });
+        spy.mockResolvedValue({
+            $metadata: {},
+            SecretString: JSON.stringify(
+                [
+                    {key: "HELLO", value: "MUNDO"},
+                    {key: "HUDE", value: "FUDE"},
+                ]
+            )
+        })
 
         const result = await command.execute() as EnvDiffResult;
 

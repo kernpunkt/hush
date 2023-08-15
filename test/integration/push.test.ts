@@ -19,11 +19,11 @@ describe("PushCommand", () => {
             SecretId: `${prefix}-${secretName}`
         });
         const response = await client.send(command);
-        const secrets = await JSON.parse(response?.SecretString || "[]");
+        const payload = await JSON.parse(response?.SecretString || "[]");
 
         // Compare secrets against input values
-        expect(secrets[0].key).toEqual("HUDE");
-        expect(secrets[0].value).toEqual("FUDE");       
+        expect(payload.secrets[0].key).toEqual("HUDE");
+        expect(payload.secrets[0].value).toEqual("FUDE");       
     });
     afterAll(async () => {
         // Delete secret after test with SecretsManager Client

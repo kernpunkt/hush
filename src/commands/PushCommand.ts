@@ -9,15 +9,20 @@ import LineReader from "../utils/LineReader";
 import PutSecretValueRequest from "../requests/PutSecretValueRequest";
 import CreateSecretRequest from "../requests/CreateSecretRequest";
 import PushCommandInput from "../@types/PushCommandInput";
+import SecretPayloadManager from "../utils/SecretPayloadManager";
+import SecretPayload from "../@types/SecretPayload";
+import { userInfo } from "os";
 
 class PushCommand extends BaseCommand {
   private envFile: string;
   private lineReader: LineReader;
+  private message: string;
 
   constructor(input: PushCommandInput) {
     super();
     this.key = input.key;
     this.envFile = path.resolve(input.envFile);
+    this.message = input.message || this.getDefaultMessage();
     this.setLineReader(new LineReader());
   }
 
@@ -28,19 +33,25 @@ class PushCommand extends BaseCommand {
 
   public async execute() {
     const secretArray = this.lineReader.readLines(this.envFile);
-    const secretString = JSON.stringify(secretArray);
+    const payload: SecretPayload = {
+      message: this.message,
+      secrets: secretArray,
+      updated_at: new Date(),
+    };
+    const secretString = new SecretPayloadManager().toSecretString(payload);
 
-    const payload: PutSecretValueCommandInput = {
+    const body: PutSecretValueCommandInput = {
       SecretId: this.getKey(),
       SecretString: secretString,
     };
 
     try {
-      await new PutSecretValueRequest().execute(payload);
+      await new PutSecretValueRequest().execute(body);
 
-      return `${chalk.green("Done!")} Your secret ${chalk.bold(
-        this.getKey()
-      )} was successfully updated.`;
+      return `
+${chalk.green("Done!")}
+${chalk.bold("Message: ")}${payload.message}
+Your secret ${chalk.bold(this.getKey())} was successfully updated.`;
     } catch (err) {
       const createPayload: CreateSecretCommandInput = {
         Name: this.getKey(),
@@ -48,10 +59,21 @@ class PushCommand extends BaseCommand {
       };
       await new CreateSecretRequest().execute(createPayload);
 
-      return `${chalk.green(
-        "Done!"
-      )} Your secret ${this.getKey()} was successfully created.`;
+      return `
+${chalk.green("Done!")}
+${chalk.bold("Message: ")}${payload.message}
+Your secret ${this.getKey()} was successfully created.`;
     }
+  }
+
+  /**
+   * Provide default message.
+   *
+   * @returns {string}
+   */
+  private getDefaultMessage(): string {
+    const username = userInfo().username;
+    return `Secret version uploaded by ${username}.`;
   }
 }
 

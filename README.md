@@ -38,6 +38,8 @@ So for example:
 
 **Note:** All keys get prefixed with `hush-` in the AWS SecretsManager to avoid namespace pollution.
 
+You can also provide an optional parameter `-m, --message` to provide a sort of "commit message" for the current version of your secret.
+
 ### Pulling `.env` file
 
 ![](/docs/hush-pull.gif)
