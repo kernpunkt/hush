@@ -8,6 +8,7 @@ import LineReader from "../utils/LineReader";
 import SecretEntry from "../@types/SecretEntry";
 import PullCommandInput from "../@types/PullCommandInput";
 import SecretPayloadManager from "../utils/SecretPayloadManager";
+import DateFormatter from "../utils/DateFormatter";
 
 export type PullCommandOptions = {
   force?: boolean;
@@ -62,7 +63,10 @@ class PullCommand extends BaseCommand {
       }
     }
 
-    const secretLines: string[] = [];
+    const secretLines: string[] = [
+      `# Managed by Hush! as "${data?.Name || ""}"`,
+      "",
+    ];
     for (const secret of secretsOutput) {
       secretLines.push(`${secret.key}="${secret.value}"`);
     }
@@ -72,7 +76,9 @@ class PullCommand extends BaseCommand {
     return `
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${secretPayload.message}
-${chalk.bold("Updated at: ")}${secretPayload.updated_at}
+${chalk.bold("Updated at: ")}${DateFormatter.formatDate(
+      secretPayload.updated_at
+    )}
 Secrets successfully written to ${chalk.bold(path.basename(filename))}.
 `;
   }
