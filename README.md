@@ -16,6 +16,10 @@
 
 ![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white) ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 
+## Release Notes
+
+Release notes can be found [in a separate file](docs/release-notes.md).
+
 ## Installation
 
 Install hush to your project by running `yarn add -D @kernpunkt/hush` or `npm install --dev @kernpunkt/hush`.
@@ -91,6 +95,14 @@ To prevent another IAM user **in the same AWS account** from accessing your secr
 **`user-identifier` has to be _either_ an AWS ARN _or_ a username for a user that shares an AWS account with you.**
 
 Please keep in mind that users with higher privileges than you might still be able to access the secrets.
+
+### Listing secrets
+
+(_Not illustrated in a gif to not expose secret information_)
+
+You can use the `list` command to generate a list of secrets currently managed by Hush! in your AWS account.
+
+`yarn hush list`
 
 ## Tests
 
