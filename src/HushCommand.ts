@@ -10,6 +10,7 @@ import DeleteCommandInput from "./@types/DeleteCommandInput";
 import PullCommandInput from "./@types/PullCommandInput";
 import PushCommandInput from "./@types/PushCommandInput";
 import ListCommand from "./commands/ListCommand";
+import figlet from "figlet";
 
 class HushCommand extends Command {
   constructor() {
@@ -24,6 +25,8 @@ class HushCommand extends Command {
   }
 
   run(argv?: readonly string[], options?: ParseOptions): this {
+    console.log(figlet.textSync("Hush!", {}));
+
     const awsProfile = process.env["AWS_PROFILE"];
     if (!awsProfile) {
       console.log(

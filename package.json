@@ -6,7 +6,7 @@
     "email": "joern.meyer@kernpunkt.de",
     "url": "https://joern.url.lol/🧑‍💻"
   },
-  "version": "1.1.1",
+  "version": "1.1.2",
   "license": "MIT",
   "bin": {
     "hush": "dist/hush.js"
@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@types/crypto-js": "^4.1.1",
+    "@types/figlet": "^1.5.6",
     "@types/jest": "^29.5.1",
     "@types/node": "^18.16.0",
     "@typescript-eslint/eslint-plugin": "^5.59.0",
@@ -59,6 +60,7 @@
     "crypto-js": "^4.1.1",
     "date-fns": "^2.30.0",
     "diff": "^5.1.0",
+    "figlet": "^1.6.0",
     "husky": "^8.0.3",
     "prompt-sync": "^4.2.0",
     "read": "isaacs/read",

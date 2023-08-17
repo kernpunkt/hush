@@ -1,5 +1,11 @@
 # Release Notes
 
+## v1.1.2
+
+**Date**: 2023-08-17
+
+- Added the `figlet` package to display a little banner on execution because I'm allowed to have fun while coding this.
+
 ## v1.1.1
 
 **Date**: 2023-08-15
