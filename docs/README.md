@@ -1,0 +1,26 @@
+---
+icon: home
+label: Welcome to Hush!
+order: 2000
+author:
+  avatar: https://joern.url.lol/avatar
+  name: Jörn Meyer
+  link: https://github.com/joerncodes
+---
+
+# Hush! 🤫</h1>
+
+**Hush!** is a small tool to facilitate the **sharing of `.env`** files between developers without having to send them over Teams messages. It uses the **AWS SecretsManager** to store a new secret for each of your `.env` files.
+
+With Hush!, you can _finally_ store secrets like API tokens or passwords securely.
+
+### Built with
+
+![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white) ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+
+---
+
+## Links
+
+- [Github Repository](https://github.com/kernpunkt/hush)
+- [Documentation](https://kernpunkt.github.io/hush)
