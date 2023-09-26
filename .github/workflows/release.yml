@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [main, feat/release-management]
+    branches: [main]
   workflow_dispatch:
 
 env:
