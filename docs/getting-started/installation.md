@@ -14,8 +14,6 @@ To install Hush! for use in your project, install it like this:
 `yarn add -D @kernpunkt/hush`
 +++ NPM
 `npm install --dev @kernpunkt/hush`
-+++ PNPM
-`pnpm add --save-dev @kernpunkt/hush`
 +++
 
 !!!
