@@ -1,11 +1,13 @@
 input: docs
 output: .retype
-url: # Add your website address here
+url: https://kernpunkt.github.io/hush
 branding:
   title: 🤫 Hush!
   label: Secrets, but fun!
 links:
-  - text: Getting Started
-    link: https://retype.com/guides/getting-started/
+  - text: kernpunkt Digital GmbH
+    link: https://kernpunkt.de
+  - text: kernpunkt DevBlog
+    link: https://medium.com/@kernpunkt
 footer:
-  copyright: "&copy; Copyright {{ year }}. All rights reserved."
+  copyright: "made with 🖤 by kernpunkt<br>&copy; Copyright {{ year }}. All rights reserved."
