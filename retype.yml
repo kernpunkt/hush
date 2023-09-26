@@ -10,4 +10,4 @@ links:
   - text: kernpunkt DevBlog
     link: https://medium.com/@kernpunkt
 footer:
-  copyright: "made with 🖤 by kernpunkt<br>&copy; Copyright {{ year }}. All rights reserved."
+  copyright: "made with 🖤 by kernpunkt &copy; Copyright {{ year }}. All rights reserved."
