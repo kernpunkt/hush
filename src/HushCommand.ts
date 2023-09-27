@@ -11,6 +11,7 @@ import PullCommandInput from "./@types/PullCommandInput";
 import PushCommandInput from "./@types/PushCommandInput";
 import ListCommand from "./commands/ListCommand";
 import figlet from "figlet";
+import CatCommand from "./commands/CatCommand";
 
 class HushCommand extends Command {
   constructor() {
@@ -22,6 +23,7 @@ class HushCommand extends Command {
     this.grantCommand();
     this.revokeCommand();
     this.listCommand();
+    this.catCommand();
   }
 
   run(argv?: readonly string[], options?: ParseOptions): this {
@@ -55,6 +57,23 @@ class HushCommand extends Command {
         })
         .catch(this.handleError);
     });
+  }
+
+  private catCommand(): void {
+    this.command("cat")
+      .argument("<key>", "The designator of a secret you want to output.")
+      .action(async (key: string) => {
+        console.log(`${chalk.bold("Hush! 🤫")} — Cat\n`);
+
+        const command = new CatCommand({ key });
+        command
+          .execute()
+          .then((result: any) => {
+            console.log(result);
+            process.exit(0);
+          })
+          .catch(this.handleError);
+      });
   }
 
   private grantCommand(): void {

@@ -12,7 +12,7 @@ class GetSecretValueRequest extends BaseRequest {
   public async execute(
     key: string,
     providedMapping?: StringMap
-  ): Promise<GetSecretValueCommandOutput | void> {
+  ): Promise<GetSecretValueCommandOutput> {
     const mapping = providedMapping || {
       ResourceNotFoundException: `AWS SecretManager could not find ${chalk.bold(
         key
@@ -26,9 +26,11 @@ class GetSecretValueRequest extends BaseRequest {
     const getSecretValueCommand = new GetSecretValueCommand(
       getSecretValuePayload
     );
-    return client.send(getSecretValueCommand).catch((error) => {
+    const response = await client.send(getSecretValueCommand).catch((error) => {
       new TypedErrorHandler().handleError(error, mapping);
     });
+
+    return response as GetSecretValueCommandOutput;
   }
 }
 
