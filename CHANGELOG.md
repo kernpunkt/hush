@@ -1,3 +1,15 @@
+# [2.0.0](https://github.com/kernpunkt/hush/compare/v1.3.0...v2.0.0) (2023-09-27)
+
+
+### Features
+
+* moving Hush! from a private repository to a public one ([4ec2321](https://github.com/kernpunkt/hush/commit/4ec232125bd1f3b99314f5d72f863d75823fd6d0))
+
+
+### BREAKING CHANGES
+
+* from now on, please use the npm package hush-cli.
+
 # [1.3.0](https://github.com/kernpunkt/hush/compare/v1.2.0...v1.3.0) (2023-09-27)
 
 ### Features
