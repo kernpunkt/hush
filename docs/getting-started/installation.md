@@ -11,9 +11,9 @@ author:
 To install Hush! for use in your project, install it like this:
 
 +++ Yarn
-`yarn add -D @kernpunkt/hush`
+`yarn add -D hush-cli`
 +++ NPM
-`npm install --dev @kernpunkt/hush`
+`npm install --dev hush-cli`
 +++
 
 !!!
