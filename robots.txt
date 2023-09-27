@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kernpunkt.github.io/hush/sitemap.xml.gz
+Sitemap: https://hush.kernpunkt.de/sitemap.xml.gz
