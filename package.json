@@ -21,11 +21,13 @@
     "prepack": "rm -rf dist && npm run build && npm test",
     "test": "jest",
     "test:integration": "jest test/integration",
-    "test:unit": "jest test/unit"
+    "test:unit": "jest test/unit",
+    "commit": "commit"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.7.1",
     "@commitlint/config-conventional": "^17.7.0",
+    "@commitlint/prompt-cli": "^17.7.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@types/crypto-js": "^4.1.1",
