@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/kernpunkt/hush/compare/v2.0.0...v2.0.1) (2023-09-27)
+
+
+### Bug Fixes
+
+* **ci:** remove duplicate commit linting ([db74bfe](https://github.com/kernpunkt/hush/commit/db74bfe99c2edee4dde6a3a1007abc8a62f10bf6))
+
 # [2.0.0](https://github.com/kernpunkt/hush/compare/v1.3.0...v2.0.0) (2023-09-27)
 
 
