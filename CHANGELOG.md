@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/kernpunkt/hush/compare/v1.2.0...v1.3.0) (2023-09-27)
+
+
+### Features
+
+* **commands:** add cat command ([ab739ea](https://github.com/kernpunkt/hush/commit/ab739ea5d633d01691a526f6dc4ac3e93d211f64))
+
 # [1.2.0](https://github.com/kernpunkt/hush/compare/v1.1.1...v1.2.0) (2023-09-26)
 
 
