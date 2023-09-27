@@ -1,6 +1,6 @@
 input: docs
 output: .retype
-url: https://kernpunkt.github.io/hush
+url: https://hush.kernpunkt.de
 branding:
   title: 🤫 Hush!
   label: Secrets, but fun!

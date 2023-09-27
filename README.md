@@ -15,4 +15,4 @@ If you're unsure where to start using Hush!, we recommend the **[Installation gu
 ## Links
 
 - [Github Repository](https://github.com/kernpunkt/hush)
-- [Documentation](https://kernpunkt.github.io/hush)
+- [Documentation](https://hush.kernpunkt.de)
