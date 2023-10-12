@@ -32,7 +32,7 @@ To make this file available to your fellow devs, you would run the following com
 **And that's it!** Your secret file is now managed by Hush! in the AWS cloud. Your fellow devs can **pull** your changes by using the following command.
 
 +++Yarn
-`yarn hush push my-first-hush ./.env`
+`yarn hush pull my-first-hush ./.env`
 +++NPM
-`npx hush push my-first-hush ./.env`
+`npx hush pull my-first-hush ./.env`
 +++
