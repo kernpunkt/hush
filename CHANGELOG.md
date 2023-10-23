@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/kernpunkt/hush/compare/v2.0.1...v2.0.2) (2023-10-23)
+
+
+### Bug Fixes
+
+* fix some dependencies ([a98f49b](https://github.com/kernpunkt/hush/commit/a98f49b06c322b12f17afe397b1a99b9ba417809))
+
 ## [2.0.1](https://github.com/kernpunkt/hush/compare/v2.0.0...v2.0.1) (2023-09-27)
 
 
