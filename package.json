@@ -18,7 +18,7 @@
     "prettier": "prettier --write --ignore-unknown .",
     "eslint": "eslint .",
     "eslint:fix": "eslint --fix .",
-    "prepack": "rm -rf dist && npm run build && npm test",
+    "prepack": "rm -rf dist && yarn build && yarn test",
     "test": "jest test/unit",
     "test:integration": "jest test/integration",
     "test:unit": "jest test/unit",
@@ -63,8 +63,6 @@
     "date-fns": "^2.30.0",
     "diff": "^5.1.0",
     "figlet": "^1.6.0",
-    "husky": "^8.0.3",
-    "prompt-sync": "^4.2.0",
-    "source-map-support": "^0.5.21"
+    "husky": "^8.0.3"
   }
 }
