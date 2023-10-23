@@ -30,11 +30,11 @@ class DeleteRequest extends BaseRequest {
 
     const command = new DeleteSecretCommand(payload);
 
-    return this.getClient()
-      .send(command)
-      .catch((error: any) => {
-        new TypedErrorHandler().handleError(error, mapping);
-      });
+    try {
+      return await this.getClient().send(command);
+    } catch (error: any) {
+      new TypedErrorHandler().handleError(error, mapping);
+    }
   }
 }
 

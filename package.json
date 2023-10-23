@@ -36,6 +36,8 @@
     "@types/node": "^18.16.0",
     "@typescript-eslint/eslint-plugin": "^5.59.0",
     "@typescript-eslint/parser": "^5.59.0",
+    "aws-sdk-client-mock": "^3.0.0",
+    "aws-sdk-client-mock-jest": "^3.0.0",
     "eslint": "^8.39.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-import": "^2.27.5",
@@ -63,7 +65,6 @@
     "figlet": "^1.6.0",
     "husky": "^8.0.3",
     "prompt-sync": "^4.2.0",
-    "read": "isaacs/read",
     "source-map-support": "^0.5.21"
   }
 }
