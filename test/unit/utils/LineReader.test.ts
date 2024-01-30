@@ -34,6 +34,13 @@ describe("LineReader", () => {
             expect(error.message).toContain("Could not read secrets file");
         }
     });
+    it("can parse special characters in passwords correctly", () => {
+        const lineReader = new LineReader(); 
+        spy.mockReturnValue("PASSWORD=CXRGxO=o9%secretpassword\nHUDE=FUDE")
+        const secrets = lineReader.readLines(".env.test");
+        expect(secrets[0].key).toBe("PASSWORD");
+        expect(secrets[0].value).toBe("CXRGxO=o9%secretpassword");
+    });
     afterEach(() => {
         spy.mockReset();
     });

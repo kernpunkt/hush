@@ -23,7 +23,9 @@ class LineReader {
 
       const trimmedSecretLine = secretLine.replace(/"/g, "");
 
-      const [key, value] = trimmedSecretLine.split("=");
+      const parts = trimmedSecretLine.split("=");
+      const key = parts[0];
+      const value = parts.slice(1).join("=");
 
       secretArray.push({
         key,
