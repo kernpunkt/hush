@@ -1,28 +1,24 @@
 ## [2.0.2](https://github.com/kernpunkt/hush/compare/v2.0.1...v2.0.2) (2023-10-23)
 
-
 ### Bug Fixes
 
-* fix some dependencies ([a98f49b](https://github.com/kernpunkt/hush/commit/a98f49b06c322b12f17afe397b1a99b9ba417809))
+- fix some dependencies ([a98f49b](https://github.com/kernpunkt/hush/commit/a98f49b06c322b12f17afe397b1a99b9ba417809))
 
 ## [2.0.1](https://github.com/kernpunkt/hush/compare/v2.0.0...v2.0.1) (2023-09-27)
 
-
 ### Bug Fixes
 
-* **ci:** remove duplicate commit linting ([db74bfe](https://github.com/kernpunkt/hush/commit/db74bfe99c2edee4dde6a3a1007abc8a62f10bf6))
+- **ci:** remove duplicate commit linting ([db74bfe](https://github.com/kernpunkt/hush/commit/db74bfe99c2edee4dde6a3a1007abc8a62f10bf6))
 
 # [2.0.0](https://github.com/kernpunkt/hush/compare/v1.3.0...v2.0.0) (2023-09-27)
 
-
 ### Features
 
-* moving Hush! from a private repository to a public one ([4ec2321](https://github.com/kernpunkt/hush/commit/4ec232125bd1f3b99314f5d72f863d75823fd6d0))
-
+- moving Hush! from a private repository to a public one ([4ec2321](https://github.com/kernpunkt/hush/commit/4ec232125bd1f3b99314f5d72f863d75823fd6d0))
 
 ### BREAKING CHANGES
 
-* from now on, please use the npm package hush-cli.
+- from now on, please use the npm package hush-cli.
 
 # [1.3.0](https://github.com/kernpunkt/hush/compare/v1.2.0...v1.3.0) (2023-09-27)
 
