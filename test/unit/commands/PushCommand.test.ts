@@ -27,7 +27,7 @@ describe("PushCommand", () => {
             toSecretStringSpy.mockReset();
         });
         it("creates a fallback commit message if none is provided", () => {
-            const command = new PushCommand({key: "hello-world", envFile: ".env.test"});
+            const command = new PushCommand({key: "hello-world", envFile: ".env.test", force: true});
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
             
             command.execute();
@@ -39,7 +39,7 @@ describe("PushCommand", () => {
         });
         it("uses the commit message it it IS provided", () => {
             const message = "Hello world";
-            const command = new PushCommand({key: "hello-world", envFile: ".env.test", message });
+            const command = new PushCommand({key: "hello-world", envFile: ".env.test", message, force: true });
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
             spy.mockImplementation(() => {
                 return new Promise((resolve, reject) => {
@@ -52,7 +52,7 @@ describe("PushCommand", () => {
             expect(secretPayload.message).toBe(message);
         });
         it("updates a date in the payload", () => {
-            const command = new PushCommand({key: "hello-world", envFile: ".env.test" });
+            const command = new PushCommand({key: "hello-world", envFile: ".env.test", force: true });
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
             command.execute();
 
@@ -63,15 +63,15 @@ describe("PushCommand", () => {
     });
 
     describe("secret creation", () => {
-        it("tries to overwrite a secret first", () => {
-            const command = new PushCommand({ key: "hello-world", envFile: ".env.test"});
+        it("tries to overwrite a secret first", async () => {
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: true });
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
 
-            command.execute();
+            await command.execute();
             expect(spy.mock.calls[0][0].SecretId === "hello-world");
         });
         it("will create a new secret if none exist first", async () => {
-            const command = new PushCommand({ key: "hello-world", envFile: ".env.test"});
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: true });
             command.setLineReader(new MockLineReader());
 
             putSpy.mockRejectedValueOnce(new Error(""));

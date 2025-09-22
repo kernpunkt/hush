@@ -1,5 +1,5 @@
 import path from "path";
-import { writeFileSync } from "fs";
+import { writeFileSync, readFileSync, existsSync } from "fs";
 import chalk from "chalk";
 import envDiff, { EnvDiffResult } from "../utils/envDiff";
 import BaseCommand from "./BaseCommand";
@@ -73,6 +73,9 @@ class PullCommand extends BaseCommand {
 
     writeFileSync(filename, secretLines.join("\n"));
 
+    // Update versions.json with the current version
+    this.updateVersionsFile(this.getKey(), secretPayload.version);
+
     return `
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${secretPayload.message}
@@ -81,6 +84,34 @@ ${chalk.bold("Updated at: ")}${DateFormatter.formatDate(
     )}
 Secrets successfully written to ${chalk.bold(path.basename(filename))}.
 `;
+  }
+
+  /**
+   * Updates the versions.json file with the current version for the given key.
+   *
+   * @param {string} key - The secret key
+   * @param {number} version - The version to store
+   */
+  private updateVersionsFile(key: string, version: number): void {
+    const versionsFile = path.resolve("versions.json");
+    let versions: Record<string, number> = {};
+
+    // Read existing versions if file exists
+    if (existsSync(versionsFile)) {
+      try {
+        const fileContent = readFileSync(versionsFile, "utf8");
+        versions = JSON.parse(fileContent);
+      } catch (error) {
+        // If file is corrupted or not valid JSON, start fresh
+        versions = {};
+      }
+    }
+
+    // Update the version for this key
+    versions[key] = version;
+
+    // Write back to file
+    writeFileSync(versionsFile, JSON.stringify(versions, null, 2));
   }
 }
 

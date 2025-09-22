@@ -7,7 +7,8 @@ const payload: SecretPayload = {
     updated_at: new Date(),
     secrets: [
         { hude: "Fude" }
-    ]
+    ],
+    version: 1
 }
 
 describe("SecretPayloadManager", () => {

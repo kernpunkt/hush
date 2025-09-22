@@ -3,6 +3,7 @@ import {
   CreateSecretCommandInput,
   PutSecretValueCommandInput,
 } from "@aws-sdk/client-secrets-manager";
+import { existsSync, readFileSync } from "fs";
 import chalk from "chalk";
 import BaseCommand from "./BaseCommand";
 import LineReader from "../utils/LineReader";
@@ -12,12 +13,15 @@ import PushCommandInput from "../@types/PushCommandInput";
 import SecretPayloadManager from "../utils/SecretPayloadManager";
 import SecretPayload from "../@types/SecretPayload";
 import { userInfo } from "os";
+import { writeFileSync } from "fs";
+import GetSecretValueRequest from "../requests/GetSecretValueRequest";
 
 class PushCommand extends BaseCommand {
   private envFile: string;
   private lineReader: LineReader;
   private message: string;
   private version: number;
+  private force: boolean;
 
   constructor(input: PushCommandInput) {
     super();
@@ -25,6 +29,7 @@ class PushCommand extends BaseCommand {
     this.envFile = path.resolve(input.envFile);
     this.message = input.message || this.getDefaultMessage();
     this.version = input.version || 0;
+    this.force = input.force || false;
     this.setLineReader(new LineReader());
   }
 
@@ -49,11 +54,36 @@ class PushCommand extends BaseCommand {
     };
 
     try {
+      // Get and log the current version before pushing
+      const currentVersion = await this.getSecretVersion();
+
+      // Check version against versions.json and warn if necessary (unless force is set)
+      if (!this.force) {
+        const isVersionValid = this.checkVersion(this.getKey(), currentVersion);
+        if (!isVersionValid) {
+          return "";
+        }
+      }
+
+      // Increment version and update payload
+      const newVersion = currentVersion + 1;
+      payload.version = newVersion;
+
+      // Update the secret string with new version
+      const updatedSecretString = new SecretPayloadManager().toSecretString(
+        payload
+      );
+      body.SecretString = updatedSecretString;
+
       await new PutSecretValueRequest().execute(body);
+
+      // Update versions.json with new version
+      this.updateVersionsFile(this.getKey(), newVersion);
 
       return `
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${payload.message}
+${chalk.bold("Version: ")}${newVersion}
 Your secret ${chalk.bold(this.getKey())} was successfully updated.`;
     } catch (err) {
       const createPayload: CreateSecretCommandInput = {
@@ -66,6 +96,104 @@ Your secret ${chalk.bold(this.getKey())} was successfully updated.`;
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${payload.message}
 Your secret ${this.getKey()} was successfully created.`;
+    }
+  }
+
+  /**
+   * Get the version from the current secret using PullCommand logic.
+   *
+   * @returns {Promise<number>}
+   */
+  private async getSecretVersion(): Promise<number> {
+    try {
+      const data = await new GetSecretValueRequest().execute(this.getKey());
+      const secretPayload = new SecretPayloadManager().fromSecretString(
+        data?.SecretString || "{}"
+      );
+      return secretPayload.version || 0;
+    } catch (error) {
+      // If secret doesn't exist or can't be retrieved, return 0
+      return 0;
+    }
+  }
+
+  /**
+   * Check if current version is <= stored version in versions.json and warn if so.
+   *
+   * @param {string} key - The secret key
+   * @param {number} currentVersion - The current version from AWS
+   */
+  private checkVersion(key: string, currentVersion: number): boolean {
+    const versionsFile = path.resolve("versions.json");
+
+    if (!existsSync(versionsFile)) {
+      console.warn(
+        chalk.yellow(
+          '⚠️ Warning: No versions.json file exists, please run "hush pull" to create it or use --force to bypass version checking'
+        )
+      );
+      return false;
+    }
+
+    try {
+      const fileContent = readFileSync(versionsFile, "utf8");
+      const versions: Record<string, number> = JSON.parse(fileContent);
+
+      if (versions[key] === undefined || currentVersion > versions[key]) {
+        console.warn(
+          chalk.yellow(
+            `⚠️ Warning: Current version (${currentVersion}) is less than your current version (${versions[key]}) for key "${key}"`
+          )
+        );
+        console.warn(
+          chalk.yellow(
+            `⚠️  Use "hush pull" to pull the latest version for key "${key}"`
+          )
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error(
+        chalk.red(`⚠️ Error: Could not read versions.json file: ${error}`)
+      );
+      // If file is corrupted or not valid JSON
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Update versions.json file with new version.
+   *
+   * @param {string} key - The secret key
+   * @param {number} version - The new version number
+   */
+  private updateVersionsFile(key: string, version: number): void {
+    const versionsFile = path.resolve("versions.json");
+    let versions: Record<string, number> = {};
+
+    // Read existing versions if file exists
+    if (existsSync(versionsFile)) {
+      try {
+        const fileContent = readFileSync(versionsFile, "utf8");
+        versions = JSON.parse(fileContent);
+      } catch (error) {
+        // If file is corrupted, start with empty object
+        versions = {};
+      }
+    }
+
+    // Update the version for this key
+    versions[key] = version;
+
+    // Write back to file
+    try {
+      writeFileSync(versionsFile, JSON.stringify(versions, null, 2), "utf8");
+    } catch (error) {
+      console.warn(
+        chalk.yellow(`⚠️  Warning: Could not update versions.json: ${error}`)
+      );
     }
   }
 

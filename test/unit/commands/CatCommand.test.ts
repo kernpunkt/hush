@@ -25,7 +25,8 @@ describe("CatCommand", () => {
             secrets: [
                 { key: "HUDE", value: "FUDE", },
                 { key: "RAX", value: "KNAX", }
-            ]
+            ],
+            version: 1
         };
         secretPayloadManagerSpy.mockReturnValue(data);
 
