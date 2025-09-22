@@ -17,12 +17,14 @@ class PushCommand extends BaseCommand {
   private envFile: string;
   private lineReader: LineReader;
   private message: string;
+  private version: number;
 
   constructor(input: PushCommandInput) {
     super();
     this.key = input.key;
     this.envFile = path.resolve(input.envFile);
     this.message = input.message || this.getDefaultMessage();
+    this.version = input.version || 0;
     this.setLineReader(new LineReader());
   }
 
@@ -35,6 +37,7 @@ class PushCommand extends BaseCommand {
     const secretArray = this.lineReader.readLines(this.envFile);
     const payload: SecretPayload = {
       message: this.message,
+      version: this.version,
       secrets: secretArray,
       updated_at: new Date(),
     };

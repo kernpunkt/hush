@@ -14,6 +14,7 @@ export default class SecretPayloadManager {
 
     return {
       message: "Legacy version of Hush! secret before messages.",
+      version: 0,
       updated_at: new Date(),
       secrets: parsed,
     };
