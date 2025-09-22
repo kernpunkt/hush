@@ -25,3 +25,5 @@ All keys get prefixed with `hush-` in the AWS SecretsManager to avoid namespace 
 !!!
 
 You can also **provide an optional parameter `-m, --message`** to provide a sort of "commit message" for the current version of your secret.
+
+Additionally, you can use the **`-f, --force` parameter** to bypass version checking. By default, Hush checks the local `versions.json` file to ensure you're working with the latest version before pushing. If a version conflict is detected, you'll be prompted to run `hush pull` first. The `--force` flag skips this validation and allows you to push regardless of version conflicts.
