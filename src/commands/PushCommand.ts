@@ -58,7 +58,7 @@ class PushCommand extends BaseCommand {
       // Get and log the current version before pushing
       const currentVersion = await this.getSecretVersion();
 
-      // Check version against versions.json and warn if necessary (unless force is set)
+      // Check version against .hushrc.json and warn if necessary (unless force is set)
       if (!this.force) {
         const isVersionValid = this.checkVersion(this.getKey(), currentVersion);
         if (!isVersionValid) {
@@ -78,7 +78,7 @@ class PushCommand extends BaseCommand {
 
       await new PutSecretValueRequest().execute(body);
 
-      // Update versions.json with new version
+      // Update .hushrc.json with new version
       this.updateVersionsFile(this.getKey(), newVersion);
 
       return `
@@ -119,18 +119,18 @@ Your secret ${this.getKey()} was successfully created.`;
   }
 
   /**
-   * Check if current version is <= stored version in versions.json and warn if so.
+   * Check if current version is <= stored version in .hushrc.json and warn if so.
    *
    * @param {string} key - The secret key
    * @param {number} currentVersion - The current version from AWS
    */
   private checkVersion(key: string, currentVersion: number): boolean {
-    const versionsFile = path.resolve("versions.json");
+    const versionsFile = path.resolve(".hushrc.json");
 
     if (!existsSync(versionsFile)) {
       console.warn(
         chalk.yellow(
-          '⚠️ Warning: No versions.json file exists, please run "hush pull" to create it or use --force to bypass version checking'
+          '⚠️ Warning: No .hushrc.json file exists, please run "hush pull" to create it or use --force to bypass version checking'
         )
       );
       return false;
@@ -138,8 +138,7 @@ Your secret ${this.getKey()} was successfully created.`;
 
     try {
       const fileContent = readFileSync(versionsFile, "utf8");
-      const versions: Record<string, VersionEntry> =
-        JSON.parse(fileContent);
+      const versions: Record<string, VersionEntry> = JSON.parse(fileContent);
 
       if (
         versions[key] === undefined ||
@@ -161,7 +160,7 @@ Your secret ${this.getKey()} was successfully created.`;
       }
     } catch (error) {
       console.error(
-        chalk.red(`⚠️ Error: Could not read versions.json file: ${error}`)
+        chalk.red(`⚠️ Error: Could not read .hushrc.json file: ${error}`)
       );
       // If file is corrupted or not valid JSON
       return false;
@@ -171,13 +170,13 @@ Your secret ${this.getKey()} was successfully created.`;
   }
 
   /**
-   * Update versions.json file with new version.
+   * Update .hushrc.json file with new version.
    *
    * @param {string} key - The secret key
    * @param {number} version - The new version number
    */
   private updateVersionsFile(key: string, version: number): void {
-    const versionsFile = path.resolve("versions.json");
+    const versionsFile = path.resolve(".hushrc.json");
     let versions: Record<string, VersionEntry> = {};
 
     // Read existing versions if file exists
@@ -199,7 +198,7 @@ Your secret ${this.getKey()} was successfully created.`;
       writeFileSync(versionsFile, JSON.stringify(versions, null, 2), "utf8");
     } catch (error) {
       console.warn(
-        chalk.yellow(`⚠️  Warning: Could not update versions.json: ${error}`)
+        chalk.yellow(`⚠️  Warning: Could not update .hushrc.json: ${error}`)
       );
     }
   }

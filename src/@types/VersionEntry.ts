@@ -1,5 +1,5 @@
 /**
- * Represents a version entry in the versions.json file
+ * Represents a version entry in the .hushrc.json file
  */
 type VersionEntry = {
   version: number;

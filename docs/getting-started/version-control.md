@@ -16,14 +16,14 @@ Hush implements a version control system that ensures developers avoid conflicts
 The version control system in Hush works on three levels:
 
 1. **Secret Versioning**: Each secret in AWS SecretsManager is automatically versioned
-2. **Local Version Tracking**: The `versions.json` file tracks local versions
+2. **Local Version Tracking**: The `.hushrc.json` file tracks local versions
 3. **Conflict Prevention**: Automatic checks before push operations
 
 ## Local Version Tracking
 
-### versions.json File
+### .hushrc.json File
 
-Hush automatically creates a `versions.json` file in your project directory:
+Hush automatically creates a `.hushrc.json` file in your project directory:
 
 ```json
 {
@@ -40,8 +40,8 @@ Hush automatically creates a `versions.json` file in your project directory:
 ```
 
 **Note:**
-- The `versions.json` file is automatically updated during `pull` operations
-- The `versions.json` file is used for conflict checking during `push` operations
+- The `.hushrc.json` file is automatically updated during `pull` operations
+- The `.hushrc.json` file is used for conflict checking during `push` operations
 
 ## Version Control in Push Operations
 
@@ -50,16 +50,16 @@ Hush automatically creates a `versions.json` file in your project directory:
 With every `hush push`, the system goes through the following process:
 
 1. **Retrieve Current Version**: Loads the current version from AWS SecretsManager
-2. **Check Local Version**: Compares with the version in `versions.json`
+2. **Check Local Version**: Compares with the version in `.hushrc.json`
 3. **Conflict Detection**: Warns about conflicts and prevents unintended overwrites
 4. **Version Increment**: Automatically increases the version number by 1
-5. **Update Local Tracking**: Updates the `versions.json` file
+5. **Update Local Tracking**: Updates the `.hushrc.json` file
 
 ### Example Push Workflow
 
 ```bash
 # Current version in AWS: 5
-# Local version in versions.json: 3
+# Local version in .hushrc.json: 3
 
 hush push my-project .env
 # ⚠️ Warning: Current version (5) is greater than your current version (3)
@@ -85,4 +85,4 @@ hush push my-project .env --force
 2. **Retrieve Remote Version**: Loads the latest version from AWS
 3. **Detect Changes**: Compares local and remote versions
 4. **Request Confirmation**: Shows changes before overwriting
-5. **Update Version**: Updates `versions.json` after successful pull
+5. **Update Version**: Updates `.hushrc.json` after successful pull

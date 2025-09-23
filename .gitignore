@@ -3,4 +3,4 @@ cdk.out
 node_modules
 .env*
 dist
-versions.json
+.hushrc.json

@@ -74,7 +74,7 @@ class PullCommand extends BaseCommand {
 
     writeFileSync(filename, secretLines.join("\n"));
 
-    // Update versions.json with the current version
+    // Update .hushrc.json with the current version
     this.updateVersionsFile(this.getKey(), secretPayload.version);
 
     return `
@@ -88,13 +88,13 @@ Secrets successfully written to ${chalk.bold(path.basename(filename))}.
   }
 
   /**
-   * Updates the versions.json file with the current version for the given key.
+   * Updates the .hushrc.json file with the current version for the given key.
    *
    * @param {string} key - The secret key
    * @param {number} version - The version to store
    */
   private updateVersionsFile(key: string, version: number): void {
-    const versionsFile = path.resolve("versions.json");
+    const versionsFile = path.resolve(".hushrc.json");
     let versions: Record<string, VersionEntry> = {};
 
     // Read existing versions if file exists
