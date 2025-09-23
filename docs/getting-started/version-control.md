@@ -27,9 +27,15 @@ Hush automatically creates a `versions.json` file in your project directory:
 
 ```json
 {
-  "hush-project-dev": 5,
-  "hush-project-prod": 12,
-  "hush-api-keys": 3
+  "hush-project-dev": {
+    "version": 5
+  },
+  "hush-project-prod": {
+    "version": 12
+  },
+  "hush-api-keys": {
+    "version": 3
+  }
 }
 ```
 

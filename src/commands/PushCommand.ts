@@ -15,6 +15,7 @@ import SecretPayload from "../@types/SecretPayload";
 import { userInfo } from "os";
 import { writeFileSync } from "fs";
 import GetSecretValueRequest from "../requests/GetSecretValueRequest";
+import VersionEntry from "../@types/VersionEntry";
 
 class PushCommand extends BaseCommand {
   private envFile: string;
@@ -137,12 +138,18 @@ Your secret ${this.getKey()} was successfully created.`;
 
     try {
       const fileContent = readFileSync(versionsFile, "utf8");
-      const versions: Record<string, number> = JSON.parse(fileContent);
+      const versions: Record<string, VersionEntry> =
+        JSON.parse(fileContent);
 
-      if (versions[key] === undefined || currentVersion > versions[key]) {
+      if (
+        versions[key] === undefined ||
+        currentVersion > versions[key].version
+      ) {
         console.warn(
           chalk.yellow(
-            `⚠️ Warning: Current version (${currentVersion}) is less than your current version (${versions[key]}) for key "${key}"`
+            `⚠️ Warning: Current version (${currentVersion}) is less than your current version (${
+              versions[key]?.version || 0
+            }) for key "${key}"`
           )
         );
         console.warn(
@@ -171,7 +178,7 @@ Your secret ${this.getKey()} was successfully created.`;
    */
   private updateVersionsFile(key: string, version: number): void {
     const versionsFile = path.resolve("versions.json");
-    let versions: Record<string, number> = {};
+    let versions: Record<string, VersionEntry> = {};
 
     // Read existing versions if file exists
     if (existsSync(versionsFile)) {
@@ -185,7 +192,7 @@ Your secret ${this.getKey()} was successfully created.`;
     }
 
     // Update the version for this key
-    versions[key] = version;
+    versions[key] = { version };
 
     // Write back to file
     try {

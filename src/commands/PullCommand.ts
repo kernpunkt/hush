@@ -9,6 +9,7 @@ import SecretEntry from "../@types/SecretEntry";
 import PullCommandInput from "../@types/PullCommandInput";
 import SecretPayloadManager from "../utils/SecretPayloadManager";
 import DateFormatter from "../utils/DateFormatter";
+import VersionEntry from "../@types/VersionEntry";
 
 export type PullCommandOptions = {
   force?: boolean;
@@ -94,7 +95,7 @@ Secrets successfully written to ${chalk.bold(path.basename(filename))}.
    */
   private updateVersionsFile(key: string, version: number): void {
     const versionsFile = path.resolve("versions.json");
-    let versions: Record<string, number> = {};
+    let versions: Record<string, VersionEntry> = {};
 
     // Read existing versions if file exists
     if (existsSync(versionsFile)) {
@@ -108,7 +109,7 @@ Secrets successfully written to ${chalk.bold(path.basename(filename))}.
     }
 
     // Update the version for this key
-    versions[key] = version;
+    versions[key] = { version };
 
     // Write back to file
     writeFileSync(versionsFile, JSON.stringify(versions, null, 2));
