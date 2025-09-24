@@ -18,6 +18,7 @@ const catCommand = new CatCommand({ key: secretName});
 
 describe("CatCommand", () => {
     it("outputs the contents of a secret as a table", async () => {
+        jest.spyOn(console, "log").mockImplementation();
         getSecretValueRequestSpy.mockImplementation();
         const data = {
             message: "This is a test message",
