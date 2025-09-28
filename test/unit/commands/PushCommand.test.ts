@@ -192,5 +192,166 @@ describe("PushCommand", () => {
                 expect(writtenContent["hush-hello-world"].version).toBe(2);
             }
         });
+
+        it("will warn and return false when .hushrc.json file does not exist", async () => {
+            const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+            
+            getSecretSpy.mockResolvedValueOnce({
+                SecretString: JSON.stringify({
+                    version: 1,
+                    secrets: [],
+                    message: "Test",
+                    updated_at: new Date()
+                }),
+                $metadata: {}
+            });
+            
+            // Mock that .hushrc.json doesn't exist
+            existsSyncMock.mockReturnValueOnce(false);
+            
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: false });
+            command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
+
+            const result = await command.execute();
+            
+            expect(result).toBe("");
+            
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+                expect.stringContaining('⚠️ Warning: No .hushrc.json file exists, please run "hush pull" to create it or use --force to bypass version checking')
+            );
+            
+            expect(putSpy).not.toHaveBeenCalled();
+            expect(createSpy).not.toHaveBeenCalled();
+            
+            consoleWarnSpy.mockRestore();
+        });
+
+        it("will handle error when reading .hushrc.json file fails", async () => {
+            const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+            
+            getSecretSpy.mockResolvedValueOnce({
+                SecretString: JSON.stringify({
+                    version: 1,
+                    secrets: [],
+                    message: "Test",
+                    updated_at: new Date()
+                }),
+                $metadata: {}
+            });
+            
+            existsSyncMock.mockReturnValueOnce(true);
+            // Mock readFileSync to throw an error
+            readFileSyncMock.mockImplementationOnce(() => {
+                throw new Error("Permission denied");
+            });
+            
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: false });
+            command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
+
+            const result = await command.execute();
+            
+            expect(result).toBe("");
+            
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                expect.stringContaining('⚠️ Error: Could not read .hushrc.json file: Error: Permission denied')
+            );
+            
+            expect(putSpy).not.toHaveBeenCalled();
+            expect(createSpy).not.toHaveBeenCalled();
+            
+            consoleErrorSpy.mockRestore();
+        });
+
+        it("will handle error when parsing existing versions file fails during update", async () => {
+            // Test when updateVersionsFile encounters a corrupted file but continues silently
+            getSecretSpy.mockResolvedValueOnce({
+                SecretString: JSON.stringify({
+                    version: 0,
+                    secrets: [],
+                    message: "Test",
+                    updated_at: new Date()
+                }),
+                $metadata: {}
+            });
+            
+            existsSyncMock.mockReturnValueOnce(true);
+            const hushrcContent = JSON.stringify({
+                "hush-hello-world": { version: 1 }
+            });
+            readFileSyncMock.mockReturnValueOnce(hushrcContent);
+            
+            putSpy.mockResolvedValueOnce(undefined);
+            
+            // updateVersionsFile: file exists but reading fails (corrupted)
+            existsSyncMock.mockReturnValueOnce(true);
+            readFileSyncMock.mockImplementationOnce(() => {
+                throw new Error("Corrupted file");
+            });
+            
+            // writeFileSync succeeds with fallback empty object
+            writeFileSyncMock.mockImplementationOnce(() => {});
+            
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: false });
+            command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
+
+            await command.execute();
+            
+            expect(putSpy).toHaveBeenCalled();
+            expect(writeFileSyncMock).toHaveBeenCalled();
+            
+            const writeCall = writeFileSyncMock.mock.calls.find(call => 
+                call[0].toString().includes('.hushrc.json')
+            );
+            expect(writeCall).toBeDefined();
+            
+            if (writeCall) {
+                const writtenContent = JSON.parse(writeCall[1] as string);
+                expect(writtenContent["hush-hello-world"].version).toBe(1);
+            }
+        });
+
+        it("will warn when writing to .hushrc.json fails", async () => {
+            const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+            
+            getSecretSpy.mockResolvedValueOnce({
+                SecretString: JSON.stringify({
+                    version: 0,
+                    secrets: [],
+                    message: "Test",
+                    updated_at: new Date()
+                }),
+                $metadata: {}
+            });
+            
+            // Version check passes
+            existsSyncMock.mockReturnValueOnce(true);
+            const hushrcContent = JSON.stringify({
+                "hush-hello-world": { version: 1 }
+            });
+            readFileSyncMock.mockReturnValueOnce(hushrcContent);
+            
+            putSpy.mockResolvedValueOnce(undefined);
+            
+            // updateVersionsFile: file exists and reading succeeds
+            existsSyncMock.mockReturnValueOnce(true);
+            readFileSyncMock.mockReturnValueOnce(hushrcContent);
+            
+            // writeFileSync throws an error
+            writeFileSyncMock.mockImplementationOnce(() => {
+                throw new Error("No space left on device");
+            });
+            
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: false });
+            command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
+
+            const result = await command.execute();
+            
+            expect(putSpy).toHaveBeenCalled();
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+                expect.stringContaining('⚠️  Warning: Could not update .hushrc.json: Error: No space left on device')
+            );
+            
+            consoleWarnSpy.mockRestore();
+        });
     });
 });
