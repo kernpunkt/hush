@@ -27,8 +27,11 @@ describe("Pull command", () => {
         pullCommand.setLineReader(new MockLineReader([]));
 
         const writeFileSyncSpy = jest.spyOn(fs, "writeFileSync");
+        const updateVersionsFileSpy = jest.spyOn(PullCommand.prototype, "updateVersionsFile" as any);
+
         await pullCommand.execute();
         expect(writeFileSyncSpy).toHaveBeenCalled();
+        expect(updateVersionsFileSpy).toHaveBeenCalledWith(prefix + "-" + secretName, expect.any(Number));
     });
     afterAll(async () => {
         // Delete secret after test with SecretsManager Client
