@@ -58,7 +58,6 @@ describe("PushCommand", () => {
         expect(payload3.version).toEqual(payload2.version + 1);
     });
     afterAll(async () => {
-        // TODO reset the .hushrc file
         // Delete secret after test with SecretsManager Client
         const command = new DeleteSecretCommand({
             SecretId: `${prefix}-${secretName}`,

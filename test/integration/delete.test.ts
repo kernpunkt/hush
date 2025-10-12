@@ -10,6 +10,8 @@ const secretName = "delete";
 const client = new SecretsManagerClient({region: "eu-central-1"});
 
 describe("DeleteCommand", () => {
+    const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+
     beforeAll(async () => {
         // Create a new secret with AWS SDK
         const createSecretCommand = new CreateSecretCommand({
@@ -28,5 +30,14 @@ describe("DeleteCommand", () => {
             SecretId: `${prefix}-${secretName}`
         });
         await expect(client.send(getSecretCommand)).rejects.toThrow();
+
+        // Verify the warning message was logged
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+            expect.stringContaining(`Warning: No version entry found for key "${prefix}-${secretName}" in .hushrc.json`)
+        );
+    });
+    afterAll(async () => {
+        consoleWarnSpy.mockRestore();
     });
 });
