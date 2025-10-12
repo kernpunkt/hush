@@ -39,6 +39,11 @@ class PushCommand extends BaseCommand {
     return this;
   }
 
+  public setForce(force: boolean): this {
+    this.force = force;
+    return this;
+  }
+
   public async execute() {
     const secretArray = this.lineReader.readLines(this.envFile);
     const payload: SecretPayload = {
@@ -54,28 +59,28 @@ class PushCommand extends BaseCommand {
       SecretString: secretString,
     };
 
-    try {
-      // Get and log the current version before pushing
-      const currentVersion = await this.getSecretVersion();
+    // Get and log the current version before pushing
+    const currentVersion = await this.getSecretVersion();
 
-      // Check version against .hushrc.json and warn if necessary (unless force is set)
-      if (!this.force) {
-        const isVersionValid = this.checkVersion(this.getKey(), currentVersion);
-        if (!isVersionValid) {
-          return "";
-        }
+    // Check version against .hushrc.json and warn if necessary (unless force is set)
+    if (!this.force) {
+      const isVersionValid = this.checkVersion(this.getKey(), currentVersion);
+      if (!isVersionValid) {
+        return "";
       }
+    }
 
-      // Increment version and update payload
-      const newVersion = currentVersion + 1;
-      payload.version = newVersion;
+    // Increment version and update payload
+    const newVersion = currentVersion + 1;
+    payload.version = newVersion;
 
-      // Update the secret string with new version
-      const updatedSecretString = new SecretPayloadManager().toSecretString(
-        payload
-      );
-      body.SecretString = updatedSecretString;
+    // Update the secret string with new version
+    const updatedSecretString = new SecretPayloadManager().toSecretString(
+      payload
+    );
+    body.SecretString = updatedSecretString;
 
+    try {
       await new PutSecretValueRequest().execute(body);
 
       // Update .hushrc.json with new version
@@ -92,6 +97,9 @@ Your secret ${chalk.bold(this.getKey())} was successfully updated.`;
         SecretString: secretString,
       };
       await new CreateSecretRequest().execute(createPayload);
+
+      // Update .hushrc.json with new version
+      this.updateVersionsFile(this.getKey(), newVersion);
 
       return `
 ${chalk.green("Done!")}
@@ -114,7 +122,7 @@ Your secret ${this.getKey()} was successfully created.`;
       return secretPayload.version || 0;
     } catch (error) {
       // If secret doesn't exist or can't be retrieved, return 0
-      return 0;
+      return -1;
     }
   }
 
