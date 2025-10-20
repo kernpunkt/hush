@@ -9,7 +9,7 @@ author:
 
 # Version Control in Hush
 
-Hush implements a version control system that ensures developers avoid conflicts from different versions.
+Hush implements a version control system that ensures developers avoid conflicts from using different versions.
 
 ## Overview
 

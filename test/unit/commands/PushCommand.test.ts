@@ -139,8 +139,8 @@ describe("PushCommand", () => {
             expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
             
             const warnCalls = consoleWarnSpy.mock.calls;
-            expect(warnCalls[0][0]).toMatch(/⚠️ Warning: Current version \(2\) is less than your current version \(0\) for key/);
-            expect(warnCalls[1][0]).toMatch(/⚠️\s+Use "hush pull" to pull the latest version for key/);
+            expect(warnCalls[0][0]).toMatch(/⚠️ Warning: Remote version \(2\) is less than your local version \(0\) for key/);
+            expect(warnCalls[1][0]).toMatch(/⚠️ +Use "hush pull" to pull the latest version for key/);
             
             expect(warnCalls[0][0]).toContain("hush-hello-world");
             expect(warnCalls[1][0]).toContain("hush-hello-world");
@@ -178,7 +178,7 @@ describe("PushCommand", () => {
             // Strip ANSI codes for assertions since chalk adds formatting
             const cleanResult = result.replace(/\u001b\[[0-9;]*m/g, '');
             expect(cleanResult).toContain("Done!");
-            expect(cleanResult).toContain("Version: 2");
+            expect(cleanResult).toContain("New version: 2");
             expect(cleanResult).toContain("successfully updated");
             
             expect(writeFileSyncMock).toHaveBeenCalled();

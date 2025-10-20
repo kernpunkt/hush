@@ -89,7 +89,7 @@ class PushCommand extends BaseCommand {
       return `
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${payload.message}
-${chalk.bold("Version: ")}${newVersion}
+${chalk.bold("New version: ")}${newVersion}
 Your secret ${chalk.bold(this.getKey())} was successfully updated.`;
     } catch (err) {
       const createPayload: CreateSecretCommandInput = {
@@ -121,7 +121,7 @@ Your secret ${this.getKey()} was successfully created.`;
       );
       return secretPayload.version || 0;
     } catch (error) {
-      // If secret doesn't exist or can't be retrieved, return 0
+      // If secret doesn't exist or can't be retrieved, return -1
       return -1;
     }
   }
@@ -154,14 +154,14 @@ Your secret ${this.getKey()} was successfully created.`;
       ) {
         console.warn(
           chalk.yellow(
-            `⚠️ Warning: Current version (${currentVersion}) is less than your current version (${
+            `⚠️ Warning: Remote version (${currentVersion}) is less than your local version (${
               versions[key]?.version || 0
             }) for key "${key}"`
           )
         );
         console.warn(
           chalk.yellow(
-            `⚠️  Use "hush pull" to pull the latest version for key "${key}"`
+            `⚠️ Use "hush pull" to pull the latest version for key "${key}"`
           )
         );
         return false;
