@@ -6,6 +6,7 @@ import PullCommand from "../../src/commands/PullCommand";
 import { DeleteSecretCommand, CreateSecretCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import fs from "fs";
 import MockLineReader from "../support/MockLineReader";
+import VersionManager from "../../src/utils/VersionManager";
 
 const prefix = "hush-integration-test";
 const secretName = "pull";
@@ -27,7 +28,7 @@ describe("Pull command", () => {
         pullCommand.setLineReader(new MockLineReader([]));
 
         const writeFileSyncSpy = jest.spyOn(fs, "writeFileSync");
-        const updateVersionsFileSpy = jest.spyOn(PullCommand.prototype, "updateVersionsFile" as any);
+        const updateVersionsFileSpy = jest.spyOn(VersionManager.prototype, "updateVersionsFile" as any);
 
         await pullCommand.execute();
         expect(writeFileSyncSpy).toHaveBeenCalled();

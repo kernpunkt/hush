@@ -1,5 +1,5 @@
 import path from "path";
-import { writeFileSync, readFileSync, existsSync } from "fs";
+import { writeFileSync } from "fs";
 import chalk from "chalk";
 import envDiff, { EnvDiffResult } from "../utils/envDiff";
 import BaseCommand from "./BaseCommand";
@@ -9,7 +9,7 @@ import SecretEntry from "../@types/SecretEntry";
 import PullCommandInput from "../@types/PullCommandInput";
 import SecretPayloadManager from "../utils/SecretPayloadManager";
 import DateFormatter from "../utils/DateFormatter";
-import VersionEntry from "../@types/VersionEntry";
+import VersionManager from "../utils/VersionManager";
 
 export type PullCommandOptions = {
   force?: boolean;
@@ -19,12 +19,14 @@ class PullCommand extends BaseCommand {
   private envFile: string;
   private force: boolean;
   private lineReader: LineReader;
+  private versionManager: VersionManager;
 
   constructor(input: PullCommandInput) {
     super();
     this.key = input.key;
     this.envFile = path.resolve(input.envFile);
     this.force = input.force || false;
+    this.versionManager = new VersionManager();
     this.setLineReader(new LineReader());
   }
 
@@ -74,8 +76,10 @@ class PullCommand extends BaseCommand {
 
     writeFileSync(filename, secretLines.join("\n"));
 
-    // Update .hushrc.json with the current version
-    this.updateVersionsFile(this.getKey(), secretPayload.version);
+    this.versionManager.updateVersionsFile(
+      this.getKey(),
+      secretPayload.version
+    );
 
     return `
 ${chalk.green("Done!")}
@@ -85,34 +89,6 @@ ${chalk.bold("Updated at: ")}${DateFormatter.formatDate(
     )}
 Secrets successfully written to ${chalk.bold(path.basename(filename))}.
 `;
-  }
-
-  /**
-   * Updates the .hushrc.json file with the current version for the given key.
-   *
-   * @param {string} key - The secret key
-   * @param {number} version - The version to store
-   */
-  private updateVersionsFile(key: string, version: number): void {
-    const versionsFile = path.resolve(".hushrc.json");
-    let versions: Record<string, VersionEntry> = {};
-
-    // Read existing versions if file exists
-    if (existsSync(versionsFile)) {
-      try {
-        const fileContent = readFileSync(versionsFile, "utf8");
-        versions = JSON.parse(fileContent);
-      } catch (error) {
-        // If file is corrupted or not valid JSON, start fresh
-        versions = {};
-      }
-    }
-
-    // Update the version for this key
-    versions[key] = { version };
-
-    // Write back to file
-    writeFileSync(versionsFile, JSON.stringify(versions, null, 2));
   }
 }
 
