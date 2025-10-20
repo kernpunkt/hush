@@ -84,6 +84,7 @@ class PullCommand extends BaseCommand {
     return `
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${secretPayload.message}
+${chalk.bold("Version: ")}${secretPayload.version}
 ${chalk.bold("Updated at: ")}${DateFormatter.formatDate(
       secretPayload.updated_at
     )}
