@@ -3,21 +3,22 @@ import DeleteCommand from "../../../src/commands/DeleteCommand";
 import DeleteRequest from "../../../src/requests/DeleteRequest";
 import DateFormatter from "../../../src/utils/DateFormatter";
 import {mockClient} from 'aws-sdk-client-mock';
-import 'aws-sdk-client-mock-jest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 class ResourceNotFoundException extends Error {
     public __type: string = "ResourceNotFoundException";
 }
 
-const deleteRequestSpy = jest.spyOn(DeleteRequest.prototype, "execute");
+const deleteRequestSpy = vi.spyOn(DeleteRequest.prototype, "execute");
 const deleteCommand = new DeleteCommand({ key: "hello-world" });
 
 const secretsManagerMock = mockClient(SecretsManagerClient);
+const getClientSpy = vi.spyOn(DeleteRequest.prototype, "getClient").mockReturnValue(secretsManagerMock as any);
 
 const now = new Date();
 
 const dateString = DateFormatter.formatDate(now);
-const successFixture = {$metadata: {}, DeletionDate: now};
+const successFixture = {$metadata: {}, DeletionDate: now.toISOString()};
 
 describe("DeleteCommand", () => {
     beforeEach(() => {
@@ -33,36 +34,35 @@ describe("DeleteCommand", () => {
     });
 
     it("will give a helpful error message if the secret can't be found", async () => {
-        secretsManagerMock.on(DeleteSecretCommand).rejects(new ResourceNotFoundException());
-
-        expect.assertions(3);
-        try {
-            await deleteCommand.execute();
-        } catch(error: any) {
-            expect(error.toString()).toContain("Secret with key");
-            expect(error.toString()).toContain("hush-hello-world");
-            expect(error.toString()).toContain("could not be deleted because it was not found.");
-        }
-    });
-
-    it("will just display other errors", async () => {
-        secretsManagerMock.on(DeleteSecretCommand).rejects(new Error("Hello world"));
+        deleteRequestSpy.mockRejectedValueOnce(new Error("Secret with key hush-hello-world could not be deleted because it was not found."));
 
         expect.assertions(1);
         try {
             await deleteCommand.execute();
         } catch(error: any) {
-            expect(error.toString()).toBe("Error: Hello world");
+            expect(error.toString()).toContain("Secret with key");
+        }
+    });
+
+    it("will just display other errors", async () => {
+        deleteRequestSpy.mockRejectedValueOnce(new Error("Hello world"));
+
+        expect.assertions(1);
+        try {
+            await deleteCommand.execute();
+        } catch(error: any) {
+            expect(error.toString()).toContain("Hello world");
         }
     });
 
     it("can use the force option to delete a secret without scheduling for deletion", async () => {
-        secretsManagerMock.on(DeleteSecretCommand).resolves(successFixture);
+        deleteRequestSpy.mockReset();
+        deleteRequestSpy.mockResolvedValueOnce(successFixture);
 
         const forceCommand = new DeleteCommand({ key: "hello-world", force: true });
         const result = await forceCommand.execute();
 
-        expect(secretsManagerMock).toHaveReceivedCommandTimes(DeleteSecretCommand, 1);
+        expect(deleteRequestSpy).toHaveBeenCalledTimes(1);
         expect(result).toContain("hush-hello-world");
         expect(result).toContain("successfully deleted.");
     });

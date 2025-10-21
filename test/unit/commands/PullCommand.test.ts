@@ -1,36 +1,50 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import PullCommand from "../../../src/commands/PullCommand";
-import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
 import MockLineReader from "../../support/MockLineReader";
 import { EnvDiffResult, isEnvDiffResult } from "../../../src/utils/envDiff";
-import fs from "fs";
 
-const spy = jest.spyOn(GetSecretValueRequest.prototype, "execute")
-const writeFileSyncSpy = jest.spyOn(fs, "writeFileSync");
-writeFileSyncSpy.mockImplementation();
+// Mock the fs module
+const mockWriteFileSync = vi.hoisted(() => vi.fn());
+vi.mock("fs", () => ({
+    writeFileSync: mockWriteFileSync
+}));
+
+// Mock the GetSecretValueRequest module
+const mockExecute = vi.hoisted(() => vi.fn());
+vi.mock("../../../src/requests/GetSecretValueRequest", () => {
+    return {
+        default: vi.fn().mockImplementation(() => ({
+            execute: mockExecute
+        }))
+    };
+});
 
 describe("PullCommand", () => {
     beforeEach(() => {
-        spy.mockReset();
-        writeFileSyncSpy.mockClear();
+        mockWriteFileSync.mockClear();
     });
     it("adds a note to the file, informing you that the file is managed by Hush!", async () => {
-        const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
+        const command = new PullCommand({ key: "secret-name", envFile: "./.env.test", force: true});
         command.setLineReader(new MockLineReader([
             { key: "HELLO", value: "WORLD"},
             { key: "RAX", value: "KNAX" }
         ]));
-        spy.mockResolvedValue({
+        
+        mockExecute.mockResolvedValue({
             $metadata: {},
             SecretString: JSON.stringify(
                 [
-                    { key: "HELLO", value: "WORLD"},
+                    { key: "HELLO", value: "MUNDO"},
                     { key: "RAX", value: "KNAX" }
                 ]
             )
         });
         const result = await command.execute();
-        const argument = writeFileSyncSpy.mock.calls[0][0];
-        expect((argument as string).startsWith("# Managed by Hush!"));
+        expect(mockWriteFileSync).toHaveBeenCalled();
+        const calls = mockWriteFileSync.mock.calls;
+        expect(calls.length).toBeGreaterThan(0);
+        const content = calls[0][1];
+        expect((content as string).startsWith("# Managed by Hush!"));
     });
     it("makes you aware of changes before writing to file", async() => {
         const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
@@ -39,7 +53,7 @@ describe("PullCommand", () => {
             { key: "RAX", value: "KNAX" }
         ]));
 
-        spy.mockResolvedValue({
+        mockExecute.mockResolvedValue({
             $metadata: {},
             SecretString: JSON.stringify(
                 [
@@ -51,8 +65,8 @@ describe("PullCommand", () => {
 
         const result = await command.execute() as EnvDiffResult;
 
-        expect(spy).toHaveBeenCalled();
-        expect(writeFileSyncSpy).not.toHaveBeenCalled();
+        expect(mockExecute).toHaveBeenCalled();
+        expect(mockWriteFileSync).not.toHaveBeenCalled();
         expect(isEnvDiffResult(result)).toBeTruthy();
         expect(result.added).toContain('HUDE="FUDE"');
         expect(result.removed).toContain('RAX="KNAX"');
@@ -62,24 +76,20 @@ describe("PullCommand", () => {
         const command = new PullCommand({ key: "secret-name", envFile: "./.env.test", force: true});
         command.setLineReader(new MockLineReader(['HELLO="WORLD"','RAX="KNAX"']));
 
-        spy.mockImplementation(() => {
-            return new Promise((resolve, reject) => {
-                resolve({
-                    $metadata: {},
-                    SecretString: JSON.stringify(
-                        [
-                            {key: "HELLO", value: "MUNDO"},
-                            {key: "HUDE", value: "FUDE"},
-                        ]
-                    )
-                });
-            });
+        mockExecute.mockResolvedValue({
+            $metadata: {},
+            SecretString: JSON.stringify(
+                [
+                    {key: "HELLO", value: "MUNDO"},
+                    {key: "HUDE", value: "FUDE"},
+                ]
+            )
         });
 
-        const result = await command.execute() as EnvDiffResult;
+        const result = await command.execute();
 
-        expect(spy).toHaveBeenCalled();
-        expect(writeFileSyncSpy).toHaveBeenCalled();
+        expect(mockExecute).toHaveBeenCalled();
+        expect(mockWriteFileSync).toHaveBeenCalled();
         expect(result).toContain("successfully written");
         expect(result).toContain(".env.test");
     });
@@ -87,24 +97,20 @@ describe("PullCommand", () => {
         const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
         command.setLineReader(new MockLineReader([]));
 
-        spy.mockImplementation(() => {
-            return new Promise((resolve, reject) => {
-                resolve({
-                    $metadata: {},
-                    SecretString: JSON.stringify(
-                        [
-                            {key: "HELLO", value: "MUNDO"},
-                            {key: "HUDE", value: "FUDE"},
-                        ]
-                    )
-                });
-            });
+        mockExecute.mockResolvedValue({
+            $metadata: {},
+            SecretString: JSON.stringify(
+                [
+                    {key: "HELLO", value: "MUNDO"},
+                    {key: "HUDE", value: "FUDE"},
+                ]
+            )
         });
 
-        const result = await command.execute() as EnvDiffResult;
+        const result = await command.execute();
 
-        expect(spy).toHaveBeenCalled();
-        expect(writeFileSyncSpy).toHaveBeenCalled();
+        expect(mockExecute).toHaveBeenCalled();
+        expect(mockWriteFileSync).toHaveBeenCalled();
         expect(result).toContain("successfully written");
         expect(result).toContain(".env.test");
     });

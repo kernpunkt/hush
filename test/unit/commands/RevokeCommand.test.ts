@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 const secretName = "hush-secret";
 const arnDoesNotExist = "arn:aws:iam::123456789876:user/does.not.exist";
 const arnDoesExist = "arn:aws:iam::123456789876:user/does.exist";
@@ -11,7 +12,7 @@ import PutResourcePolicyRequest from "../../../src/requests/PutResourcePolicyReq
 describe("RevokeCommand", () => {
     it("throws an error if no statement could be found to revoke it", async () => {
         const revokeCommand = new RevokeCommand({ key: secretName, userIdentifier: arnDoesExist});
-        const spy = jest.spyOn(GetResourcePolicyRequest.prototype, "execute");
+        const spy = vi.spyOn(GetResourcePolicyRequest.prototype, "execute");
         spy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
                 resolve(new PolicyDocument());
@@ -38,14 +39,14 @@ describe("RevokeCommand", () => {
             resources: ["*"]
         })]);
 
-        const spy = jest.spyOn(GetResourcePolicyRequest.prototype, "execute");
+        const spy = vi.spyOn(GetResourcePolicyRequest.prototype, "execute");
         spy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
                 resolve(policy);
             });
         });
 
-        const putSpy = jest.spyOn(PutResourcePolicyRequest.prototype, "execute");
+        const putSpy = vi.spyOn(PutResourcePolicyRequest.prototype, "execute");
         putSpy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
                 resolve();
@@ -63,7 +64,7 @@ describe("RevokeCommand", () => {
     it("throws an error when the secret does not exist", async () => {
         const revokeCommand = new RevokeCommand({ key: secretName, userIdentifier: arnDoesExist});
 
-        const spy = jest.spyOn(GetResourcePolicyRequest.prototype, "execute");
+        const spy = vi.spyOn(GetResourcePolicyRequest.prototype, "execute");
         spy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
                 reject(new Error());
@@ -71,7 +72,7 @@ describe("RevokeCommand", () => {
         });
 
 
-        const putSpy = jest.spyOn(PutResourcePolicyRequest.prototype, "execute");
+        const putSpy = vi.spyOn(PutResourcePolicyRequest.prototype, "execute");
         putSpy.mockImplementation();
 
         expect(putSpy).not.toBeCalled();
