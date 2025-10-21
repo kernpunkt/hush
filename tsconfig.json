@@ -19,7 +19,8 @@
     "moduleResolution": "node",
     "sourceMap": true,
     "typeRoots": ["./node_modules/@types"],
-    "outDir": "dist"
+    "outDir": "dist",
+    "resolveJsonModule": true
   },
   "exclude": ["node_modules", "cdk.out", "test"]
 }

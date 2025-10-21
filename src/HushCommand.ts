@@ -12,6 +12,8 @@ import PushCommandInput from "./@types/PushCommandInput";
 import ListCommand from "./commands/ListCommand";
 import figlet from "figlet";
 import CatCommand from "./commands/CatCommand";
+import * as fs from "fs";
+import * as path from "path";
 
 class HushCommand extends Command {
   constructor() {
@@ -41,7 +43,25 @@ class HushCommand extends Command {
       process.exit(1);
     }
 
+    // Show version information when help is requested or no command is provided
+    if (
+      !argv ||
+      argv.length === 0 ||
+      argv.includes("--help") ||
+      argv.includes("-h")
+    ) {
+      this.displayVersion();
+    }
+
     return super.parse(argv, options);
+  }
+
+  private displayVersion(): void {
+    const packageJsonPath = path.join(__dirname, "../package.json");
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+    console.info(
+      `${chalk.bold("Hush! 🤫")} — Version ${packageJson.version}\n`
+    );
   }
 
   private listCommand(): void {
