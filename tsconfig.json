@@ -22,6 +22,7 @@
     "outDir": "dist",
     "skipLibCheck": true,
     "lib": ["es2020", "dom"]
+    "resolveJsonModule": true
   },
   "exclude": ["node_modules", "cdk.out", "test"]
 }
