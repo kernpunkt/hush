@@ -58,10 +58,10 @@ describe("HushCommand", () => {
         process.env.AWS_PROFILE = "test-profile";
 
         // Mock console.log to capture output
-        const consoleSpy = jest.spyOn(console, "info").mockImplementation();
+        const consoleSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
         // Mock Command.prototype.parse to prevent actual parsing
-        const parseSpy = jest.spyOn(Command.prototype, "parse").mockReturnValue(new Command());
+        const parseSpy = vi.spyOn(Command.prototype, "parse").mockReturnValue(new Command());
 
         // Call run with --help to trigger version display
         command.run(["--help"]);
@@ -80,10 +80,10 @@ describe("HushCommand", () => {
         process.env.AWS_PROFILE = "test-profile";
 
         // Mock console.log to capture output
-        const consoleSpy = jest.spyOn(console, "info").mockImplementation();
+        const consoleSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
         // Mock Command.prototype.parse to prevent actual parsing
-        const parseSpy = jest.spyOn(Command.prototype, "parse").mockReturnValue(new Command());
+        const parseSpy = vi.spyOn(Command.prototype, "parse").mockReturnValue(new Command());
 
         // Call run with no arguments to trigger version display
         command.run([]);
