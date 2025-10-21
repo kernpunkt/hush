@@ -1,30 +1,36 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import VersionManager from "../../../src/utils/VersionManager";
 import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
 
+// Mock console methods to prevent output during tests
+const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
 // Mock the fs module
-jest.mock("fs", () => ({
-  ...jest.requireActual("fs"),
-  readFileSync: jest.fn(),
-  writeFileSync: jest.fn(),
-  existsSync: jest.fn(),
+vi.mock("fs", () => ({
+  readFileSync: vi.fn(),
+  writeFileSync: vi.fn(),
+  existsSync: vi.fn(),
 }));
 
 // Get mocked fs functions
 import { readFileSync, writeFileSync, existsSync } from "fs";
-const readFileSyncMock = readFileSync as jest.MockedFunction<typeof readFileSync>;
-const writeFileSyncMock = writeFileSync as jest.MockedFunction<typeof writeFileSync>;
-const existsSyncMock = existsSync as jest.MockedFunction<typeof existsSync>;
+const readFileSyncMock = readFileSync as any;
+const writeFileSyncMock = writeFileSync as any;
+const existsSyncMock = existsSync as any;
 
 // Mock GetSecretValueRequest and SecretPayloadManager
-const getSecretValueSpy = jest.spyOn(GetSecretValueRequest.prototype, "execute");
-const fromSecretStringSpy = jest.spyOn(SecretPayloadManager.prototype, "fromSecretString");
+const getSecretValueSpy = vi.spyOn(GetSecretValueRequest.prototype, "execute");
+const fromSecretStringSpy = vi.spyOn(SecretPayloadManager.prototype, "fromSecretString");
 
 describe("VersionManager", () => {
   let versionManager: VersionManager;
 
   beforeEach(() => {
     versionManager = new VersionManager();
+    consoleWarnSpy.mockClear();
+    consoleErrorSpy.mockClear();
   });
 
   afterEach(() => {
@@ -38,7 +44,7 @@ describe("VersionManager", () => {
 
   describe("checkVersion", () => {
     it("should return false and warn when remote version is greater than local version", () => {
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       existsSyncMock.mockReturnValueOnce(true);
       const hushrcContent = JSON.stringify({
@@ -79,7 +85,7 @@ describe("VersionManager", () => {
     });
 
     it("should return false and warn when .hushrc.json file does not exist", () => {
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       // Mock that .hushrc.json doesn't exist
       existsSyncMock.mockReturnValueOnce(false);
@@ -98,7 +104,7 @@ describe("VersionManager", () => {
     });
 
     it("should return false and log error when reading .hushrc.json file fails", () => {
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation();
 
       existsSyncMock.mockReturnValueOnce(true);
       // Mock readFileSync to throw an error
@@ -120,7 +126,7 @@ describe("VersionManager", () => {
     });
 
     it("should return false when key is undefined in .hushrc.json", () => {
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       existsSyncMock.mockReturnValueOnce(true);
       const hushrcContent = JSON.stringify({
@@ -203,7 +209,7 @@ describe("VersionManager", () => {
     });
 
     it("should warn when writing to .hushrc.json fails", () => {
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       existsSyncMock.mockReturnValueOnce(false);
       writeFileSyncMock.mockImplementationOnce(() => {
@@ -356,7 +362,7 @@ describe("VersionManager", () => {
     });
 
     it("should warn when .hushrc.json file does not exist", () => {
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       existsSyncMock.mockReturnValueOnce(false);
 
@@ -373,7 +379,7 @@ describe("VersionManager", () => {
     });
 
     it("should warn when key is not found in .hushrc.json", () => {
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       const existingContent = JSON.stringify({
         "different-key": { version: 1 },
@@ -395,7 +401,7 @@ describe("VersionManager", () => {
     });
 
     it("should warn when reading .hushrc.json fails", () => {
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       existsSyncMock.mockReturnValueOnce(true);
       readFileSyncMock.mockImplementationOnce(() => {
@@ -415,7 +421,7 @@ describe("VersionManager", () => {
     });
 
     it("should warn when writing .hushrc.json fails", () => {
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       const existingContent = JSON.stringify({
         "hush-hello-world": { version: 1 },

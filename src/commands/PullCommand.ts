@@ -27,7 +27,7 @@ class PullCommand extends BaseCommand {
     this.envFile = path.resolve(input.envFile);
     this.force = input.force || false;
     this.versionManager = new VersionManager();
-    this.setLineReader(new LineReader());
+    this.lineReader = new LineReader();
   }
 
   public setLineReader(lineReader: LineReader): this {

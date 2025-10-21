@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SecretsManager } from "@aws-sdk/client-secrets-manager";
 import SecretPayload from "../../../src/@types/SecretPayload";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";

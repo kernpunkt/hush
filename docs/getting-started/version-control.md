@@ -40,6 +40,7 @@ Hush automatically creates a `.hushrc.json` file in your project directory:
 ```
 
 **Note:**
+
 - The `.hushrc.json` file is automatically updated during `pull` operations
 - The `.hushrc.json` file is used for conflict checking during `push` operations
 
