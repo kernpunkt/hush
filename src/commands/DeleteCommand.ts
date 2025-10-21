@@ -20,7 +20,7 @@ class DeleteCommand extends BaseCommand {
   public async execute(): Promise<string> {
     const result = await new DeleteRequest().execute(this.getKey(), this.force);
 
-    const dateObject = result?.DeletionDate as string;
+    const dateObject = result?.DeletionDate;
 
     if (this.force) {
       return `${chalk.green("Done!")} Your secret ${chalk.bold(
@@ -30,7 +30,7 @@ class DeleteCommand extends BaseCommand {
       return `${chalk.green("Done!")} Your secret ${chalk.bold(
         this.getKey()
       )} was successfully scheduled for deletion at ${chalk.bold(
-        DateFormatter.formatDate(dateObject)
+        dateObject ? DateFormatter.formatDate(dateObject) : "unknown date"
       )}`;
     }
   }
