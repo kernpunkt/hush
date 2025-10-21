@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import GetCallerIdentityRequest from "../../../src/requests/GetCallerIdentityRequest";
 import { STSClient } from "@aws-sdk/client-sts";
 
@@ -10,7 +11,7 @@ describe("GetCallerIdentityRequest", () => {
     it("will try and resolve the IAM ARN by username", async () => {
         const arnDoesExist = "arn:aws:iam::123456789876:user/does.exist";
 
-        const callerIdentitySpy = jest.spyOn(STSClient.prototype, "send");
+        const callerIdentitySpy = vi.spyOn(STSClient.prototype, "send");
         callerIdentitySpy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
                 resolve({

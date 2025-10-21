@@ -20,7 +20,7 @@ class DeleteCommand extends BaseCommand {
   public async execute(): Promise<string> {
     const result = await new DeleteRequest().execute(this.getKey(), this.force);
 
-    const dateObject = result?.DeletionDate as Date;
+    const dateObject = result?.DeletionDate as string;
 
     if (this.force) {
       return `${chalk.green("Done!")} Your secret ${chalk.bold(

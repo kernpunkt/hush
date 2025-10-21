@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { DeleteSecretCommand, GetSecretValueCommand, SecretsManagerClient, SecretsManagerServiceException } from "@aws-sdk/client-secrets-manager";
 import PushCommand from "../../src/commands/PushCommand";
 import MockLineReader from "../support/MockLineReader";
@@ -8,6 +9,19 @@ const secretName = "push";
 const client = new SecretsManagerClient({region: "eu-central-1"});
 
 describe("PushCommand", () => {
+    beforeAll(async () => {
+        // Delete any existing secret first (in case of leftover from previous run)
+        try {
+            const command = new DeleteSecretCommand({
+                SecretId: `${prefix}-${secretName}`,
+                ForceDeleteWithoutRecovery: true
+            });
+            await client.send(command);
+        } catch (error) {
+            // Ignore error if secret doesn't exist
+        }
+    });
+    
     it("can create a new secret, given an .env file", async () => {
         const pushCommand = new PushCommand({ key: secretName, envFile: ".env.test"});
         pushCommand.setPrefix(prefix);
