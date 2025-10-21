@@ -6,7 +6,7 @@
     "email": "joern.meyer@kernpunkt.de",
     "url": "https://joern.url.lol/🧑‍💻"
   },
-  "version": "2.0.4",
+  "version": "2.0.5",
   "license": "MIT",
   "bin": {
     "hush": "dist/hush.js"
@@ -30,7 +30,6 @@
     "@commitlint/prompt-cli": "^17.7.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "@types/crypto-js": "^4.1.1",
     "@types/figlet": "^1.5.6",
     "@types/jest": "^29.5.1",
     "@types/node": "^18.16.0",
@@ -54,14 +53,9 @@
     "@aws-sdk/client-secrets-manager": "^3.319.0",
     "@aws-sdk/client-sts": "^3.328.0",
     "@thinkinglabs/aws-iam-policy": "^2.5.1",
-    "@types/diff": "^5.0.3",
-    "@types/prompt-sync": "^4.2.0",
     "chalk": "^4.1.0-commonjs",
-    "chalk-table": "^1.0.2",
     "commander": "^10.0.1",
-    "crypto-js": "^4.1.1",
     "date-fns": "^2.30.0",
-    "diff": "^5.1.0",
     "figlet": "^1.6.0",
     "husky": "^8.0.3"
   }
