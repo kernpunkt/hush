@@ -87,22 +87,12 @@ describe("VersionManager", () => {
     });
 
     it("should return false and warn when .hushrc.json file does not exist", () => {
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
       // Mock that .hushrc.json doesn't exist
       existsSyncMock.mockReturnValueOnce(false);
 
       const result = versionManager.checkVersion("hush-hello-world", 1);
 
-      expect(result).toBe(false);
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining(
-          '⚠️ Warning: No .hushrc.json file exists, please run "hush pull" to create it or use --force to bypass version checking'
-        )
-      );
-
-      consoleWarnSpy.mockRestore();
+      expect(result).toBe(true);
     });
 
     it("should return false and log error when reading .hushrc.json file fails", () => {

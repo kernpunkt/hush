@@ -22,12 +22,7 @@ class VersionManager {
     const versionsFile = path.resolve(VersionManager.VERSION_FILE);
 
     if (!existsSync(versionsFile)) {
-      console.warn(
-        chalk.yellow(
-          '⚠️ Warning: No .hushrc.json file exists, please run "hush pull" to create it or use --force to bypass version checking'
-        )
-      );
-      return false;
+      return true;
     }
 
     try {
