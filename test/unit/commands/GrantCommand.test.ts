@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import { STSClient } from "@aws-sdk/client-sts";
 import GrantCommand from "../../../src/commands/GrantCommand";
@@ -17,7 +18,7 @@ const arnDoesExist = "arn:aws:iam::123456789876:user/does.exist";
 describe("GrantCommand", () => {
     it("throws an error when the secret can't be found", async () => {
         const grantCommand = new GrantCommand({ key: secretName, userIdentifier: arnDoesExist});
-        const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
+        const spy = vi.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
                 reject(new ResourceNotFoundException());
@@ -38,7 +39,7 @@ describe("GrantCommand", () => {
     it("throws an error when the user to grant access to can't be found", async () => {
         const grantCommand = new GrantCommand({ key: secretName, userIdentifier: arnDoesNotExist});
 
-        const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
+        const spy = vi.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockImplementationOnce(() => {
             return new Promise((resolve, reject) => {
                 resolve({});
@@ -64,7 +65,7 @@ describe("GrantCommand", () => {
     it("can grant access to a user", async () => {
         const grantCommand = new GrantCommand({ key: secretName, userIdentifier: arnDoesExist});
 
-        const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
+        const spy = vi.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
                 resolve({});
@@ -82,14 +83,14 @@ describe("GrantCommand", () => {
     it("it will try and translate a username to an IAM ARN, then grant access to that ARN", async () => {
         const grantCommand = new GrantCommand({ key: secretName, userIdentifier: "test" });
 
-        const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
+        const spy = vi.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
                 resolve({});
             });
         });
 
-        const callerIdentitySpy = jest.spyOn(STSClient.prototype, "send");
+        const callerIdentitySpy = vi.spyOn(STSClient.prototype, "send");
         callerIdentitySpy.mockImplementation(() => {
             return new Promise((resolve, reject) => {
                 resolve({
@@ -108,7 +109,7 @@ describe("GrantCommand", () => {
     it("will not duplicate policy statements when granted twice", async () => {
         const grantCommand = new GrantCommand({  key: secretName, userIdentifier: arnDoesExist});
 
-        const spy = jest.spyOn(SecretsManagerClient.prototype, "send");
+        const spy = vi.spyOn(SecretsManagerClient.prototype, "send");
         spy.mockImplementationOnce(() => {
             return new Promise((resolve, reject) => {
                 const policy = new PolicyDocument([new Statement({

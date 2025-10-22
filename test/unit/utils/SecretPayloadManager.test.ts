@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SecretsManager } from "@aws-sdk/client-secrets-manager";
 import SecretPayload from "../../../src/@types/SecretPayload";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
@@ -7,7 +8,8 @@ const payload: SecretPayload = {
     updated_at: new Date(),
     secrets: [
         { hude: "Fude" }
-    ]
+    ],
+    version: 1
 }
 
 describe("SecretPayloadManager", () => {

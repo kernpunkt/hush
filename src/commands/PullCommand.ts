@@ -9,6 +9,7 @@ import SecretEntry from "../@types/SecretEntry";
 import PullCommandInput from "../@types/PullCommandInput";
 import SecretPayloadManager from "../utils/SecretPayloadManager";
 import DateFormatter from "../utils/DateFormatter";
+import VersionManager from "../utils/VersionManager";
 
 export type PullCommandOptions = {
   force?: boolean;
@@ -18,13 +19,15 @@ class PullCommand extends BaseCommand {
   private envFile: string;
   private force: boolean;
   private lineReader: LineReader;
+  private versionManager: VersionManager;
 
   constructor(input: PullCommandInput) {
     super();
     this.key = input.key;
     this.envFile = path.resolve(input.envFile);
     this.force = input.force || false;
-    this.setLineReader(new LineReader());
+    this.versionManager = new VersionManager();
+    this.lineReader = new LineReader();
   }
 
   public setLineReader(lineReader: LineReader): this {
@@ -73,9 +76,15 @@ class PullCommand extends BaseCommand {
 
     writeFileSync(filename, secretLines.join("\n"));
 
+    this.versionManager.updateVersionsFile(
+      this.getKey(),
+      secretPayload.version
+    );
+
     return `
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${secretPayload.message}
+${chalk.bold("Version: ")}${chalk.bold.cyan(secretPayload.version)}
 ${chalk.bold("Updated at: ")}${DateFormatter.formatDate(
       secretPayload.updated_at
     )}

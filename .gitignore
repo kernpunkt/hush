@@ -3,3 +3,5 @@ cdk.out
 node_modules
 .env*
 dist
+.hushrc.json
+.cursor/mcp.json

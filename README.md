@@ -1,4 +1,4 @@
-# Hush! 🤫</h1>
+# Hush! 🤫
 
 **Hush!** is a small tool to facilitate the **sharing of `.env`** files between developers without having to send them over Teams messages. It uses the **AWS SecretsManager** to store a new secret for each of your `.env` files.
 

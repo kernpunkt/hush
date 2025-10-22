@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ArnPrincipal, PolicyDocument, Statement } from "@thinkinglabs/aws-iam-policy";
 import findStatementByArn from "../../../src/utils/findStatementByArn";
 

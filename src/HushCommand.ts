@@ -183,11 +183,16 @@ class HushCommand extends Command {
         "-m, --message <message>",
         "A message you want to store with this version of the secret."
       )
+      .option("-f, --force", "Force the push without version checking.")
       .action(async (key: string, envFile: string, options: any) => {
         const input: PushCommandInput = { key, envFile };
 
         if (options.message) {
           input.message = options.message;
+        }
+
+        if (options.force) {
+          input.force = options.force;
         }
 
         console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
