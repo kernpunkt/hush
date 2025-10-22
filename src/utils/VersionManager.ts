@@ -43,12 +43,10 @@ class VersionManager {
         versions[key] === undefined ||
         currentVersion > versions[key].version
       ) {
-        const remoteVersion =
-          currentVersion !== -1 ? currentVersion : "unknown version";
         console.warn(
           chalk.yellow(
             `⚠️ Warning: Remote version (${chalk.bold.cyan(
-              remoteVersion
+              currentVersion
             )}) is greater than your local version (${chalk.bold.cyan(
               versions[key]?.version || 0
             )}) for key "${key}"`

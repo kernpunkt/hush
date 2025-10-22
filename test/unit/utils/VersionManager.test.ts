@@ -59,10 +59,13 @@ describe("VersionManager", () => {
       expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
 
       const warnCalls = consoleWarnSpy.mock.calls;
-      expect(warnCalls[0][0]).toMatch(
-        /⚠️ Warning: Remote version \(2\) is greater than your local version \(0\) for key/
+      // Strip ANSI codes for easier matching
+      const stripAnsi = (str: string) => str.replace(/\x1b\[\d+m/g, '');
+      
+      expect(stripAnsi(warnCalls[0][0])).toMatch(
+        /⚠️ Warning: Remote version \(2\) is greater than your local version \(0\) for key "hush-hello-world"/
       );
-      expect(warnCalls[1][0]).toMatch(
+      expect(stripAnsi(warnCalls[1][0])).toMatch(
         /⚠️ Use "hush pull" to pull the latest version/
       );
 
