@@ -1,5 +1,5 @@
 {
-  "ignorePatterns": ["test/*", "dist/*"],
+  "ignorePatterns": ["test/*", "dist/*", "vitest.config.ts"],
   "parser": "@typescript-eslint/parser",
   "overrides": [
     {

@@ -63,11 +63,10 @@ describe("VersionManager", () => {
         /⚠️ Warning: Remote version \(2\) is greater than your local version \(0\) for key/
       );
       expect(warnCalls[1][0]).toMatch(
-        /⚠️ +Use "hush pull" to pull the latest version for key/
+        /⚠️ Use "hush pull" to pull the latest version/
       );
 
       expect(warnCalls[0][0]).toContain("hush-hello-world");
-      expect(warnCalls[1][0]).toContain("hush-hello-world");
 
       consoleWarnSpy.mockRestore();
     });
@@ -140,6 +139,19 @@ describe("VersionManager", () => {
       expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
 
       consoleWarnSpy.mockRestore();
+    });
+
+    it("should return true when secret doesn't exist remotely (currentVersion === -1)", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      const hushrcContent = JSON.stringify({
+        "hush-hello-world": { version: 0 },
+      });
+      readFileSyncMock.mockReturnValueOnce(hushrcContent);
+
+      const result = versionManager.checkVersion("hush-hello-world", -1);
+
+      expect(result).toBe(true);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
     });
   });
 

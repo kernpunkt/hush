@@ -91,7 +91,7 @@ class PushCommand extends BaseCommand {
       return `
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${payload.message}
-${chalk.bold("New version: ")}${newVersion}
+${chalk.bold("New version: ")}${chalk.bold.cyan(newVersion)}
 Your secret ${chalk.bold(this.getKey())} was successfully updated.`;
     } catch (err) {
       const createPayload: CreateSecretCommandInput = {

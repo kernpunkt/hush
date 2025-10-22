@@ -34,6 +34,11 @@ class VersionManager {
       const fileContent = readFileSync(versionsFile, "utf8");
       const versions: Record<string, VersionEntry> = JSON.parse(fileContent);
 
+      // If secret doesn't exist remotely (currentVersion === -1), allow push
+      if (currentVersion === -1) {
+        return true;
+      }
+
       if (
         versions[key] === undefined ||
         currentVersion > versions[key].version
@@ -42,15 +47,15 @@ class VersionManager {
           currentVersion !== -1 ? currentVersion : "unknown version";
         console.warn(
           chalk.yellow(
-            `⚠️ Warning: Remote version (${remoteVersion}) is greater than your local version (${
+            `⚠️ Warning: Remote version (${chalk.bold.cyan(
+              remoteVersion
+            )}) is greater than your local version (${chalk.bold.cyan(
               versions[key]?.version || 0
-            }) for key "${key}"`
+            )}) for key "${key}"`
           )
         );
         console.warn(
-          chalk.yellow(
-            `⚠️ Use "hush pull" to pull the latest version for key "${key}"`
-          )
+          chalk.yellow('⚠️ Use "hush pull" to pull the latest version')
         );
         return false;
       }
