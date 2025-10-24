@@ -1,5 +1,0 @@
-coverage
-cdk.out
-node_modules
-.env*
-dist
