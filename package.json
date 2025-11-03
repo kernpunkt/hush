@@ -6,7 +6,7 @@
     "email": "joern.meyer@kernpunkt.de",
     "url": "https://joern.url.lol/🧑‍💻"
   },
-  "version": "3.0.0",
+  "version": "3.0.1",
   "license": "MIT",
   "bin": {
     "hush": "dist/hush.js"
