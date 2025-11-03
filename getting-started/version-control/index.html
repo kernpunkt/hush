@@ -9,24 +9,24 @@
     <meta name="generator" content="Retype 3.11.0">
 
     <!-- Primary Meta Tags -->
-    <title>Deploying Your First Secret</title>
-    <meta name="title" content="Deploying Your First Secret">
-    <meta name="description" content="After installing Hush! in your project, it's time to push your first secret to the AWS cloud!">
+    <title>Version Control</title>
+    <meta name="title" content="Version Control">
+    <meta name="description" content="Hush implements a version control system that ensures developers avoid conflicts from using different versions.">
 
     <!-- Canonical -->
-    <link rel="canonical" href="https://hush.kernpunkt.de/getting-started/deploying-your-first-secret/">
+    <link rel="canonical" href="https://hush.kernpunkt.de/getting-started/version-control/">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://hush.kernpunkt.de/getting-started/deploying-your-first-secret/">
-    <meta property="og:title" content="Deploying Your First Secret">
-    <meta property="og:description" content="After installing Hush! in your project, it's time to push your first secret to the AWS cloud!">
+    <meta property="og:url" content="https://hush.kernpunkt.de/getting-started/version-control/">
+    <meta property="og:title" content="Version Control">
+    <meta property="og:description" content="Hush implements a version control system that ensures developers avoid conflicts from using different versions.">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://hush.kernpunkt.de/getting-started/deploying-your-first-secret/">
-    <meta property="twitter:title" content="Deploying Your First Secret">
-    <meta property="twitter:description" content="After installing Hush! in your project, it's time to push your first secret to the AWS cloud!">
+    <meta property="twitter:url" content="https://hush.kernpunkt.de/getting-started/version-control/">
+    <meta property="twitter:title" content="Version Control">
+    <meta property="twitter:description" content="Hush implements a version control system that ensures developers avoid conflicts from using different versions.">
 
     <script data-cfasync="false">(function(){var cl=document.documentElement.classList,ls=localStorage.getItem("retype_scheme"),hd=cl.contains("dark"),hl=cl.contains("light"),wm=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;if(ls==="dark"||(!ls&&wm&&!hd&&!hl)){cl.remove("light");cl.add("dark")}else if(ls==="light"||(!ls&&!wm&&!hd&&!hl)){cl.remove("dark");cl.add("light")}})();</script>
 
@@ -170,10 +170,10 @@
                                 <!-- Rendered if sidebar right is enabled -->
                                 <div id="retype-sidebar-right-toggle"></div>
                                 <!-- Page content  -->
-<doc-anchor-target id="deploying-your-first-secret" class="break-words">
+<doc-anchor-target id="version-control-in-hush" class="break-words">
     <h1>
-        <doc-anchor-trigger class="header-anchor-trigger" to="#deploying-your-first-secret">#</doc-anchor-trigger>
-        <span>Deploying Your First Secret</span>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#version-control-in-hush">#</doc-anchor-trigger>
+        <span>Version Control in Hush</span>
     </h1>
 </doc-anchor-target>
 <div class="-mt-3 mb-12 flex flex-wrap text-sm text-gray-400 dark:text-dark-350 items-center print:justify-center">
@@ -181,43 +181,121 @@
         <div>By</div>
         <div class="ml-2 flex items-center">
           <div class="shrink-0 w-8 h-8 overflow-hidden rounded-full">
-            <a href="https://github.com/joerncodes"><img class="object-cover" src="https://joern.url.lol/avatar"></a>
+            <a href="https://github.com/ingohachelbusch"><svg width="2rem" height="2rem" xmlns="http://www.w3.org/2000/svg" fill="white"><g><rect width="2rem" height="1.7rem" fill="#c5c5c5"/><circle r="0.44rem" cy="0.83rem" cx="1rem"/><ellipse ry="0.96rem" rx="0.77rem" cy="2.15rem" cx="1rem"/></g></svg></a>
           </div>
-          <div class="ml-1 whitespace-nowrap text-gray-500 dark:text-dark-350"><a href="https://github.com/joerncodes">Jörn Meyer</a></div>
+          <div class="ml-1 whitespace-nowrap text-gray-500 dark:text-dark-350"><a href="https://github.com/ingohachelbusch">Ingo Hachelbusch</a></div>
         </div>
     </div>
 </div>
 
-<p>After <strong><a href="../installation/">installing Hush!</a></strong> in your project, it&#x27;s time to push your first secret to the AWS cloud!</p>
-<p>To do so, it&#x27;s important to <strong>select your AWS profile</strong> by running <strong><code v-pre>export AWS_PROFILE=your-profile-name</code></strong> in the shell. If you don&#x27;t have an AWS profile for your command line yet, <strong><a href="https://gist.github.com/joerncodes/6d96114dbbd84f3acd70a2ddb9f056b1">create one first using this guide</a></strong>.</p>
-<hr>
-<p>Let&#x27;s say you have a file called <code v-pre>.env</code> with the following content:</p>
+<p>Hush implements a version control system that ensures developers avoid conflicts from using different versions.</p>
+<doc-anchor-target id="overview">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#overview">#</doc-anchor-trigger>
+        <span>Overview</span>
+    </h2>
+</doc-anchor-target>
+<p>The version control system in Hush works on three levels:</p>
+<ol>
+<li><strong>Secret Versioning</strong>: Each secret in AWS SecretsManager is automatically versioned</li>
+<li><strong>Local Version Tracking</strong>: The <code v-pre>.hushrc.json</code> file tracks local versions</li>
+<li><strong>Conflict Prevention</strong>: Automatic checks before push operations</li>
+</ol>
+<doc-anchor-target id="local-version-tracking">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#local-version-tracking">#</doc-anchor-trigger>
+        <span>Local Version Tracking</span>
+    </h2>
+</doc-anchor-target>
+<doc-anchor-target id="hushrcjson-file">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#hushrcjson-file">#</doc-anchor-trigger>
+        <span>.hushrc.json File</span>
+    </h3>
+</doc-anchor-target>
+<p>Hush automatically creates a <code v-pre>.hushrc.json</code> file in your project directory:</p>
 <div class="codeblock-wrapper"><doc-codeblock>
-<pre translate="no" class="language-ini"><code v-pre class="language-ini">MY_API_KEY=abcdefgh12345
-USERNAME=joern</code></pre>
+<pre translate="no" class="language-json"><code v-pre class="language-json">{
+  &quot;hush-project-dev&quot;: {
+    &quot;version&quot;: 5
+  },
+  &quot;hush-project-prod&quot;: {
+    &quot;version&quot;: 12
+  },
+  &quot;hush-api-keys&quot;: {
+    &quot;version&quot;: 3
+  }
+}</code></pre>
 </doc-codeblock></div>
-<p>To make this file available to your fellow devs, you would run the following command:</p>
-<doc-tabs>
-<doc-tab v-cloak id="yarn">
-<template #title>Yarn</template>
-<p><code v-pre>yarn hush push my-first-hush ./.env</code></p>
-</doc-tab>
-<doc-tab v-cloak id="npm">
-<template #title>NPM</template>
-<p><code v-pre>npx hush push my-first-hush ./.env</code></p>
-</doc-tab>
-</doc-tabs>
-<p><strong>And that&#x27;s it!</strong> Your secret file is now managed by Hush! in the AWS cloud. Your fellow devs can <strong>pull</strong> your changes by using the following command.</p>
-<doc-tabs>
-<doc-tab v-cloak id="yarn">
-<template #title>Yarn</template>
-<p><code v-pre>yarn hush pull my-first-hush ./.env</code></p>
-</doc-tab>
-<doc-tab v-cloak id="npm">
-<template #title>NPM</template>
-<p><code v-pre>npx hush pull my-first-hush ./.env</code></p>
-</doc-tab>
-</doc-tabs>
+<p><strong>Note:</strong></p>
+<ul>
+<li>The <code v-pre>.hushrc.json</code> file is automatically updated during <code v-pre>pull</code> operations</li>
+<li>The <code v-pre>.hushrc.json</code> file is used for conflict checking during <code v-pre>push</code> operations</li>
+</ul>
+<doc-anchor-target id="version-control-in-push-operations">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#version-control-in-push-operations">#</doc-anchor-trigger>
+        <span>Version Control in Push Operations</span>
+    </h2>
+</doc-anchor-target>
+<doc-anchor-target id="automatic-version-checking">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#automatic-version-checking">#</doc-anchor-trigger>
+        <span>Automatic Version Checking</span>
+    </h3>
+</doc-anchor-target>
+<p>With every <code v-pre>hush push</code>, the system goes through the following process:</p>
+<ol>
+<li><strong>Retrieve Current Version</strong>: Loads the current version from AWS SecretsManager</li>
+<li><strong>Check Local Version</strong>: Compares with the version in <code v-pre>.hushrc.json</code></li>
+<li><strong>Conflict Detection</strong>: Warns about conflicts and prevents unintended overwrites</li>
+<li><strong>Version Increment</strong>: Automatically increases the version number by 1</li>
+<li><strong>Update Local Tracking</strong>: Updates the <code v-pre>.hushrc.json</code> file</li>
+</ol>
+<doc-anchor-target id="example-push-workflow">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#example-push-workflow">#</doc-anchor-trigger>
+        <span>Example Push Workflow</span>
+    </h3>
+</doc-anchor-target>
+<div class="codeblock-wrapper"><doc-codeblock>
+<pre translate="no" class="language-bash"><code v-pre class="language-bash"># Current version in AWS: 5
+# Local version in .hushrc.json: 3
+
+hush push my-project .env
+# ⚠️ Warning: Current version (5) is greater than your current version (3)
+# ⚠️ Use &quot;hush pull&quot; to pull the latest version first
+
+# Solution 1: Pull latest version
+hush pull my-project .env
+# Local version is updated to 5
+
+hush push my-project .env
+# ✅ Success! Version is incremented to 6
+
+# Solution 2: Use force flag (only when sure)
+hush push my-project .env --force
+# ⚠️ May overwrite newer changes!</code></pre>
+</doc-codeblock></div>
+<doc-anchor-target id="version-control-in-pull-operations">
+    <h2>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#version-control-in-pull-operations">#</doc-anchor-trigger>
+        <span>Version Control in Pull Operations</span>
+    </h2>
+</doc-anchor-target>
+<doc-anchor-target id="pull-workflow">
+    <h3>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#pull-workflow">#</doc-anchor-trigger>
+        <span>Pull Workflow</span>
+    </h3>
+</doc-anchor-target>
+<ol>
+<li><strong>Read Local File</strong>: Analyzes the current <code v-pre>.env</code> file</li>
+<li><strong>Retrieve Remote Version</strong>: Loads the latest version from AWS</li>
+<li><strong>Detect Changes</strong>: Compares local and remote versions</li>
+<li><strong>Request Confirmation</strong>: Shows changes before overwriting</li>
+<li><strong>Update Version</strong>: Updates <code v-pre>.hushrc.json</code> after successful pull</li>
+</ol>
 
                                 
                                 <!-- Required only on API pages -->
@@ -227,20 +305,20 @@ USERNAME=joern</code></pre>
                             
                                 <nav id="retype-nextprev" class="print:hidden flex mt-14">
                                     <div class="w-1/2">
-                                        <a class="px-5 py-4 h-full flex items-center break-normal font-medium text-body-link border border-base-border hover:border-base-border-hover rounded-l-lg transition-colors duration-150 relative hover:z-5" href="../../getting-started/installation/">
+                                        <a class="px-5 py-4 h-full flex items-center break-normal font-medium text-body-link border border-base-border hover:border-base-border-hover rounded-l-lg transition-colors duration-150 relative hover:z-5" href="../../getting-started/deploying-your-first-secret/">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="mr-3" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" overflow="visible"><path d="M19 11H7.41l5.29-5.29a.996.996 0 10-1.41-1.41l-7 7a1 1 0 000 1.42l7 7a1.024 1.024 0 001.42-.01.996.996 0 000-1.41L7.41 13H19c.55 0 1-.45 1-1s-.45-1-1-1z" /><path fill="none" d="M0 0h24v24H0z" /></svg>
                                             <span>
                                                 <span class="block text-xs font-normal text-base-text-muted">Previous</span>
-                                                <span class="block mt-1">Installation</span>
+                                                <span class="block mt-1">Deploying Your First Secret</span>
                                             </span>
                                         </a>
                                     </div>
                             
                                     <div class="w-1/2">
-                                        <a class="px-5 py-4 -mx-px h-full flex items-center justify-end break-normal font-medium text-body-link border border-base-border hover:border-base-border-hover rounded-r-lg transition-colors duration-150 relative hover:z-5" href="../../getting-started/version-control/">
+                                        <a class="px-5 py-4 -mx-px h-full flex items-center justify-end break-normal font-medium text-body-link border border-base-border hover:border-base-border-hover rounded-r-lg transition-colors duration-150 relative hover:z-5" href="../../commands/">
                                             <span>
                                                 <span class="block text-xs font-normal text-right text-base-text-muted">Next</span>
-                                                <span class="block mt-1">Version Control</span>
+                                                <span class="block mt-1">Commands</span>
                                             </span>
                                             <svg xmlns="http://www.w3.org/2000/svg" class="ml-3" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" overflow="visible"><path d="M19.92 12.38a1 1 0 00-.22-1.09l-7-7a.996.996 0 10-1.41 1.41l5.3 5.3H5c-.55 0-1 .45-1 1s.45 1 1 1h11.59l-5.29 5.29a.996.996 0 000 1.41c.19.2.44.3.7.3s.51-.1.71-.29l7-7c.09-.09.16-.21.21-.33z" /><path fill="none" d="M0 0h24v24H0z" /></svg>
                                         </a>
@@ -284,6 +362,6 @@ USERNAME=joern</code></pre>
 
     <div id="retype-overlay-target"></div>
 
-    <script data-cfasync="false">window.__DOCS__ = { "title": "Deploying Your First Secret", level: 2, icon: "file", hasPrism: true, hasMermaid: false, hasMath: false, tocDepth: 23 }</script>
+    <script data-cfasync="false">window.__DOCS__ = { "title": "Version Control", level: 2, icon: "file", hasPrism: true, hasMermaid: false, hasMath: false, tocDepth: 23 }</script>
 </body>
 </html>
