@@ -5,6 +5,10 @@ import DateFormatter from "../../../src/utils/DateFormatter";
 import {mockClient} from 'aws-sdk-client-mock';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+// Mock console methods to prevent output during tests
+const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
 class ResourceNotFoundException extends Error {
     public __type: string = "ResourceNotFoundException";
 }
@@ -23,6 +27,8 @@ const successFixture = {$metadata: {}, DeletionDate: now.toISOString()};
 describe("DeleteCommand", () => {
     beforeEach(() => {
         secretsManagerMock.reset();
+        consoleWarnSpy.mockClear();
+        consoleErrorSpy.mockClear();
     });
     it("will schedule a secret for deletion", async () => {
         secretsManagerMock.on(DeleteSecretCommand).resolves(successFixture);

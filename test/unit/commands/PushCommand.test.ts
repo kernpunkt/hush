@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import PushCommand from "../../../src/commands/PushCommand";
 import MockLineReader from "../../support/MockLineReader";
+import PutSecretValueRequest from "../../../src/requests/PutSecretValueRequest";
+import CreateSecretRequest from "../../../src/requests/CreateSecretRequest";
+import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
+import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
 import { userInfo } from "os";
 
 // Mock the request modules
@@ -24,6 +28,12 @@ vi.mock("../../../src/requests/CreateSecretRequest", () => {
     };
 });
 
+// Add execute method to CreateSecretRequest prototype
+CreateSecretRequest.prototype.execute = vi.fn();
+
+// Add toSecretString method to SecretPayloadManager prototype
+SecretPayloadManager.prototype.toSecretString = vi.fn();
+
 vi.mock("../../../src/utils/SecretPayloadManager", () => {
     return {
         default: vi.fn().mockImplementation(() => ({
@@ -31,6 +41,13 @@ vi.mock("../../../src/utils/SecretPayloadManager", () => {
         }))
     };
 });
+
+const createSpy = vi.spyOn(CreateSecretRequest.prototype, "execute");
+createSpy.mockImplementation();
+
+const getSecretSpy = vi.spyOn(GetSecretValueRequest.prototype, "execute");
+
+const toSecretStringSpy = vi.spyOn(SecretPayloadManager.prototype, "toSecretString");
 
 
 describe("PushCommand", () => {
@@ -40,7 +57,7 @@ describe("PushCommand", () => {
             mockToSecretString.mockReset();
         });
         it("creates a fallback commit message if none is provided", () => {
-            const command = new PushCommand({key: "hello-world", envFile: ".env.test"});
+            const command = new PushCommand({key: "hello-world", envFile: ".env.test", force: true});
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
             
             command.execute();
@@ -52,7 +69,7 @@ describe("PushCommand", () => {
         });
         it("uses the commit message it it IS provided", () => {
             const message = "Hello world";
-            const command = new PushCommand({key: "hello-world", envFile: ".env.test", message });
+            const command = new PushCommand({key: "hello-world", envFile: ".env.test", message, force: true });
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
             mockPutExecute.mockResolvedValue(undefined);
             command.execute();
@@ -61,7 +78,7 @@ describe("PushCommand", () => {
             expect(secretPayload.message).toBe(message);
         });
         it("updates a date in the payload", () => {
-            const command = new PushCommand({key: "hello-world", envFile: ".env.test" });
+            const command = new PushCommand({key: "hello-world", envFile: ".env.test", force: true });
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
             command.execute();
 
@@ -72,17 +89,17 @@ describe("PushCommand", () => {
     });
 
     describe("secret creation", () => {
-        it("tries to overwrite a secret first", () => {
-            const command = new PushCommand({ key: "hello-world", envFile: ".env.test"});
+        it("tries to overwrite a secret first", async () => {
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: true });
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
 
-            command.execute();
+            await command.execute();
             expect(mockPutExecute).toHaveBeenCalled();
             const callArgs = mockPutExecute.mock.calls[0][0];
             expect(callArgs.SecretId).toBe("hush-hello-world");
         });
         it("will create a new secret if none exist first", async () => {
-            const command = new PushCommand({ key: "hello-world", envFile: ".env.test"});
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: true });
             command.setLineReader(new MockLineReader());
 
             mockPutExecute.mockRejectedValueOnce(new Error(""));

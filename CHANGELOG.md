@@ -1,9 +1,8 @@
 ## [2.0.4](https://github.com/kernpunkt/hush/compare/v2.0.3...v2.0.4) (2025-10-21)
 
-
 ### Bug Fixes
 
-* compat issues ([fbad9ce](https://github.com/kernpunkt/hush/commit/fbad9ce6be8f82fe0cbe893fdbbf7f7922f163e7))
+- compat issues ([fbad9ce](https://github.com/kernpunkt/hush/commit/fbad9ce6be8f82fe0cbe893fdbbf7f7922f163e7))
 
 ## [2.0.3](https://github.com/kernpunkt/hush/compare/v2.0.2...v2.0.3) (2024-01-30)
 

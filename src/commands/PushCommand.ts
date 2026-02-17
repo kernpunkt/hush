@@ -12,17 +12,24 @@ import PushCommandInput from "../@types/PushCommandInput";
 import SecretPayloadManager from "../utils/SecretPayloadManager";
 import SecretPayload from "../@types/SecretPayload";
 import { userInfo } from "os";
+import VersionManager from "../utils/VersionManager";
 
 class PushCommand extends BaseCommand {
   private envFile: string;
   private lineReader: LineReader;
   private message: string;
+  private version: number;
+  private force: boolean;
+  private versionManager: VersionManager;
 
   constructor(input: PushCommandInput) {
     super();
     this.key = input.key;
     this.envFile = path.resolve(input.envFile);
     this.message = input.message || this.getDefaultMessage();
+    this.version = input.version || 0;
+    this.force = input.force || false;
+    this.versionManager = new VersionManager();
     this.setLineReader(new LineReader());
   }
 
@@ -31,10 +38,16 @@ class PushCommand extends BaseCommand {
     return this;
   }
 
+  public setForce(force: boolean): this {
+    this.force = force;
+    return this;
+  }
+
   public async execute() {
     const secretArray = this.lineReader.readLines(this.envFile);
     const payload: SecretPayload = {
       message: this.message,
+      version: this.version,
       secrets: secretArray,
       updated_at: new Date(),
     };
@@ -45,12 +58,40 @@ class PushCommand extends BaseCommand {
       SecretString: secretString,
     };
 
+    // Get and log the current version before pushing
+    const currentVersion = await this.versionManager.getSecretVersion(
+      this.getKey()
+    );
+
+    if (!this.force) {
+      const isVersionValid = this.versionManager.checkVersion(
+        this.getKey(),
+        currentVersion
+      );
+      if (!isVersionValid) {
+        return "";
+      }
+    }
+
+    // Increment version and update payload
+    const newVersion = currentVersion + 1;
+    payload.version = newVersion;
+
+    // Update the secret string with new version
+    const updatedSecretString = new SecretPayloadManager().toSecretString(
+      payload
+    );
+    body.SecretString = updatedSecretString;
+
     try {
       await new PutSecretValueRequest().execute(body);
+
+      this.versionManager.updateVersionsFile(this.getKey(), newVersion);
 
       return `
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${payload.message}
+${chalk.bold("New version: ")}${chalk.bold.cyan(newVersion)}
 Your secret ${chalk.bold(this.getKey())} was successfully updated.`;
     } catch (err) {
       const createPayload: CreateSecretCommandInput = {
@@ -58,6 +99,8 @@ Your secret ${chalk.bold(this.getKey())} was successfully updated.`;
         SecretString: secretString,
       };
       await new CreateSecretRequest().execute(createPayload);
+
+      this.versionManager.updateVersionsFile(this.getKey(), newVersion);
 
       return `
 ${chalk.green("Done!")}

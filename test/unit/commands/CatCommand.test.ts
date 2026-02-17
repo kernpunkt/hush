@@ -4,9 +4,15 @@ import CatCommand from "../../../src/commands/CatCommand";
 import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
 import chalkTable from "../../../src/utils/ChalkTable";
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import { mockClient } from 'aws-sdk-client-mock';
 
 const getSecretValueRequestSpy = vi.spyOn(GetSecretValueRequest.prototype, "execute");
 const secretPayloadManagerSpy = vi.spyOn(SecretPayloadManager.prototype, "fromSecretString");
+
+// Mock AWS SDK
+const secretsManagerMock = mockClient(SecretsManagerClient);
+const getClientSpy = vi.spyOn(GetSecretValueRequest.prototype, "getClient").mockReturnValue(secretsManagerMock as any);
 
 vi.mock("../../../src/utils/ChalkTable", () => ({
     __esModule: true,
@@ -21,12 +27,17 @@ const catCommand = new CatCommand({ key: secretName});
 const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
 describe("CatCommand", () => {
+    beforeEach(() => {
+        secretsManagerMock.reset();
+    });
+
     afterEach(() => {
         consoleLogSpy.mockClear();
     });
 
     it("outputs the contents of a secret as a table", async () => {
-        getSecretValueRequestSpy.mockResolvedValue({
+        // Mock the AWS SDK response
+        secretsManagerMock.on(GetSecretValueCommand).resolves({
             $metadata: {},
             SecretString: JSON.stringify({
                 message: "This is a test message",
@@ -34,9 +45,21 @@ describe("CatCommand", () => {
                 secrets: [
                     { key: "HUDE", value: "FUDE", },
                     { key: "RAX", value: "KNAX", }
-                ]
+                ],
+                version: 1
             })
         });
+        
+        const data = {
+            message: "This is a test message",
+            updated_at: new Date(),
+            secrets: [
+                { key: "HUDE", value: "FUDE", },
+                { key: "RAX", value: "KNAX", }
+            ],
+            version: 1
+        };
+        secretPayloadManagerSpy.mockReturnValue(data);
 
         await catCommand.execute();
 
