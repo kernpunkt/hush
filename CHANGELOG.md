@@ -1,3 +1,19 @@
+# [2.1.0](https://github.com/kernpunkt/hush/compare/v2.0.4...v2.1.0) (2026-02-17)
+
+
+### Bug Fixes
+
+* better error handling on file corruption ([52ac9dd](https://github.com/kernpunkt/hush/commit/52ac9ddabd91bad9aa326fab877d617883cce821))
+
+
+### Features
+
+* add small qa changes ([d145668](https://github.com/kernpunkt/hush/commit/d145668f9bcadc878de11b1f707c69e85ce86098))
+* add version check ([0245c73](https://github.com/kernpunkt/hush/commit/0245c73cc73e640cc9049c374cdfb23b98223264))
+* add version to pushed secret message ([2e2e236](https://github.com/kernpunkt/hush/commit/2e2e2362abe8567b1855753253670e428c6f233c))
+* **Delete:** implement remove of version from .hushrc file ([3c472e9](https://github.com/kernpunkt/hush/commit/3c472e9f688def263b5111da8aabb7007ec64ed1))
+* do not warn, if .hushrc file not exists ([5748042](https://github.com/kernpunkt/hush/commit/57480428e53f6d4d869a4d865e1d3457a23cdcc4))
+
 ## [2.0.4](https://github.com/kernpunkt/hush/compare/v2.0.3...v2.0.4) (2025-10-21)
 
 ### Bug Fixes
