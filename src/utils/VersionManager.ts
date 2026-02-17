@@ -68,6 +68,7 @@ class VersionManager {
    *
    * @param {string} key - The secret key
    * @param {number} version - The new version number
+   * @throws {Error} If the versions file is corrupted or invalid
    */
   public updateVersionsFile(key: string, version: number): void {
     const versionsFile = path.resolve(VersionManager.VERSION_FILE);
@@ -79,8 +80,16 @@ class VersionManager {
         const fileContent = readFileSync(versionsFile, "utf8");
         versions = JSON.parse(fileContent);
       } catch (error) {
-        // If file is corrupted, start with empty object
-        versions = {};
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error(
+          chalk.red(
+            `⚠️  Error: Could not read or parse .hushrc.json: ${errorMessage}`
+          )
+        );
+        throw new Error(
+          ".hushrc.json is corrupted or invalid. Fix or remove the file and retry."
+        );
       }
     }
 

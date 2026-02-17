@@ -191,26 +191,19 @@ describe("VersionManager", () => {
       }
     });
 
-    it("should handle corrupted .hushrc.json file and start with empty object", () => {
+    it("should log and throw when .hushrc.json is corrupted", () => {
       existsSyncMock.mockReturnValueOnce(true);
       readFileSyncMock.mockImplementationOnce(() => {
         throw new Error("Corrupted file");
       });
-      writeFileSyncMock.mockImplementationOnce(() => {});
 
-      versionManager.updateVersionsFile("hush-hello-world", 1);
-
-      expect(writeFileSyncMock).toHaveBeenCalled();
-      const writeCall = writeFileSyncMock.mock.calls.find((call) =>
-        call[0].toString().includes(".hushrc.json")
+      expect(() =>
+        versionManager.updateVersionsFile("hush-hello-world", 1)
+      ).toThrow(".hushrc.json is corrupted or invalid. Fix or remove the file and retry.");
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Could not read or parse .hushrc.json")
       );
-      expect(writeCall).toBeDefined();
-
-      if (writeCall) {
-        const writtenContent = JSON.parse(writeCall[1] as string);
-        expect(writtenContent["hush-hello-world"].version).toBe(1);
-        expect(Object.keys(writtenContent).length).toBe(1);
-      }
+      expect(writeFileSyncMock).not.toHaveBeenCalled();
     });
 
     it("should warn when writing to .hushrc.json fails", () => {

@@ -143,33 +143,29 @@ describe("PullCommand", () => {
         expect(result).toContain("successfully written");
     });
 
-    it("handles corrupted .hushrc.json file when updating versions", async () => {
-        const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
-        command.setLineReader(new MockLineReader([]));
+    it("aborts and throws when .hushrc.json is corrupted", async () => {
+        const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        try {
+            const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
+            command.setLineReader(new MockLineReader([]));
 
-        // Mock existsSync to return true (file exists)
-        existsSyncMock.mockReturnValue(true);
-        
-        // Mock readFileSync to return invalid JSON
-        readFileSyncMock.mockReturnValue("invalid json content");
+            existsSyncMock.mockReturnValue(true);
+            readFileSyncMock.mockReturnValue("invalid json content");
 
-        secretsManagerMock.on(GetSecretValueCommand).resolves({
-            $metadata: {},
-            SecretString: JSON.stringify([
-                { key: "HELLO", value: "WORLD" }
-            ])
-        });
+            secretsManagerMock.on(GetSecretValueCommand).resolves({
+                $metadata: {},
+                SecretString: JSON.stringify([
+                    { key: "HELLO", value: "WORLD" }
+                ])
+            });
 
-        const result = await command.execute();
-
-        expect(secretsManagerMock.commandCalls(GetSecretValueCommand)).toHaveLength(1);
-        expect(writeFileSyncMock).toHaveBeenCalledTimes(2); // Once for env file, once for .hushrc.json
-        expect(result).toContain("successfully written");
-        
-        // Verify that .hushrc.json was written with fresh content despite parse error
-        const hushrcCall = writeFileSyncMock.mock.calls.find(call => 
-            call[0].toString().includes('.hushrc.json')
-        );
-        expect(hushrcCall).toBeDefined();
+            await expect(command.execute()).rejects.toThrow(
+                ".hushrc.json is corrupted or invalid. Fix or remove the file and retry."
+            );
+            // Env file was written, but .hushrc.json update was aborted
+            expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+        } finally {
+            consoleErrorSpy.mockRestore();
+        }
     });
 });
