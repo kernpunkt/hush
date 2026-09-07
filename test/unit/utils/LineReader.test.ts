@@ -51,10 +51,36 @@ describe("LineReader", () => {
     it("can parse special characters in passwords correctly", () => {
         const testFile = path.join(testDir, "test3.env");
         fs.writeFileSync(testFile, "PASSWORD=CXRGxO=o9%secretpassword\nHUDE=FUDE");
-        
-        const lineReader = new LineReader(); 
+
+        const lineReader = new LineReader();
         const secrets = lineReader.readLines(testFile);
         expect(secrets[0].key).toBe("PASSWORD");
         expect(secrets[0].value).toBe("CXRGxO=o9%secretpassword");
+    });
+
+    it("keeps quotes that are part of an unquoted value, e.g. JSON", () => {
+        const testFile = path.join(testDir, "test4.env");
+        fs.writeFileSync(
+            testFile,
+            'TAX_CATEGORY_MAPPING={"ST19":"<ID1>","ST07":"<ID2>"}'
+        );
+
+        const lineReader = new LineReader();
+        const secrets = lineReader.readLines(testFile);
+        expect(secrets[0].key).toBe("TAX_CATEGORY_MAPPING");
+        expect(secrets[0].value).toBe('{"ST19":"<ID1>","ST07":"<ID2>"}');
+    });
+
+    it("strips a single pair of wrapping quotes and unescapes inner quotes", () => {
+        const testFile = path.join(testDir, "test5.env");
+        fs.writeFileSync(
+            testFile,
+            'TAX_CATEGORY_MAPPING="{\\"ST19\\":\\"<ID1>\\"}"'
+        );
+
+        const lineReader = new LineReader();
+        const secrets = lineReader.readLines(testFile);
+        expect(secrets[0].key).toBe("TAX_CATEGORY_MAPPING");
+        expect(secrets[0].value).toBe('{"ST19":"<ID1>"}');
     });
 });
