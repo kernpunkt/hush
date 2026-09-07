@@ -118,6 +118,28 @@ describe("PullCommand", () => {
         expect(result).toContain(".env.test");
     });
 
+    it("escapes double quotes in secret values when writing to the env file", async () => {
+        const command = new PullCommand({ key: "secret-name", envFile: "./.env.test", force: true});
+        command.setLineReader(new MockLineReader([]));
+
+        secretsManagerMock.on(GetSecretValueCommand).resolves({
+            $metadata: {},
+            SecretString: JSON.stringify(
+                [
+                    { key: "TAX_CATEGORY_MAPPING", value: '{"ST19":"<ID1>","ST07":"<ID2>"}'},
+                ]
+            )
+        });
+
+        await command.execute();
+
+        expect(writeFileSyncMock).toHaveBeenCalled();
+        const content = writeFileSyncMock.mock.calls[0][1] as string;
+        expect(content).toContain(
+            'TAX_CATEGORY_MAPPING="{\\"ST19\\":\\"<ID1>\\",\\"ST07\\":\\"<ID2>\\"}"'
+        );
+    });
+
     it("handles error when reading current env file", async () => {
         const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
         

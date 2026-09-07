@@ -71,7 +71,8 @@ class PullCommand extends BaseCommand {
       "",
     ];
     for (const secret of secretsOutput) {
-      secretLines.push(`${secret.key}="${secret.value}"`);
+      const escapedValue = secret.value.replace(/"/g, '\\"');
+      secretLines.push(`${secret.key}="${escapedValue}"`);
     }
 
     writeFileSync(filename, secretLines.join("\n"));

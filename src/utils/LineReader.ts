@@ -22,19 +22,34 @@ class LineReader {
         continue;
       }
 
-      const trimmedSecretLine = secretLine.replace(/"/g, "");
-
-      const parts = trimmedSecretLine.split("=");
+      const parts = secretLine.split("=");
       const key = parts[0];
-      const value = parts.slice(1).join("=");
+      const rawValue = parts.slice(1).join("=");
 
       secretArray.push({
         key,
-        value,
+        value: this.unquote(rawValue),
       });
     }
 
     return secretArray;
+  }
+
+  /**
+   * Strip a single pair of wrapping double quotes from a value and
+   * unescape any escaped double quotes (\") inside it. Quotes that are
+   * not wrapping the whole value (e.g. inside a JSON string) are left
+   * untouched.
+   */
+  private unquote(value: string): string {
+    const isWrapped =
+      value.length >= 2 && value.startsWith('"') && value.endsWith('"');
+
+    if (!isWrapped) {
+      return value;
+    }
+
+    return value.slice(1, -1).replace(/\\"/g, '"');
   }
 }
 
