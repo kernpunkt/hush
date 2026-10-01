@@ -39,7 +39,7 @@ class PullCommand extends BaseCommand {
     let currentLines: SecretEntry[];
     try {
       currentLines = this.lineReader.readLines(this.envFile);
-    } catch (error) {
+    } catch {
       currentLines = [];
     }
 

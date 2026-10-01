@@ -88,7 +88,8 @@ class VersionManager {
           )
         );
         throw new Error(
-          ".hushrc.json is corrupted or invalid. Fix or remove the file and retry."
+          ".hushrc.json is corrupted or invalid. Fix or remove the file and retry.",
+          { cause: error }
         );
       }
     }
@@ -119,7 +120,7 @@ class VersionManager {
         data?.SecretString || "{}"
       );
       return secretPayload.version || 0;
-    } catch (error) {
+    } catch {
       // If secret doesn't exist or can't be retrieved, return -1
       return -1;
     }

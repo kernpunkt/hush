@@ -4,7 +4,5 @@
   "tabWidth": 2,
   "semi": true,
   "singleQuote": false,
-  "printWidth": 80,
-  "plugins": [],
-  "pluginSearchDirs": false
+  "printWidth": 80
 }
