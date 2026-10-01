@@ -96,8 +96,6 @@ describe("VersionManager", () => {
     });
 
     it("should return false and log error when reading .hushrc.json file fails", () => {
-      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
       existsSyncMock.mockReturnValueOnce(true);
       // Mock readFileSync to throw an error
       readFileSyncMock.mockImplementationOnce(() => {
@@ -113,8 +111,6 @@ describe("VersionManager", () => {
           "⚠️ Error: Could not read .hushrc.json file: Error: Permission denied"
         )
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it("should return false when key is undefined in .hushrc.json", () => {
