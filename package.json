@@ -59,18 +59,9 @@
     "vite": "^8.3.1",
     "vitest": "^5.0.3"
   },
-  "resolutions": {
-    "lodash": "4.17.23",
-    "lodash-es": "4.17.23",
-    "js-yaml": "4.1.1",
-    "@babel/runtime": "7.26.10",
-    "micromatch": "4.0.8",
-    "ip": "2.0.1",
-    "word-wrap": "1.2.4"
-  },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.319.0",
-    "@aws-sdk/client-sts": "^3.328.0",
+    "@aws-sdk/client-secrets-manager": "^3.1144.0",
+    "@aws-sdk/client-sts": "^3.1144.0",
     "@thinkinglabs/aws-iam-policy": "^2.5.1",
     "chalk": "^4.1.0-commonjs",
     "commander": "^10.0.1",
