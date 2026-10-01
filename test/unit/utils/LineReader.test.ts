@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 
 describe("LineReader", () => {
-    const testDir = path.join(__dirname, "temp");
+    const testDir = path.join(import.meta.dirname, "temp");
     
     beforeEach(() => {
         // Create temp directory if it doesn't exist

@@ -1,3 +1,3 @@
-import GrantCommandInput from "./GrantCommandInput";
+import GrantCommandInput from "./GrantCommandInput.js";
 
 export type RevokeCommandInput = GrantCommandInput;

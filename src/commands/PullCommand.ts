@@ -1,15 +1,15 @@
 import path from "path";
 import { writeFileSync } from "fs";
 import chalk from "chalk";
-import envDiff, { EnvDiffResult } from "../utils/envDiff";
-import BaseCommand from "./BaseCommand";
-import GetSecretValueRequest from "../requests/GetSecretValueRequest";
-import LineReader from "../utils/LineReader";
-import SecretEntry from "../@types/SecretEntry";
-import PullCommandInput from "../@types/PullCommandInput";
-import SecretPayloadManager from "../utils/SecretPayloadManager";
-import DateFormatter from "../utils/DateFormatter";
-import VersionManager from "../utils/VersionManager";
+import envDiff, { EnvDiffResult } from "../utils/envDiff.js";
+import BaseCommand from "./BaseCommand.js";
+import GetSecretValueRequest from "../requests/GetSecretValueRequest.js";
+import LineReader from "../utils/LineReader.js";
+import SecretEntry from "../@types/SecretEntry.js";
+import PullCommandInput from "../@types/PullCommandInput.js";
+import SecretPayloadManager from "../utils/SecretPayloadManager.js";
+import DateFormatter from "../utils/DateFormatter.js";
+import VersionManager from "../utils/VersionManager.js";
 
 export type PullCommandOptions = {
   force?: boolean;

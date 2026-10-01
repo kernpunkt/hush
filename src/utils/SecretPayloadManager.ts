@@ -1,4 +1,4 @@
-import SecretPayload, { isSecretPayload } from "../@types/SecretPayload";
+import SecretPayload, { isSecretPayload } from "../@types/SecretPayload.js";
 
 export default class SecretPayloadManager {
   toSecretString(payload: SecretPayload): string {

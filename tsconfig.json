@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "module": "commonjs",
+    "target": "es2022",
+    "module": "nodenext",
     "esModuleInterop": true,
     "declaration": true,
     "strict": true,
@@ -16,13 +16,13 @@
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "sourceMap": true,
     "typeRoots": ["./node_modules/@types"],
     "outDir": "dist",
     "rootDir": "src",
     "skipLibCheck": true,
-    "lib": ["es2020", "dom"],
+    "lib": ["es2022", "dom"],
     "resolveJsonModule": true
   },
   "include": ["src/**/*"],
