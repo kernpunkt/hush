@@ -14,16 +14,11 @@ export default tseslint.config(
       ...tseslint.configs.recommended,
       prettierConfig,
     ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.json"],
-      },
-    },
     plugins: {
       prettier: prettierPlugin,
     },
     rules: {
-      "prettier/prettier": "warn",
+      "prettier/prettier": "error",
       "@typescript-eslint/no-shadow": "off",
       "no-underscore-dangle": "off",
       "class-methods-use-this": "off",

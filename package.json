@@ -34,7 +34,7 @@
     "test:watch": "vitest test/unit",
     "test:integration:watch": "vitest test/integration",
     "commit": "commit",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
