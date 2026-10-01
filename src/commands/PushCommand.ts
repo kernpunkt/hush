@@ -93,7 +93,7 @@ ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${payload.message}
 ${chalk.bold("New version: ")}${chalk.bold.cyan(newVersion)}
 Your secret ${chalk.bold(this.getKey())} was successfully updated.`;
-    } catch (err) {
+    } catch {
       const createPayload: CreateSecretCommandInput = {
         Name: this.getKey(),
         SecretString: secretString,

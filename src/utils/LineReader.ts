@@ -9,7 +9,8 @@ class LineReader {
       secretsRaw = readFileSync(envFile, "utf-8");
     } catch (e) {
       throw new Error(
-        "Could not read secrets file or no file was provided. Aborting."
+        "Could not read secrets file or no file was provided. Aborting.",
+        { cause: e }
       );
     }
 

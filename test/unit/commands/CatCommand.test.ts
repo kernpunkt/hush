@@ -84,7 +84,7 @@ describe("CatCommand", () => {
     it("throws an error if the secret cannot be found", async () => {
         getSecretValueRequestSpy.mockRejectedValueOnce(new Error());
 
-        expect(async () => {
+        await expect(async () => {
             await catCommand.execute();
         }).rejects.toThrow();
     });
