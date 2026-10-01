@@ -1,9 +1,9 @@
 import path from "path";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import chalk from "chalk";
-import VersionEntry from "../@types/VersionEntry";
-import GetSecretValueRequest from "../requests/GetSecretValueRequest";
-import SecretPayloadManager from "./SecretPayloadManager";
+import VersionEntry from "../@types/VersionEntry.js";
+import GetSecretValueRequest from "../requests/GetSecretValueRequest.js";
+import SecretPayloadManager from "./SecretPayloadManager.js";
 
 /**
  * Manages version control for secrets through the .hushrc.json file

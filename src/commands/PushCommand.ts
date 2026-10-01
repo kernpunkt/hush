@@ -4,15 +4,15 @@ import {
   PutSecretValueCommandInput,
 } from "@aws-sdk/client-secrets-manager";
 import chalk from "chalk";
-import BaseCommand from "./BaseCommand";
-import LineReader from "../utils/LineReader";
-import PutSecretValueRequest from "../requests/PutSecretValueRequest";
-import CreateSecretRequest from "../requests/CreateSecretRequest";
-import PushCommandInput from "../@types/PushCommandInput";
-import SecretPayloadManager from "../utils/SecretPayloadManager";
-import SecretPayload from "../@types/SecretPayload";
+import BaseCommand from "./BaseCommand.js";
+import LineReader from "../utils/LineReader.js";
+import PutSecretValueRequest from "../requests/PutSecretValueRequest.js";
+import CreateSecretRequest from "../requests/CreateSecretRequest.js";
+import PushCommandInput from "../@types/PushCommandInput.js";
+import SecretPayloadManager from "../utils/SecretPayloadManager.js";
+import SecretPayload from "../@types/SecretPayload.js";
 import { userInfo } from "os";
-import VersionManager from "../utils/VersionManager";
+import VersionManager from "../utils/VersionManager.js";
 
 class PushCommand extends BaseCommand {
   private envFile: string;

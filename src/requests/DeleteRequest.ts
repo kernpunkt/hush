@@ -3,9 +3,9 @@ import {
   DeleteSecretCommandInput,
   DeleteSecretCommandOutput,
 } from "@aws-sdk/client-secrets-manager";
-import BaseRequest from "./BaseRequest";
-import TypedErrorHandler from "../utils/TypedErrorHandler";
-import StringMap from "../@types/StringMap";
+import BaseRequest from "./BaseRequest.js";
+import TypedErrorHandler from "../utils/TypedErrorHandler.js";
+import StringMap from "../@types/StringMap.js";
 import chalk from "chalk";
 
 class DeleteRequest extends BaseRequest {

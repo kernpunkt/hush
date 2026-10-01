@@ -1,5 +1,5 @@
 import { readFileSync } from "fs";
-import SecretEntry from "../@types/SecretEntry";
+import SecretEntry from "../@types/SecretEntry.js";
 
 class LineReader {
   readLines(envFile: string): SecretEntry[] {

@@ -1,11 +1,11 @@
-import BaseCommand from "./BaseCommand";
-import GetResourcePolicyRequest from "../requests/GetResourcePolicyRequest";
-import findStatementByArn from "../utils/findStatementByArn";
+import BaseCommand from "./BaseCommand.js";
+import GetResourcePolicyRequest from "../requests/GetResourcePolicyRequest.js";
+import findStatementByArn from "../utils/findStatementByArn.js";
 import chalk from "chalk";
-import removeStatementByArn from "../utils/removeStatementByArn";
-import PutResourcePolicyRequest from "../requests/PutResourcePolicyRequest";
-import { RevokeCommandInput } from "../@types/RevokeCommandInput";
-import GetCallerIdentityRequest from "../requests/GetCallerIdentityRequest";
+import removeStatementByArn from "../utils/removeStatementByArn.js";
+import PutResourcePolicyRequest from "../requests/PutResourcePolicyRequest.js";
+import { RevokeCommandInput } from "../@types/RevokeCommandInput.js";
+import GetCallerIdentityRequest from "../requests/GetCallerIdentityRequest.js";
 class RevokeCommand extends BaseCommand {
   private userIdentifier: string;
 

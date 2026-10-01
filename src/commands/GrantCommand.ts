@@ -1,11 +1,11 @@
-import BaseCommand from "./BaseCommand";
+import BaseCommand from "./BaseCommand.js";
 import chalk from "chalk";
 import { ArnPrincipal, Statement } from "@thinkinglabs/aws-iam-policy";
-import GetResourcePolicyRequest from "../requests/GetResourcePolicyRequest";
-import findStatementByArn from "../utils/findStatementByArn";
-import PutResourcePolicyRequest from "../requests/PutResourcePolicyRequest";
-import GrantCommandInput from "../@types/GrantCommandInput";
-import GetCallerIdentityRequest from "../requests/GetCallerIdentityRequest";
+import GetResourcePolicyRequest from "../requests/GetResourcePolicyRequest.js";
+import findStatementByArn from "../utils/findStatementByArn.js";
+import PutResourcePolicyRequest from "../requests/PutResourcePolicyRequest.js";
+import GrantCommandInput from "../@types/GrantCommandInput.js";
+import GetCallerIdentityRequest from "../requests/GetCallerIdentityRequest.js";
 
 class GrantCommand extends BaseCommand {
   private userIdentifier: string;

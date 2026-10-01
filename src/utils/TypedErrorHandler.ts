@@ -1,5 +1,5 @@
-import StringMap from "../@types/StringMap";
-import TypedException from "../@types/TypedException";
+import StringMap from "../@types/StringMap.js";
+import TypedException from "../@types/TypedException.js";
 
 class TypedErrorHandler {
   protected isTypedException(error: any): error is TypedException {

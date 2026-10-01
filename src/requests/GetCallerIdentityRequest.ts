@@ -1,4 +1,4 @@
-import BaseRequest from "./BaseRequest";
+import BaseRequest from "./BaseRequest.js";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 
 class GetCallerIdentityRequest extends BaseRequest {

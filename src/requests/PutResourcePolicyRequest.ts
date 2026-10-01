@@ -1,12 +1,12 @@
 import { PolicyDocument } from "@thinkinglabs/aws-iam-policy";
-import BaseRequest from "./BaseRequest";
-import StringMap from "../@types/StringMap";
+import BaseRequest from "./BaseRequest.js";
+import StringMap from "../@types/StringMap.js";
 import {
   PutResourcePolicyCommand,
   PutResourcePolicyCommandInput,
   PutResourcePolicyCommandOutput,
 } from "@aws-sdk/client-secrets-manager";
-import TypedErrorHandler from "../utils/TypedErrorHandler";
+import TypedErrorHandler from "../utils/TypedErrorHandler.js";
 import chalk from "chalk";
 
 class PutResourcePolicyRequest extends BaseRequest {

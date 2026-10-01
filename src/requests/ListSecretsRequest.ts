@@ -2,7 +2,7 @@ import {
   ListSecretsCommand,
   ListSecretsCommandOutput,
 } from "@aws-sdk/client-secrets-manager";
-import BaseRequest from "./BaseRequest";
+import BaseRequest from "./BaseRequest.js";
 
 class ListSecretsRequest extends BaseRequest {
   public async execute(): Promise<ListSecretsCommandOutput> {
