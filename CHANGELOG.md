@@ -1,3 +1,19 @@
+## [4.0.0](https://github.com/kernpunkt/hush/compare/v3.1.0...v4.0.0) (2026-10-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* Hush! now requires Node.js 24 or newer.
+
+### Bug Fixes
+
+* **release:** apply conventionalcommits preset to analyzer and notes ([ded4b09](https://github.com/kernpunkt/hush/commit/ded4b093bf8abf75e87854a6bd41e23b80103a79))
+
+
+### Miscellaneous Chores
+
+* migrate to ESM and require Node 24 ([bdedf23](https://github.com/kernpunkt/hush/commit/bdedf23c70721f5fe7e7037d6f6ea6c6cc706601))
+
 # [2.1.0](https://github.com/kernpunkt/hush/compare/v2.0.4...v2.1.0) (2026-02-17)
 
 
