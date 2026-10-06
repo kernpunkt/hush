@@ -1,0 +1,23 @@
+﻿# Hush! 🤫
+
+> Hush! is a small tool to facilitate the sharing of .env files between developers without having to send them over Teams messages. It uses the AWS SecretsManager to store a new secret for each of your .env files.
+
+- [Hush! 🤫](https://hush.kernpunkt.de/readme.md): Hush! 🤫
+- [Commands](https://hush.kernpunkt.de/commands/index.md): Command
+- [Contributors](https://hush.kernpunkt.de/contributors.md): Image
+
+## Getting started
+
+- [Installation](https://hush.kernpunkt.de/getting-started/installation.md): To install Hush! for use in your project, install it like this:
+- [Deploying Your First Secret](https://hush.kernpunkt.de/getting-started/deploying-your-first-secret.md): After installing Hush! in your project, it's time to push your first secret to the AWS cloud!
+- [Version Control](https://hush.kernpunkt.de/getting-started/version-control.md): Hush implements a version control system that ensures developers avoid conflicts from using different versions.
+
+## Commands
+
+- [push](https://hush.kernpunkt.de/commands/push.md): To push the contents of a .env file, use the push command:
+- [pull](https://hush.kernpunkt.de/commands/pull.md): To update the local contents of a .env file, use the pull command:
+- [cat](https://hush.kernpunkt.de/commands/cat.md): This command outputs all contained secrets for one .env file managed by Hush!
+- [list](https://hush.kernpunkt.de/commands/list.md): This command lists all Hush! secrets that the current AWS profile has access to.
+- [grant](https://hush.kernpunkt.de/commands/grant.md): Not illustrated in a gif to not expose secret information.
+- [revoke](https://hush.kernpunkt.de/commands/revoke.md): Not illustrated in a gif to not expose secret information.
+- [delete](https://hush.kernpunkt.de/commands/delete.md): To delete a secret, use the delete command:
