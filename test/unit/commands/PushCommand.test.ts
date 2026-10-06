@@ -14,17 +14,17 @@ const mockToSecretString = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../src/requests/PutSecretValueRequest", () => {
     return {
-        default: vi.fn().mockImplementation(() => ({
-            execute: mockPutExecute
-        }))
+        default: vi.fn().mockImplementation(function () {
+            return { execute: mockPutExecute };
+        })
     };
 });
 
 vi.mock("../../../src/requests/CreateSecretRequest", () => {
     return {
-        default: vi.fn().mockImplementation(() => ({
-            execute: mockCreateExecute
-        }))
+        default: vi.fn().mockImplementation(function () {
+            return { execute: mockCreateExecute };
+        })
     };
 });
 
@@ -36,9 +36,9 @@ SecretPayloadManager.prototype.toSecretString = vi.fn();
 
 vi.mock("../../../src/utils/SecretPayloadManager", () => {
     return {
-        default: vi.fn().mockImplementation(() => ({
-            toSecretString: mockToSecretString
-        }))
+        default: vi.fn().mockImplementation(function () {
+            return { toSecretString: mockToSecretString };
+        })
     };
 });
 

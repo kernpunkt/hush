@@ -44,8 +44,6 @@ describe("VersionManager", () => {
 
   describe("checkVersion", () => {
     it("should return false and warn when remote version is greater than local version", () => {
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
       existsSyncMock.mockReturnValueOnce(true);
       const hushrcContent = JSON.stringify({
         "hush-hello-world": { version: 0 },
@@ -70,8 +68,6 @@ describe("VersionManager", () => {
       );
 
       expect(warnCalls[0][0]).toContain("hush-hello-world");
-
-      consoleWarnSpy.mockRestore();
     });
 
     it("should return true when local version matches remote version", () => {
@@ -96,8 +92,6 @@ describe("VersionManager", () => {
     });
 
     it("should return false and log error when reading .hushrc.json file fails", () => {
-      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
       existsSyncMock.mockReturnValueOnce(true);
       // Mock readFileSync to throw an error
       readFileSyncMock.mockImplementationOnce(() => {
@@ -113,13 +107,9 @@ describe("VersionManager", () => {
           "⚠️ Error: Could not read .hushrc.json file: Error: Permission denied"
         )
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it("should return false when key is undefined in .hushrc.json", () => {
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
       existsSyncMock.mockReturnValueOnce(true);
       const hushrcContent = JSON.stringify({
         "different-key": { version: 1 },
@@ -130,8 +120,6 @@ describe("VersionManager", () => {
 
       expect(result).toBe(false);
       expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
-
-      consoleWarnSpy.mockRestore();
     });
 
     it("should return true when secret doesn't exist remotely (currentVersion === -1)", () => {
@@ -207,8 +195,6 @@ describe("VersionManager", () => {
     });
 
     it("should warn when writing to .hushrc.json fails", () => {
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
       existsSyncMock.mockReturnValueOnce(false);
       writeFileSyncMock.mockImplementationOnce(() => {
         throw new Error("No space left on device");
@@ -221,8 +207,6 @@ describe("VersionManager", () => {
           "⚠️  Warning: Could not update .hushrc.json: Error: No space left on device"
         )
       );
-
-      consoleWarnSpy.mockRestore();
     });
 
     it("should update version for existing key", () => {
@@ -360,8 +344,6 @@ describe("VersionManager", () => {
     });
 
     it("should warn when .hushrc.json file does not exist", () => {
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
       existsSyncMock.mockReturnValueOnce(false);
 
       versionManager.removeVersionFromFile("hush-hello-world");
@@ -372,13 +354,9 @@ describe("VersionManager", () => {
         )
       );
       expect(writeFileSyncMock).not.toHaveBeenCalled();
-
-      consoleWarnSpy.mockRestore();
     });
 
     it("should warn when key is not found in .hushrc.json", () => {
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
       const existingContent = JSON.stringify({
         "different-key": { version: 1 },
       });
@@ -394,13 +372,9 @@ describe("VersionManager", () => {
         )
       );
       expect(writeFileSyncMock).not.toHaveBeenCalled();
-
-      consoleWarnSpy.mockRestore();
     });
 
     it("should warn when reading .hushrc.json fails", () => {
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
       existsSyncMock.mockReturnValueOnce(true);
       readFileSyncMock.mockImplementationOnce(() => {
         throw new Error("Read error");
@@ -414,13 +388,9 @@ describe("VersionManager", () => {
         )
       );
       expect(writeFileSyncMock).not.toHaveBeenCalled();
-
-      consoleWarnSpy.mockRestore();
     });
 
     it("should warn when writing .hushrc.json fails", () => {
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
       const existingContent = JSON.stringify({
         "hush-hello-world": { version: 1 },
       });
@@ -438,8 +408,6 @@ describe("VersionManager", () => {
           "⚠️  Warning: Could not update .hushrc.json file: Error: Write error"
         )
       );
-
-      consoleWarnSpy.mockRestore();
     });
 
     it("should handle removing last key from .hushrc.json", () => {
