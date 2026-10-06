@@ -1,34 +1,38 @@
-## [4.0.0](https://github.com/kernpunkt/hush/compare/v3.1.0...v4.0.0) (2026-10-06)
+## [4.0.1](https://github.com/kernpunkt/hush/compare/v4.0.0...v4.0.1) (2026-10-06)
 
+### Bug Fixes
+
+- address review findings on dependency upgrade ([0357ec0](https://github.com/kernpunkt/hush/commit/0357ec0d53dd7fc56d18b207317bc03b2afc069d))
+- **lint-staged:** only format and lint staged files ([12ca2c4](https://github.com/kernpunkt/hush/commit/12ca2c493751a8c55854009a0e252dc68b3d5740))
+- **release:** pin conventionalcommits preset to v9 for semantic-release 25 ([92a4cef](https://github.com/kernpunkt/hush/commit/92a4cef28464aa8924ec2b5dcc8c0ef2aed1572f))
+
+## [4.0.0](https://github.com/kernpunkt/hush/compare/v3.1.0...v4.0.0) (2026-10-06)
 
 ### ⚠ BREAKING CHANGES
 
-* Hush! now requires Node.js 24 or newer.
+- Hush! now requires Node.js 24 or newer.
 
 ### Bug Fixes
 
-* **release:** apply conventionalcommits preset to analyzer and notes ([ded4b09](https://github.com/kernpunkt/hush/commit/ded4b093bf8abf75e87854a6bd41e23b80103a79))
-
+- **release:** apply conventionalcommits preset to analyzer and notes ([ded4b09](https://github.com/kernpunkt/hush/commit/ded4b093bf8abf75e87854a6bd41e23b80103a79))
 
 ### Miscellaneous Chores
 
-* migrate to ESM and require Node 24 ([bdedf23](https://github.com/kernpunkt/hush/commit/bdedf23c70721f5fe7e7037d6f6ea6c6cc706601))
+- migrate to ESM and require Node 24 ([bdedf23](https://github.com/kernpunkt/hush/commit/bdedf23c70721f5fe7e7037d6f6ea6c6cc706601))
 
 # [2.1.0](https://github.com/kernpunkt/hush/compare/v2.0.4...v2.1.0) (2026-02-17)
 
-
 ### Bug Fixes
 
-* better error handling on file corruption ([52ac9dd](https://github.com/kernpunkt/hush/commit/52ac9ddabd91bad9aa326fab877d617883cce821))
-
+- better error handling on file corruption ([52ac9dd](https://github.com/kernpunkt/hush/commit/52ac9ddabd91bad9aa326fab877d617883cce821))
 
 ### Features
 
-* add small qa changes ([d145668](https://github.com/kernpunkt/hush/commit/d145668f9bcadc878de11b1f707c69e85ce86098))
-* add version check ([0245c73](https://github.com/kernpunkt/hush/commit/0245c73cc73e640cc9049c374cdfb23b98223264))
-* add version to pushed secret message ([2e2e236](https://github.com/kernpunkt/hush/commit/2e2e2362abe8567b1855753253670e428c6f233c))
-* **Delete:** implement remove of version from .hushrc file ([3c472e9](https://github.com/kernpunkt/hush/commit/3c472e9f688def263b5111da8aabb7007ec64ed1))
-* do not warn, if .hushrc file not exists ([5748042](https://github.com/kernpunkt/hush/commit/57480428e53f6d4d869a4d865e1d3457a23cdcc4))
+- add small qa changes ([d145668](https://github.com/kernpunkt/hush/commit/d145668f9bcadc878de11b1f707c69e85ce86098))
+- add version check ([0245c73](https://github.com/kernpunkt/hush/commit/0245c73cc73e640cc9049c374cdfb23b98223264))
+- add version to pushed secret message ([2e2e236](https://github.com/kernpunkt/hush/commit/2e2e2362abe8567b1855753253670e428c6f233c))
+- **Delete:** implement remove of version from .hushrc file ([3c472e9](https://github.com/kernpunkt/hush/commit/3c472e9f688def263b5111da8aabb7007ec64ed1))
+- do not warn, if .hushrc file not exists ([5748042](https://github.com/kernpunkt/hush/commit/57480428e53f6d4d869a4d865e1d3457a23cdcc4))
 
 ## [2.0.4](https://github.com/kernpunkt/hush/compare/v2.0.3...v2.0.4) (2025-10-21)
 
