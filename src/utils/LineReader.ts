@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import SecretEntry from "../@types/SecretEntry.js";
+import { unquoteValue } from "./envValue.js";
 
 class LineReader {
   readLines(envFile: string): SecretEntry[] {
@@ -23,33 +24,16 @@ class LineReader {
       }
 
       const parts = secretLine.split("=");
-      const key = parts[0];
+      const key = parts[0].trim();
       const rawValue = parts.slice(1).join("=");
 
       secretArray.push({
         key,
-        value: this.unquote(rawValue),
+        value: unquoteValue(rawValue),
       });
     }
 
     return secretArray;
-  }
-
-  /**
-   * Strip a single pair of wrapping double quotes from a value and
-   * unescape any escaped double quotes (\") inside it. Quotes that are
-   * not wrapping the whole value (e.g. inside a JSON string) are left
-   * untouched.
-   */
-  private unquote(value: string): string {
-    const isWrapped =
-      value.length >= 2 && value.startsWith('"') && value.endsWith('"');
-
-    if (!isWrapped) {
-      return value;
-    }
-
-    return value.slice(1, -1).replace(/\\"/g, '"');
   }
 }
 

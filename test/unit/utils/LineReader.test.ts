@@ -71,16 +71,27 @@ describe("LineReader", () => {
         expect(secrets[0].value).toBe('{"ST19":"<ID1>","ST07":"<ID2>"}');
     });
 
-    it("strips a single pair of wrapping quotes and unescapes inner quotes", () => {
+    it("strips a single pair of wrapping single or double quotes", () => {
         const testFile = path.join(testDir, "test5.env");
         fs.writeFileSync(
             testFile,
-            'TAX_CATEGORY_MAPPING="{\\"ST19\\":\\"<ID1>\\"}"'
+            'TAX_CATEGORY_MAPPING=\'{"ST19":"<ID1>"}\'\nAPI_KEY="abc"'
         );
 
         const lineReader = new LineReader();
         const secrets = lineReader.readLines(testFile);
         expect(secrets[0].key).toBe("TAX_CATEGORY_MAPPING");
         expect(secrets[0].value).toBe('{"ST19":"<ID1>"}');
+        expect(secrets[1].value).toBe("abc");
+    });
+
+    it("strips quotes despite CRLF line endings and spaces around the value", () => {
+        const testFile = path.join(testDir, "test6.env");
+        fs.writeFileSync(testFile, 'API_KEY="abc"\r\nDB_PASS = "s3cr3t"  \r\n');
+
+        const lineReader = new LineReader();
+        const secrets = lineReader.readLines(testFile);
+        expect(secrets[0]).toEqual({ key: "API_KEY", value: "abc" });
+        expect(secrets[1]).toEqual({ key: "DB_PASS", value: "s3cr3t" });
     });
 });
