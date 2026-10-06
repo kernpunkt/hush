@@ -1,9 +1,9 @@
-import BaseCommand from "./BaseCommand";
+import BaseCommand from "./BaseCommand.js";
 import chalk from "chalk";
-import DeleteRequest from "../requests/DeleteRequest";
-import DeleteCommandInput from "../@types/DeleteCommandInput";
-import DateFormatter from "../utils/DateFormatter";
-import VersionManager from "../utils/VersionManager";
+import DeleteRequest from "../requests/DeleteRequest.js";
+import DeleteCommandInput from "../@types/DeleteCommandInput.js";
+import DateFormatter from "../utils/DateFormatter.js";
+import VersionManager from "../utils/VersionManager.js";
 
 export type DeleteCommandOptions = {
   force?: boolean;

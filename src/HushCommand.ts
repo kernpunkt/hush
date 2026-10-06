@@ -1,17 +1,19 @@
 import { Command, ParseOptions } from "commander";
-import PushCommand from "./commands/PushCommand";
+import PushCommand from "./commands/PushCommand.js";
 import chalk from "chalk";
-import PullCommand, { PullCommandOptions } from "./commands/PullCommand";
-import { EnvDiffResult } from "./utils/envDiff";
-import DeleteCommand, { DeleteCommandOptions } from "./commands/DeleteCommand";
-import GrantCommand from "./commands/GrantCommand";
-import RevokeCommand from "./commands/RevokeCommand";
-import DeleteCommandInput from "./@types/DeleteCommandInput";
-import PullCommandInput from "./@types/PullCommandInput";
-import PushCommandInput from "./@types/PushCommandInput";
-import ListCommand from "./commands/ListCommand";
+import PullCommand, { PullCommandOptions } from "./commands/PullCommand.js";
+import { EnvDiffResult } from "./utils/envDiff.js";
+import DeleteCommand, {
+  DeleteCommandOptions,
+} from "./commands/DeleteCommand.js";
+import GrantCommand from "./commands/GrantCommand.js";
+import RevokeCommand from "./commands/RevokeCommand.js";
+import DeleteCommandInput from "./@types/DeleteCommandInput.js";
+import PullCommandInput from "./@types/PullCommandInput.js";
+import PushCommandInput from "./@types/PushCommandInput.js";
+import ListCommand from "./commands/ListCommand.js";
 import figlet from "figlet";
-import CatCommand from "./commands/CatCommand";
+import CatCommand from "./commands/CatCommand.js";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -57,7 +59,7 @@ class HushCommand extends Command {
   }
 
   private displayVersion(): void {
-    const packageJsonPath = path.join(__dirname, "../package.json");
+    const packageJsonPath = path.join(import.meta.dirname, "../package.json");
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
     console.info(
       `${chalk.bold("Hush! 🤫")} — Version ${packageJson.version}\n`

@@ -1,4 +1,4 @@
-import SecretEntry from "../@types/SecretEntry";
+import SecretEntry from "../@types/SecretEntry.js";
 
 export type EnvDiffResult = {
   changed: string[];

@@ -1,4 +1,4 @@
-import StringMap from "./StringMap";
+import StringMap from "./StringMap.js";
 
 type SecretPayload = {
   message: string;

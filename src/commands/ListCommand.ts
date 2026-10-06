@@ -1,10 +1,10 @@
-import GetSecretValueRequest from "../requests/GetSecretValueRequest";
-import ListSecretsRequest from "../requests/ListSecretsRequest";
-import BaseCommand from "./BaseCommand";
-import SecretPayloadManager from "../utils/SecretPayloadManager";
+import GetSecretValueRequest from "../requests/GetSecretValueRequest.js";
+import ListSecretsRequest from "../requests/ListSecretsRequest.js";
+import BaseCommand from "./BaseCommand.js";
+import SecretPayloadManager from "../utils/SecretPayloadManager.js";
 import chalk from "chalk";
-import chalkTable from "../utils/ChalkTable";
-import DateFormatter from "../utils/DateFormatter";
+import chalkTable from "../utils/ChalkTable.js";
+import DateFormatter from "../utils/DateFormatter.js";
 
 class ListCommand extends BaseCommand {
   public async execute() {

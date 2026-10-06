@@ -2,10 +2,10 @@ import {
   GetResourcePolicyCommand,
   GetResourcePolicyCommandInput,
 } from "@aws-sdk/client-secrets-manager";
-import BaseRequest from "./BaseRequest";
+import BaseRequest from "./BaseRequest.js";
 import { PolicyDocument } from "@thinkinglabs/aws-iam-policy";
 import chalk from "chalk";
-import TypedErrorHandler from "../utils/TypedErrorHandler";
+import TypedErrorHandler from "../utils/TypedErrorHandler.js";
 
 class GetResourcePolicyRequest extends BaseRequest {
   public async execute(
