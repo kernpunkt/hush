@@ -1,3 +1,10 @@
+## [4.0.2](https://github.com/kernpunkt/hush/compare/v4.0.1...v4.0.2) (2026-10-06)
+
+### Bug Fixes
+
+- preserve quotes inside secret values on push/pull ([6be6f0c](https://github.com/kernpunkt/hush/commit/6be6f0c5f5b6191e3d2153ce13a2b8b6f32a3fb1)), closes [#27](https://github.com/kernpunkt/hush/issues/27)
+- write .env values so dotenv reads them unchanged ([f56c6e9](https://github.com/kernpunkt/hush/commit/f56c6e99bf8d35efdbd4f0bf4115023224788192))
+
 ## [4.0.1](https://github.com/kernpunkt/hush/compare/v4.0.0...v4.0.1) (2026-10-06)
 
 ### Bug Fixes
