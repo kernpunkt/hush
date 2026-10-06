@@ -2,6 +2,7 @@ import path from "path";
 import { writeFileSync } from "fs";
 import chalk from "chalk";
 import envDiff, { EnvDiffResult } from "../utils/envDiff.js";
+import { quoteValue } from "../utils/envValue.js";
 import BaseCommand from "./BaseCommand.js";
 import GetSecretValueRequest from "../requests/GetSecretValueRequest.js";
 import LineReader from "../utils/LineReader.js";
@@ -71,7 +72,7 @@ class PullCommand extends BaseCommand {
       "",
     ];
     for (const secret of secretsOutput) {
-      secretLines.push(`${secret.key}="${secret.value}"`);
+      secretLines.push(`${secret.key}=${quoteValue(secret.value)}`);
     }
 
     writeFileSync(filename, secretLines.join("\n"));

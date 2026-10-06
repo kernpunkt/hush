@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import SecretEntry from "../@types/SecretEntry.js";
+import { unquoteValue } from "./envValue.js";
 
 class LineReader {
   readLines(envFile: string): SecretEntry[] {
@@ -22,15 +23,13 @@ class LineReader {
         continue;
       }
 
-      const trimmedSecretLine = secretLine.replace(/"/g, "");
-
-      const parts = trimmedSecretLine.split("=");
-      const key = parts[0];
-      const value = parts.slice(1).join("=");
+      const parts = secretLine.split("=");
+      const key = parts[0].trim();
+      const rawValue = parts.slice(1).join("=");
 
       secretArray.push({
         key,
-        value,
+        value: unquoteValue(rawValue),
       });
     }
 
