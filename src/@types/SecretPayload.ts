@@ -7,12 +7,21 @@ type SecretPayload = {
   secrets: StringMap[];
 };
 
-export function isSecretPayload(payload: any): payload is SecretPayload {
+/**
+ * A payload as stored in AWS. Hush 1.1.0–2.0.4 wrote it without `version`.
+ */
+export type StoredSecretPayload = Omit<SecretPayload, "version"> & {
+  version?: number;
+};
+
+export function isSecretPayload(payload: any): payload is StoredSecretPayload {
   return (
+    typeof payload === "object" &&
+    payload !== null &&
     typeof payload.message === "string" &&
     (payload.version === undefined || typeof payload.version === "number") &&
     typeof payload.updated_at === "string" &&
-    typeof payload.secrets === "object"
+    Array.isArray(payload.secrets)
   );
 }
 

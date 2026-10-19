@@ -269,12 +269,6 @@ describe("VersionManager", () => {
         $metadata: {},
       });
 
-      fromSecretStringSpy.mockReturnValueOnce({
-        secrets: [],
-        message: "Test",
-        updated_at: new Date(),
-      } as any);
-
       const result = await versionManager.getSecretVersion("test-secret");
 
       expect(result).toBe(0);
@@ -304,16 +298,10 @@ describe("VersionManager", () => {
         $metadata: {},
       });
 
-      fromSecretStringSpy.mockReturnValueOnce({
-        secrets: [],
-        message: "",
-        updated_at: new Date(),
-      } as any);
-
       const result = await versionManager.getSecretVersion("test-secret");
 
       expect(result).toBe(0);
-      expect(fromSecretStringSpy).toHaveBeenCalledWith("{}");
+      expect(fromSecretStringSpy).not.toHaveBeenCalled();
     });
   });
 

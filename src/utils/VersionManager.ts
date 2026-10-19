@@ -116,10 +116,11 @@ class VersionManager {
   public async getSecretVersion(key: string): Promise<number> {
     try {
       const data = await new GetSecretValueRequest().execute(key);
-      const secretPayload = new SecretPayloadManager().fromSecretString(
-        data?.SecretString || "{}"
-      );
-      return secretPayload.version || 0;
+      if (!data?.SecretString) {
+        return 0;
+      }
+      return new SecretPayloadManager().fromSecretString(data.SecretString)
+        .version;
     } catch {
       // If secret doesn't exist or can't be retrieved, return -1
       return -1;
