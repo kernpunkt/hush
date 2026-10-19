@@ -10,7 +10,7 @@ type SecretPayload = {
 export function isSecretPayload(payload: any): payload is SecretPayload {
   return (
     typeof payload.message === "string" &&
-    typeof payload.version === "number" &&
+    (payload.version === undefined || typeof payload.version === "number") &&
     typeof payload.updated_at === "string" &&
     typeof payload.secrets === "object"
   );
