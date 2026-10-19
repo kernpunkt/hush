@@ -1,3 +1,10 @@
+# [3.2.0](https://github.com/kernpunkt/hush/compare/v3.1.0...v3.2.0) (2026-10-19)
+
+
+### Bug Fixes
+
+* read secrets pushed before 2.1.0 without a version field ([07e82f3](https://github.com/kernpunkt/hush/commit/07e82f3d4cf7094e7c6346ecbe095cd044aea5be)), closes [#35](https://github.com/kernpunkt/hush/issues/35)
+
 # [2.1.0](https://github.com/kernpunkt/hush/compare/v2.0.4...v2.1.0) (2026-02-17)
 
 
