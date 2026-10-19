@@ -28,4 +28,12 @@ describe("SecretPayloadManager", () => {
         const output = new SecretPayloadManager().fromSecretString(JSON.stringify(legacy));
         expect(output.message).toContain("Legacy version of Hush!");
     });
+    it("can parse payloads from before 2.1.0 (without version)", () => {
+        const { version, ...unversioned } = payload;
+        const output = new SecretPayloadManager().fromSecretString(JSON.stringify(unversioned));
+        expect(output.message).toBe("Hello world");
+        expect(output.version).toBe(0);
+        expect(Array.isArray(output.secrets)).toBe(true);
+        expect(output.secrets[0].hude).toBe("Fude");
+    });
 });

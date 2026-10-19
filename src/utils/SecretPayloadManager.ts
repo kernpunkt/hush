@@ -9,7 +9,8 @@ export default class SecretPayloadManager {
     const parsed = JSON.parse(secretString);
 
     if (isSecretPayload(parsed)) {
-      return parsed as SecretPayload;
+      // Hush 1.2.0–2.0.4 stored payloads without a version field.
+      return { ...parsed, version: parsed.version ?? 0 };
     }
 
     return {
