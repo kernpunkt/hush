@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SecretsManager } from "@aws-sdk/client-secrets-manager";
 import SecretPayload, { isSecretPayload } from "../../../src/@types/SecretPayload";
-import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
+import SecretPayloadManager, { UnknownSecretFormatError } from "../../../src/utils/SecretPayloadManager";
 
 const payload: SecretPayload = {
     message: "Hello world",
@@ -49,9 +49,22 @@ describe("SecretPayloadManager", () => {
         ["updated_at is missing", { message: "x", version: 1, secrets: [] }],
         ["it is an empty object", {}],
         ["it is null", null],
+        ["version is negative", { ...payload, version: -1 }],
+        ["version is a fraction", { ...payload, version: 1.5 }],
     ])("throws a clear error when %s", (_, stored) => {
         expect(() => new SecretPayloadManager().fromSecretString(JSON.stringify(stored)))
             .toThrow("unknown format");
+    });
+});
+
+describe("UnknownSecretFormatError", () => {
+    it("names the secret when the key is given", () => {
+        expect(() => new SecretPayloadManager().fromSecretString("{}", "hush-foo"))
+            .toThrow("The secret hush-foo has an unknown format");
+    });
+    it("is thrown as UnknownSecretFormatError", () => {
+        expect(() => new SecretPayloadManager().fromSecretString("{}"))
+            .toThrow(UnknownSecretFormatError);
     });
 });
 

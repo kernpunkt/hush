@@ -19,7 +19,8 @@ export function isSecretPayload(payload: any): payload is StoredSecretPayload {
     typeof payload === "object" &&
     payload !== null &&
     typeof payload.message === "string" &&
-    (payload.version === undefined || typeof payload.version === "number") &&
+    (payload.version === undefined ||
+      (Number.isInteger(payload.version) && payload.version >= 0)) &&
     typeof payload.updated_at === "string" &&
     Array.isArray(payload.secrets)
   );

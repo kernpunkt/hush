@@ -9,7 +9,9 @@ import LineReader from "../utils/LineReader.js";
 import PutSecretValueRequest from "../requests/PutSecretValueRequest.js";
 import CreateSecretRequest from "../requests/CreateSecretRequest.js";
 import PushCommandInput from "../@types/PushCommandInput.js";
-import SecretPayloadManager from "../utils/SecretPayloadManager.js";
+import SecretPayloadManager, {
+  UnknownSecretFormatError,
+} from "../utils/SecretPayloadManager.js";
 import SecretPayload from "../@types/SecretPayload.js";
 import { userInfo } from "os";
 import VersionManager from "../utils/VersionManager.js";
@@ -43,6 +45,31 @@ class PushCommand extends BaseCommand {
     return this;
   }
 
+  /**
+   * A remote secret Hush can't read is only overwritten with --force,
+   * and the new version starts at 1.
+   */
+  private async getCurrentVersion(): Promise<number> {
+    try {
+      return await this.versionManager.getSecretVersion(this.getKey());
+    } catch (error) {
+      const unreadable =
+        error instanceof UnknownSecretFormatError ||
+        error instanceof SyntaxError;
+      if (!unreadable) {
+        throw error;
+      }
+      if (!this.force) {
+        // Not the original message: a JSON SyntaxError quotes part of the secret.
+        throw new Error(
+          `${new UnknownSecretFormatError(this.getKey()).message} Use --force to overwrite it.`,
+          { cause: error }
+        );
+      }
+      return 0;
+    }
+  }
+
   public async execute() {
     const secretArray = this.lineReader.readLines(this.envFile);
     const payload: SecretPayload = {
@@ -59,9 +86,7 @@ class PushCommand extends BaseCommand {
     };
 
     // Get and log the current version before pushing
-    const currentVersion = await this.versionManager.getSecretVersion(
-      this.getKey()
-    );
+    const currentVersion = await this.getCurrentVersion();
 
     if (!this.force) {
       const isVersionValid = this.versionManager.checkVersion(

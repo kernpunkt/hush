@@ -256,7 +256,7 @@ describe("VersionManager", () => {
       const result = await versionManager.getSecretVersion("test-secret");
 
       expect(result).toBe(5);
-      expect(getSecretValueSpy).toHaveBeenCalledWith("test-secret");
+      expect(getSecretValueSpy).toHaveBeenCalledWith("test-secret", {});
     });
 
     it("should return 0 when secret has no version", async () => {
@@ -276,7 +276,9 @@ describe("VersionManager", () => {
 
     it("should return -1 when secret doesn't exist", async () => {
       getSecretValueSpy.mockRejectedValueOnce(
-        new Error("ResourceNotFoundException")
+        Object.assign(new Error("Secrets Manager can't find the specified secret."), {
+          name: "ResourceNotFoundException",
+        })
       );
 
       const result = await versionManager.getSecretVersion("non-existent-secret");
@@ -284,12 +286,23 @@ describe("VersionManager", () => {
       expect(result).toBe(-1);
     });
 
-    it("should return -1 when AWS request fails", async () => {
+    it("should rethrow other AWS errors instead of returning -1", async () => {
       getSecretValueSpy.mockRejectedValueOnce(new Error("Network error"));
 
-      const result = await versionManager.getSecretVersion("test-secret");
+      await expect(versionManager.getSecretVersion("test-secret")).rejects.toThrow(
+        "Network error"
+      );
+    });
 
-      expect(result).toBe(-1);
+    it("should throw for a secret in an unknown format instead of returning -1", async () => {
+      getSecretValueSpy.mockResolvedValueOnce({
+        SecretString: JSON.stringify({ version: "3", secrets: [] }),
+        $metadata: {},
+      });
+
+      await expect(versionManager.getSecretVersion("test-secret")).rejects.toThrow(
+        "The secret test-secret has an unknown format"
+      );
     });
 
     it("should handle empty SecretString", async () => {

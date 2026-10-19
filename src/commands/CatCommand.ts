@@ -17,7 +17,8 @@ class CatCommand extends BaseCommand {
       this.getKey()
     );
     const secret = new SecretPayloadManager().fromSecretString(
-      secretResponse?.SecretString || ""
+      secretResponse?.SecretString || "",
+      this.getKey()
     );
 
     const secretDate = DateFormatter.relativeDate(secret.updated_at);
