@@ -88,4 +88,37 @@ describe("CatCommand", () => {
             await catCommand.execute();
         }).rejects.toThrow();
     });
+    it("throws a clear error if the secret has no SecretString", async () => {
+        secretPayloadManagerSpy.mockClear();
+        secretsManagerMock.on(GetSecretValueCommand).resolves({
+            $metadata: {},
+            SecretString: undefined,
+        });
+
+        await expect(catCommand.execute()).rejects.toThrow(
+            "has no text value (SecretString) and can't be read by Hush."
+        );
+        expect(secretPayloadManagerSpy).not.toHaveBeenCalled();
+        expect(consoleLogSpy).not.toHaveBeenCalled();
+    });
+    it("throws a clear error for a binary secret", async () => {
+        secretPayloadManagerSpy.mockClear();
+        secretsManagerMock.on(GetSecretValueCommand).resolves({
+            $metadata: {},
+            SecretBinary: new Uint8Array([1, 2, 3]),
+        });
+
+        await expect(catCommand.execute()).rejects.toThrow("has no text value");
+        expect(secretPayloadManagerSpy).not.toHaveBeenCalled();
+    });
+    it("throws a clear error if the SecretString is empty", async () => {
+        secretPayloadManagerSpy.mockClear();
+        secretsManagerMock.on(GetSecretValueCommand).resolves({
+            $metadata: {},
+            SecretString: "",
+        });
+
+        await expect(catCommand.execute()).rejects.toThrow("has no text value");
+        expect(secretPayloadManagerSpy).not.toHaveBeenCalled();
+    });
 });
