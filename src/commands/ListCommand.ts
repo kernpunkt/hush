@@ -6,6 +6,13 @@ import chalk from "chalk";
 import chalkTable from "../utils/ChalkTable.js";
 import DateFormatter from "../utils/DateFormatter.js";
 
+type ListTableRow = {
+  name: string;
+  message: string;
+  updated_at: string;
+  secret_count: string;
+};
+
 class ListCommand extends BaseCommand {
   public async execute() {
     const allSecrets = await new ListSecretsRequest().execute();
@@ -14,34 +21,9 @@ class ListCommand extends BaseCommand {
         secret.Name?.startsWith(this.prefix)
       ) || [];
 
-    const promises: any[] = [];
-    hushSecrets.forEach((secret) => {
-      const promise = new Promise((resolve) => {
-        new GetSecretValueRequest()
-          .execute(secret.Name as string)
-          .then((result) => {
-            const parsed = new SecretPayloadManager().fromSecretString(
-              result?.SecretString as string
-            );
-            resolve({
-              name: secret.Name as string,
-              payload: parsed,
-            });
-          });
-      });
-      promises.push(promise);
-    });
-
-    const result = await Promise.all(promises);
-    const tableRows: any[] = [];
-    result.forEach((row) => {
-      tableRows.push({
-        name: row.name,
-        message: row.payload.message,
-        updated_at: DateFormatter.relativeDate(row.payload.updated_at),
-        secret_count: String(row.payload.secrets.length),
-      });
-    });
+    const tableRows = await Promise.all(
+      hushSecrets.map((secret) => this.toTableRow(secret.Name as string))
+    );
 
     const options = {
       columns: [
@@ -52,6 +34,29 @@ class ListCommand extends BaseCommand {
       ],
     };
     return chalkTable(options, tableRows);
+  }
+
+  private async toTableRow(name: string): Promise<ListTableRow> {
+    try {
+      const result = await new GetSecretValueRequest().execute(name);
+      const payload = new SecretPayloadManager().fromSecretString(
+        result?.SecretString as string
+      );
+      return {
+        name,
+        message: payload.message,
+        updated_at: DateFormatter.relativeDate(payload.updated_at),
+        secret_count: String(payload.secrets.length),
+      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      return {
+        name,
+        message: chalk.red(`Can't be read: ${reason}`),
+        updated_at: "-",
+        secret_count: "-",
+      };
+    }
   }
 }
 export default ListCommand;
