@@ -62,12 +62,62 @@ describe("ListCommand", () => {
             .on(GetSecretValueCommand, { SecretId: "hush-good" })
             .resolves({ SecretString: validPayload("good message", 1) })
             .on(GetSecretValueCommand, { SecretId: "hush-broken" })
-            .resolves({ SecretString: "{ this is not json" });
+            .resolves({ SecretString: "my-db-password=hunter2" });
 
         const output = stripAnsi(await new ListCommand().execute());
 
         expect(findRow(output, "hush-good")).toContain("good message");
-        expect(findRow(output, "hush-broken")).toContain("Can't be read");
+        expect(findRow(output, "hush-broken")).toContain("Can't be read: unknown or invalid format");
+        // JSON.parse quotes the start of the input in its error message; that must not leak.
+        expect(output).not.toContain("my-db-pass");
+    });
+
+    it("notes a secret without a string value", async () => {
+        secretsManagerMock.on(ListSecretsCommand).resolves({
+            SecretList: [{ Name: "hush-binary" }],
+        });
+        secretsManagerMock.on(GetSecretValueCommand).resolves({ SecretBinary: new Uint8Array([1, 2, 3]) });
+
+        const output = stripAnsi(await new ListCommand().execute());
+
+        expect(findRow(output, "hush-binary")).toContain("Can't be read: the secret has no string value");
+    });
+
+    it("keeps a long multi-line fetch error to one short line", async () => {
+        secretsManagerMock.on(ListSecretsCommand).resolves({
+            SecretList: [{ Name: "hush-forbidden" }],
+        });
+        secretsManagerMock
+            .on(GetSecretValueCommand)
+            .rejects(new Error(`${"x".repeat(200)}\nsecond line`));
+
+        const output = stripAnsi(await new ListCommand().execute());
+        const row = findRow(output, "hush-forbidden") as string;
+
+        expect(row).toContain("…");
+        expect(row).not.toContain("x".repeat(80));
+        expect(output).not.toContain("second line");
+    });
+
+    it("finishes when every secret is unreadable", { timeout: 2000 }, async () => {
+        secretsManagerMock.on(ListSecretsCommand).resolves({
+            SecretList: [{ Name: "hush-one" }, { Name: "hush-two" }],
+        });
+        secretsManagerMock.on(GetSecretValueCommand).resolves({ SecretString: "not json" });
+
+        const output = stripAnsi(await new ListCommand().execute());
+
+        expect(findRow(output, "hush-one")).toContain("Can't be read");
+        expect(findRow(output, "hush-two")).toContain("Can't be read");
+    });
+
+    it("finishes when there are no hush secrets", async () => {
+        secretsManagerMock.on(ListSecretsCommand).resolves({ SecretList: [] });
+
+        const output = stripAnsi(await new ListCommand().execute());
+
+        expect(output).toContain("Name");
+        expect(secretsManagerMock.commandCalls(GetSecretValueCommand)).toHaveLength(0);
     });
 
     it("finishes and lists the other secrets when fetching one secret fails", { timeout: 2000 }, async () => {
