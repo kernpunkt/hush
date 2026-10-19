@@ -6,6 +6,8 @@ import CreateSecretRequest from "../../../src/requests/CreateSecretRequest";
 import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
 import { userInfo } from "os";
+import VersionManager from "../../../src/utils/VersionManager";
+import { UnknownSecretFormatError } from "../../../src/utils/SecretPayloadManager";
 
 // Mock the request modules
 const mockPutExecute = vi.hoisted(() => vi.fn());
@@ -34,8 +36,10 @@ CreateSecretRequest.prototype.execute = vi.fn();
 // Add toSecretString method to SecretPayloadManager prototype
 SecretPayloadManager.prototype.toSecretString = vi.fn();
 
-vi.mock("../../../src/utils/SecretPayloadManager", () => {
+vi.mock("../../../src/utils/SecretPayloadManager", async (importOriginal) => {
+    const original = await importOriginal<typeof import("../../../src/utils/SecretPayloadManager")>();
     return {
+        ...original,
         default: vi.fn().mockImplementation(function () {
             return { toSecretString: mockToSecretString };
         })
@@ -49,8 +53,18 @@ const getSecretSpy = vi.spyOn(GetSecretValueRequest.prototype, "execute");
 
 const toSecretStringSpy = vi.spyOn(SecretPayloadManager.prototype, "toSecretString");
 
+const getSecretVersionSpy = vi.spyOn(VersionManager.prototype, "getSecretVersion");
+const updateVersionsFileSpy = vi.spyOn(VersionManager.prototype, "updateVersionsFile");
+
 
 describe("PushCommand", () => {
+    beforeEach(() => {
+        getSecretVersionSpy.mockReset();
+        getSecretVersionSpy.mockResolvedValue(-1);
+        updateVersionsFileSpy.mockReset();
+        updateVersionsFileSpy.mockImplementation(() => {});
+        mockPutExecute.mockReset();
+    });
     describe("secret metadata", () => {
         afterEach(() => {
             expect(mockToSecretString).toHaveBeenCalled();
@@ -108,6 +122,42 @@ describe("PushCommand", () => {
             await command.execute();
             expect(mockPutExecute).toHaveBeenCalled();
             expect(mockCreateExecute).toHaveBeenCalled();
+        });
+    });
+    describe("remote secret in an unknown format", () => {
+        it.each([
+            ["unknown format", new UnknownSecretFormatError("hush-hello-world")],
+            ["invalid JSON", new SyntaxError('Unexpected token \'p\', "postgres:/"... is not valid JSON')],
+        ])("refuses to overwrite it without --force (%s)", async (_, error) => {
+            getSecretVersionSpy.mockRejectedValueOnce(error);
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test" });
+            command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
+
+            const result = command.execute();
+
+            await expect(result).rejects.toThrow("Use --force to overwrite it.");
+            await expect(result).rejects.not.toThrow("postgres");
+            expect(mockPutExecute).not.toHaveBeenCalled();
+            expect(updateVersionsFileSpy).not.toHaveBeenCalled();
+        });
+        it("overwrites it with --force and starts at version 1", async () => {
+            getSecretVersionSpy.mockRejectedValueOnce(new UnknownSecretFormatError("hush-hello-world"));
+            mockPutExecute.mockResolvedValueOnce(undefined);
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: true });
+            command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
+
+            await command.execute();
+
+            expect(mockPutExecute).toHaveBeenCalled();
+            expect(updateVersionsFileSpy).toHaveBeenCalledWith("hush-hello-world", 1);
+        });
+        it("does not swallow other errors, even with --force", async () => {
+            getSecretVersionSpy.mockRejectedValueOnce(new Error("Network error"));
+            const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: true });
+            command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
+
+            await expect(command.execute()).rejects.toThrow("Network error");
+            expect(mockPutExecute).not.toHaveBeenCalled();
         });
     });
 });

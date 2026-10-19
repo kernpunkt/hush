@@ -112,18 +112,25 @@ class VersionManager {
    *
    * @param {string} key - The secret key
    * @returns {Promise<number>} - The current version or -1 if secret doesn't exist
+   * @throws {Error} If the secret can't be retrieved or read for any other reason
    */
   public async getSecretVersion(key: string): Promise<number> {
+    let data;
     try {
-      const data = await new GetSecretValueRequest().execute(key);
-      const secretPayload = new SecretPayloadManager().fromSecretString(
-        data?.SecretString || "{}"
-      );
-      return secretPayload.version || 0;
-    } catch {
-      // If secret doesn't exist or can't be retrieved, return -1
-      return -1;
+      // An empty mapping keeps the original AWS error, so its name can be checked.
+      data = await new GetSecretValueRequest().execute(key, {});
+    } catch (error) {
+      if ((error as Error)?.name === "ResourceNotFoundException") {
+        return -1;
+      }
+      throw error;
     }
+
+    if (!data?.SecretString) {
+      return 0;
+    }
+    return new SecretPayloadManager().fromSecretString(data.SecretString, key)
+      .version;
   }
 
   /**

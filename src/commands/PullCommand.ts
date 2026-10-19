@@ -51,7 +51,8 @@ class PullCommand extends BaseCommand {
     const secretsOutput: SecretEntry[] = [];
 
     const secretPayload = new SecretPayloadManager().fromSecretString(
-      data?.SecretString || "[]"
+      data?.SecretString || "[]",
+      this.getKey()
     );
 
     const { secrets } = secretPayload;
