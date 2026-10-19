@@ -1,3 +1,19 @@
+## [4.1.0](https://github.com/kernpunkt/hush/compare/v4.0.2...v4.1.0) (2026-10-19)
+
+### Features
+
+- exit with code 1 when hush list can't read a secret ([a02e713](https://github.com/kernpunkt/hush/commit/a02e71387fde0f039b458c5f9a0f4c16e4d1489b)), closes [#37](https://github.com/kernpunkt/hush/issues/37)
+
+### Bug Fixes
+
+- don't leak secret values in hush list error rows ([d213ef3](https://github.com/kernpunkt/hush/commit/d213ef345cc837f0e3cf3ee23226512969d265b1)), closes [#37](https://github.com/kernpunkt/hush/issues/37)
+- handle secrets without a SecretString in hush cat ([10d597e](https://github.com/kernpunkt/hush/commit/10d597ed76d683de0d5ac0ec1329c3ac4fd8708e)), closes [#38](https://github.com/kernpunkt/hush/issues/38)
+- keep hush list from hanging on unreadable secrets ([a18d6cf](https://github.com/kernpunkt/hush/commit/a18d6cf27f33d1f85908cfab1c0dbcfd3f650cae)), closes [#37](https://github.com/kernpunkt/hush/issues/37)
+- read secrets pushed before 2.1.0 without a version field ([cc80ed8](https://github.com/kernpunkt/hush/commit/cc80ed840630c5afb88816682d45dfe6de07be15)), closes [#35](https://github.com/kernpunkt/hush/issues/35)
+- reject unknown secret formats instead of misreading them ([73495ff](https://github.com/kernpunkt/hush/commit/73495ff8fe14117042c16290d5c2dab201b0eb06))
+- show missing access as "No access" in hush list ([f3c2abe](https://github.com/kernpunkt/hush/commit/f3c2abefa844b8c2bf76e1e1cd792050b76cb474)), closes [#37](https://github.com/kernpunkt/hush/issues/37)
+- stop hush push from overwriting secrets it can't read ([819318f](https://github.com/kernpunkt/hush/commit/819318f7cf48b2616250795c77c3924660ec0793))
+
 ## [4.0.2](https://github.com/kernpunkt/hush/compare/v4.0.1...v4.0.2) (2026-10-06)
 
 ### Bug Fixes
