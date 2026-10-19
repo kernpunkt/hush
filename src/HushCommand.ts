@@ -73,9 +73,10 @@ class HushCommand extends Command {
       const command = new ListCommand();
       command
         .execute()
-        .then((result) => {
-          console.log(result);
-          process.exit(0);
+        .then(({ output, hasErrors }) => {
+          console.log(output);
+          // Unreadable secrets are listed in the table; signal them with the exit code.
+          process.exit(hasErrors ? 1 : 0);
         })
         .catch(this.handleError);
     });

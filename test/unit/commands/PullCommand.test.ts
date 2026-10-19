@@ -49,6 +49,27 @@ describe("PullCommand", () => {
         const content = calls[0][1];
         expect((content as string).startsWith("# Managed by Hush!"));
     });
+    it("pulls secrets pushed before 2.1.0 (payload without version)", async () => {
+        const command = new PullCommand({ key: "secret-name", envFile: "./.env.test", force: true});
+        command.setLineReader(new MockLineReader([]));
+
+        secretsManagerMock.on(GetSecretValueCommand).resolves({
+            $metadata: {},
+            SecretString: JSON.stringify({
+                message: "Pushed with Hush 2.0.4",
+                updated_at: new Date().toISOString(),
+                secrets: [{ key: "HELLO", value: "MUNDO" }],
+            })
+        });
+
+        await command.execute();
+
+        const envWrite = writeFileSyncMock.mock.calls.find((call: any[]) => String(call[0]).endsWith(".env.test"));
+        expect(envWrite).toBeDefined();
+        expect(envWrite[1]).toContain('HELLO="MUNDO"');
+        const versionsWrite = writeFileSyncMock.mock.calls.find((call: any[]) => String(call[0]).endsWith(".hushrc.json"));
+        expect(Object.values(JSON.parse(versionsWrite[1]))).toEqual([{ version: 0 }]);
+    });
     it("makes you aware of changes before writing to file", async() => {
         const command = new PullCommand({ key: "secret-name", envFile: "./.env.test"});
         command.setLineReader(new MockLineReader([

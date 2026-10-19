@@ -24,7 +24,10 @@ class CatCommand extends BaseCommand {
         )} has no text value (SecretString) and can't be read by Hush.`
       );
     }
-    const secret = new SecretPayloadManager().fromSecretString(secretString);
+    const secret = new SecretPayloadManager().fromSecretString(
+      secretString,
+      this.getKey()
+    );
 
     const secretDate = DateFormatter.relativeDate(secret.updated_at);
 

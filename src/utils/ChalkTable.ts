@@ -15,7 +15,7 @@ function stripAnsiRegex(onlyFirst = false) {
   return new RegExp(pattern, onlyFirst ? undefined : "g");
 }
 
-function stripAnsi(input: string) {
+export function stripAnsi(input: string) {
   if (typeof input !== "string") {
     console.log(input);
     throw new TypeError(`Expected a \`string\`, got \`${typeof input}\``);
