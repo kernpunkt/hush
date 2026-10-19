@@ -4,7 +4,7 @@ import BaseCommand from "./BaseCommand.js";
 import SecretPayloadManager from "../utils/SecretPayloadManager.js";
 import SecretPayload from "../@types/SecretPayload.js";
 import chalk from "chalk";
-import chalkTable from "../utils/ChalkTable.js";
+import chalkTable, { stripAnsi } from "../utils/ChalkTable.js";
 import DateFormatter from "../utils/DateFormatter.js";
 
 type ListTableRow = {
@@ -14,15 +14,10 @@ type ListTableRow = {
   secret_count: string;
 };
 
-type ListRowResult = {
-  row: ListTableRow;
-  readable: boolean;
-};
-
 export type ListResult = {
   /** The rendered table, including rows for secrets that can't be read. */
   output: string;
-  /** True if at least one secret could not be read. */
+  /** True if at least one secret has a real problem. Missing access doesn't count. */
   hasErrors: boolean;
 };
 
@@ -36,10 +31,26 @@ class ListCommand extends BaseCommand {
         secret.Name?.startsWith(this.prefix)
       ) || [];
 
-    const results = await Promise.all(
-      hushSecrets.map((secret) => this.toTableRow(secret.Name as string))
+    const names = hushSecrets.map((secret) => secret.Name as string);
+    const results = await Promise.allSettled(
+      names.map((name) => this.toTableRow(name))
     );
-    const tableRows = results.map((result) => result.row);
+
+    let hasErrors = false;
+    const tableRows = results.map((result, index) => {
+      if (result.status === "fulfilled") {
+        return result.value;
+      }
+      // Hush grants access per secret, so secrets the user can't read are expected.
+      if (ListCommand.isAccessDenied(result.reason)) {
+        return ListCommand.noAccessRow(names[index]);
+      }
+      hasErrors = true;
+      return ListCommand.errorRow(
+        names[index],
+        ListCommand.reason(result.reason)
+      );
+    });
 
     const options = {
       columns: [
@@ -51,21 +62,15 @@ class ListCommand extends BaseCommand {
     };
     return {
       output: chalkTable(options, tableRows),
-      hasErrors: results.some((result) => !result.readable),
+      hasErrors,
     };
   }
 
-  private async toTableRow(name: string): Promise<ListRowResult> {
-    let secretString: string | undefined;
-    try {
-      const result = await new GetSecretValueRequest().execute(name);
-      secretString = result?.SecretString;
-    } catch (error) {
-      return this.unreadableRow(name, ListCommand.shortReason(error));
-    }
-
+  private async toTableRow(name: string): Promise<ListTableRow> {
+    const result = await new GetSecretValueRequest().execute(name);
+    const secretString = result?.SecretString;
     if (secretString === undefined) {
-      return this.unreadableRow(name, "the secret has no string value");
+      throw new Error("the secret has no string value");
     }
 
     let payload: SecretPayload;
@@ -73,38 +78,56 @@ class ListCommand extends BaseCommand {
       payload = new SecretPayloadManager().fromSecretString(secretString);
     } catch {
       // Don't show the parse error: JSON.parse quotes the start of the secret value.
-      return this.unreadableRow(name, "unknown or invalid format");
+      throw new Error("unknown or invalid format");
+    }
+
+    let updatedAt: string;
+    try {
+      updatedAt = DateFormatter.relativeDate(payload.updated_at);
+    } catch {
+      throw new Error("invalid update date");
     }
 
     return {
-      row: {
-        name,
-        message: payload.message,
-        updated_at: DateFormatter.relativeDate(payload.updated_at),
-        secret_count: String(payload.secrets.length),
-      },
-      readable: true,
+      name,
+      message: payload.message,
+      updated_at: updatedAt,
+      secret_count: String(payload.secrets.length),
     };
   }
 
-  private unreadableRow(name: string, reason: string): ListRowResult {
+  private static isAccessDenied(error: unknown): boolean {
+    return error instanceof Error && error.name === "AccessDeniedException";
+  }
+
+  private static noAccessRow(name: string): ListTableRow {
     return {
-      row: {
-        name,
-        message: chalk.red(`Can't be read: ${reason}`),
-        updated_at: "-",
-        secret_count: "-",
-      },
-      readable: false,
+      name,
+      message: chalk.dim("No access"),
+      updated_at: chalk.dim("-"),
+      secret_count: chalk.dim("-"),
+    };
+  }
+
+  private static errorRow(name: string, reason: string): ListTableRow {
+    return {
+      name,
+      message: chalk.red(`Can't be read: ${reason}`),
+      updated_at: "-",
+      secret_count: "-",
     };
   }
 
   /**
-   * Keeps an AWS error message to one short line so it doesn't break the table.
+   * Turns an error into one short, plain line so it doesn't break the table.
    */
-  private static shortReason(error: unknown): string {
+  private static reason(error: unknown): string {
     const message = error instanceof Error ? error.message : String(error);
-    const firstLine = message.split("\n")[0].trim();
+    const firstLine =
+      stripAnsi(message)
+        .split("\n")
+        .map((line) => line.trim())
+        .find((line) => line !== "") ?? "unknown error";
     if (firstLine.length <= ListCommand.MAX_REASON_LENGTH) {
       return firstLine;
     }
