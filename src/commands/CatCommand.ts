@@ -16,9 +16,15 @@ class CatCommand extends BaseCommand {
     const secretResponse = await new GetSecretValueRequest().execute(
       this.getKey()
     );
-    const secret = new SecretPayloadManager().fromSecretString(
-      secretResponse?.SecretString || ""
-    );
+    const secretString = secretResponse?.SecretString;
+    if (!secretString) {
+      throw new Error(
+        `Secret ${chalk.bold(
+          this.getKey()
+        )} has no text value (SecretString) and can't be read by Hush.`
+      );
+    }
+    const secret = new SecretPayloadManager().fromSecretString(secretString);
 
     const secretDate = DateFormatter.relativeDate(secret.updated_at);
 
