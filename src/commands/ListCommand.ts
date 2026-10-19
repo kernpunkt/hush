@@ -14,19 +14,32 @@ type ListTableRow = {
   secret_count: string;
 };
 
+type ListRowResult = {
+  row: ListTableRow;
+  readable: boolean;
+};
+
+export type ListResult = {
+  /** The rendered table, including rows for secrets that can't be read. */
+  output: string;
+  /** True if at least one secret could not be read. */
+  hasErrors: boolean;
+};
+
 class ListCommand extends BaseCommand {
   private static readonly MAX_REASON_LENGTH = 80;
 
-  public async execute() {
+  public async execute(): Promise<ListResult> {
     const allSecrets = await new ListSecretsRequest().execute();
     const hushSecrets =
       allSecrets.SecretList?.filter((secret) =>
         secret.Name?.startsWith(this.prefix)
       ) || [];
 
-    const tableRows = await Promise.all(
+    const results = await Promise.all(
       hushSecrets.map((secret) => this.toTableRow(secret.Name as string))
     );
+    const tableRows = results.map((result) => result.row);
 
     const options = {
       columns: [
@@ -36,10 +49,13 @@ class ListCommand extends BaseCommand {
         { field: "secret_count", name: chalk.green("Secrets") },
       ],
     };
-    return chalkTable(options, tableRows);
+    return {
+      output: chalkTable(options, tableRows),
+      hasErrors: results.some((result) => !result.readable),
+    };
   }
 
-  private async toTableRow(name: string): Promise<ListTableRow> {
+  private async toTableRow(name: string): Promise<ListRowResult> {
     let secretString: string | undefined;
     try {
       const result = await new GetSecretValueRequest().execute(name);
@@ -61,19 +77,25 @@ class ListCommand extends BaseCommand {
     }
 
     return {
-      name,
-      message: payload.message,
-      updated_at: DateFormatter.relativeDate(payload.updated_at),
-      secret_count: String(payload.secrets.length),
+      row: {
+        name,
+        message: payload.message,
+        updated_at: DateFormatter.relativeDate(payload.updated_at),
+        secret_count: String(payload.secrets.length),
+      },
+      readable: true,
     };
   }
 
-  private unreadableRow(name: string, reason: string): ListTableRow {
+  private unreadableRow(name: string, reason: string): ListRowResult {
     return {
-      name,
-      message: chalk.red(`Can't be read: ${reason}`),
-      updated_at: "-",
-      secret_count: "-",
+      row: {
+        name,
+        message: chalk.red(`Can't be read: ${reason}`),
+        updated_at: "-",
+        secret_count: "-",
+      },
+      readable: false,
     };
   }
 

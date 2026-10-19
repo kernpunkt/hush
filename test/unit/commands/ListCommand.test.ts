@@ -22,6 +22,11 @@ const validPayload = (message: string, secretCount: number) => JSON.stringify({
 const findRow = (output: string, name: string) =>
     output.split("\n").find((line) => line.includes(name));
 
+const runList = async () => {
+    const result = await new ListCommand().execute();
+    return { output: stripAnsi(result.output), hasErrors: result.hasErrors };
+};
+
 describe("ListCommand", () => {
     beforeEach(() => {
         secretsManagerMock.reset();
@@ -41,7 +46,7 @@ describe("ListCommand", () => {
             .on(GetSecretValueCommand, { SecretId: "hush-second" })
             .resolves({ SecretString: validPayload("second message", 3) });
 
-        const output = stripAnsi(await new ListCommand().execute());
+        const { output, hasErrors } = await runList();
 
         expect(findRow(output, "hush-first")).toContain("first message");
         expect(findRow(output, "hush-first")).toMatch(/\b2\b/);
@@ -49,6 +54,7 @@ describe("ListCommand", () => {
         expect(findRow(output, "hush-second")).toMatch(/\b3\b/);
         expect(output).not.toContain("other-secret");
         expect(secretsManagerMock.commandCalls(GetSecretValueCommand)).toHaveLength(2);
+        expect(hasErrors).toBe(false);
     });
 
     it("finishes and lists the other secrets when one secret has invalid JSON", { timeout: 2000 }, async () => {
@@ -64,12 +70,13 @@ describe("ListCommand", () => {
             .on(GetSecretValueCommand, { SecretId: "hush-broken" })
             .resolves({ SecretString: "my-db-password=hunter2" });
 
-        const output = stripAnsi(await new ListCommand().execute());
+        const { output, hasErrors } = await runList();
 
         expect(findRow(output, "hush-good")).toContain("good message");
         expect(findRow(output, "hush-broken")).toContain("Can't be read: unknown or invalid format");
         // JSON.parse quotes the start of the input in its error message; that must not leak.
         expect(output).not.toContain("my-db-pass");
+        expect(hasErrors).toBe(true);
     });
 
     it("notes a secret without a string value", async () => {
@@ -78,9 +85,10 @@ describe("ListCommand", () => {
         });
         secretsManagerMock.on(GetSecretValueCommand).resolves({ SecretBinary: new Uint8Array([1, 2, 3]) });
 
-        const output = stripAnsi(await new ListCommand().execute());
+        const { output, hasErrors } = await runList();
 
         expect(findRow(output, "hush-binary")).toContain("Can't be read: the secret has no string value");
+        expect(hasErrors).toBe(true);
     });
 
     it("keeps a long multi-line fetch error to one short line", async () => {
@@ -91,12 +99,13 @@ describe("ListCommand", () => {
             .on(GetSecretValueCommand)
             .rejects(new Error(`${"x".repeat(200)}\nsecond line`));
 
-        const output = stripAnsi(await new ListCommand().execute());
+        const { output, hasErrors } = await runList();
         const row = findRow(output, "hush-forbidden") as string;
 
         expect(row).toContain("…");
         expect(row).not.toContain("x".repeat(80));
         expect(output).not.toContain("second line");
+        expect(hasErrors).toBe(true);
     });
 
     it("finishes when every secret is unreadable", { timeout: 2000 }, async () => {
@@ -105,19 +114,21 @@ describe("ListCommand", () => {
         });
         secretsManagerMock.on(GetSecretValueCommand).resolves({ SecretString: "not json" });
 
-        const output = stripAnsi(await new ListCommand().execute());
+        const { output, hasErrors } = await runList();
 
         expect(findRow(output, "hush-one")).toContain("Can't be read");
         expect(findRow(output, "hush-two")).toContain("Can't be read");
+        expect(hasErrors).toBe(true);
     });
 
     it("finishes when there are no hush secrets", async () => {
         secretsManagerMock.on(ListSecretsCommand).resolves({ SecretList: [] });
 
-        const output = stripAnsi(await new ListCommand().execute());
+        const { output, hasErrors } = await runList();
 
         expect(output).toContain("Name");
         expect(secretsManagerMock.commandCalls(GetSecretValueCommand)).toHaveLength(0);
+        expect(hasErrors).toBe(false);
     });
 
     it("finishes and lists the other secrets when fetching one secret fails", { timeout: 2000 }, async () => {
@@ -133,9 +144,10 @@ describe("ListCommand", () => {
             .on(GetSecretValueCommand, { SecretId: "hush-forbidden" })
             .rejects(new Error("Access denied"));
 
-        const output = stripAnsi(await new ListCommand().execute());
+        const { output, hasErrors } = await runList();
 
         expect(findRow(output, "hush-good")).toContain("good message");
         expect(findRow(output, "hush-forbidden")).toContain("Can't be read: Access denied");
+        expect(hasErrors).toBe(true);
     });
 });
