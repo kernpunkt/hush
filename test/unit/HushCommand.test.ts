@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command, ParseOptions } from "commander";
 import HushCommand from "../../src/HushCommand";
+import ListCommand from "../../src/commands/ListCommand";
 
 // Mock console.log to prevent output during tests
 const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -95,5 +96,36 @@ describe("HushCommand", () => {
         // Clean up mocks
         consoleSpy.mockRestore();
         parseSpy.mockRestore();
+    });
+
+    describe("list", () => {
+        const runList = async (hasErrors: boolean) => {
+            const executeSpy = vi
+                .spyOn(ListCommand.prototype, "execute")
+                .mockResolvedValue({ output: "the table", hasErrors });
+            const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+            try {
+                await new HushCommand().parseAsync(["node", "hush", "list"]);
+                await vi.waitFor(() => expect(exitSpy).toHaveBeenCalled());
+                return exitSpy.mock.calls;
+            } finally {
+                exitSpy.mockRestore();
+                executeSpy.mockRestore();
+            }
+        };
+
+        it("prints the table and exits 0 when every secret can be read", async () => {
+            const exitCalls = await runList(false);
+
+            expect(consoleLogSpy).toHaveBeenCalledWith("the table");
+            expect(exitCalls).toEqual([[0]]);
+        });
+
+        it("prints the table and exits 1 when a secret can't be read", async () => {
+            const exitCalls = await runList(true);
+
+            expect(consoleLogSpy).toHaveBeenCalledWith("the table");
+            expect(exitCalls).toEqual([[1]]);
+        });
     });
 });
