@@ -1,11 +1,6 @@
 import BaseCommand from "./BaseCommand.js";
 import chalk from "chalk";
-import { ArnPrincipal, Statement } from "@thinkinglabs/aws-iam-policy";
-import GetResourcePolicyRequest from "../requests/GetResourcePolicyRequest.js";
-import findStatementByArn from "../utils/findStatementByArn.js";
-import PutResourcePolicyRequest from "../requests/PutResourcePolicyRequest.js";
 import GrantCommandInput from "../@types/GrantCommandInput.js";
-import GetCallerIdentityRequest from "../requests/GetCallerIdentityRequest.js";
 
 class GrantCommand extends BaseCommand {
   private userIdentifier: string;
@@ -17,40 +12,24 @@ class GrantCommand extends BaseCommand {
   }
 
   public async execute(): Promise<string> {
-    const iamARN = await new GetCallerIdentityRequest().execute(
+    if (!this.backend.grantAccess) {
+      throw this.accessNotSupportedError();
+    }
+
+    const { status, principal } = await this.backend.grantAccess(
+      this.getKey(),
       this.userIdentifier
     );
 
-    const policy = await new GetResourcePolicyRequest().execute({
-      SecretId: this.getKey(),
-    });
-
-    if (findStatementByArn(policy, iamARN)) {
+    if (status === "unchanged") {
       return `User ${chalk.bold(
-        iamARN
+        principal
       )} already has access to secret ${chalk.bold(this.getKey())}.`;
     }
 
-    policy.addStatements(
-      new Statement({
-        effect: "Allow",
-        principals: [new ArnPrincipal(iamARN)],
-        actions: ["secretsmanager:*"],
-        resources: ["*"],
-      })
-    );
-
-    await new PutResourcePolicyRequest().execute(this.getKey(), policy, {
-      MalformedPolicyDocumentException: `Could not grant access to secret ${chalk.bold(
-        this.getKey()
-      )} because the user with the ARN ${chalk.bold(
-        iamARN
-      )} could not be found.`,
-    });
-
     return `Access to secret ${chalk.bold(
       this.getKey()
-    )} successfully granted to user ${chalk.bold(iamARN)}.`;
+    )} successfully granted to user ${chalk.bold(principal)}.`;
   }
 }
 

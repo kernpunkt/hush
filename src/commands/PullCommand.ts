@@ -4,7 +4,6 @@ import chalk from "chalk";
 import envDiff, { EnvDiffResult } from "../utils/envDiff.js";
 import { quoteValue } from "../utils/envValue.js";
 import BaseCommand from "./BaseCommand.js";
-import GetSecretValueRequest from "../requests/GetSecretValueRequest.js";
 import LineReader from "../utils/LineReader.js";
 import SecretEntry from "../@types/SecretEntry.js";
 import PullCommandInput from "../@types/PullCommandInput.js";
@@ -46,12 +45,12 @@ class PullCommand extends BaseCommand {
 
     const filename = path.resolve(this.envFile);
 
-    const data = await new GetSecretValueRequest().execute(this.getKey());
+    const secretString = await this.backend.read(this.getKey());
 
     const secretsOutput: SecretEntry[] = [];
 
     const secretPayload = new SecretPayloadManager().fromSecretString(
-      data?.SecretString || "[]",
+      secretString || "[]",
       this.getKey()
     );
 
@@ -69,7 +68,7 @@ class PullCommand extends BaseCommand {
     }
 
     const secretLines: string[] = [
-      `# Managed by Hush! as "${data?.Name || ""}"`,
+      `# Managed by Hush! as "${this.getKey()}"`,
       "",
     ];
     for (const secret of secretsOutput) {
