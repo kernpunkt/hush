@@ -11,17 +11,22 @@ import RevokeCommand from "./commands/RevokeCommand.js";
 import DeleteCommandInput from "./@types/DeleteCommandInput.js";
 import PullCommandInput from "./@types/PullCommandInput.js";
 import PushCommandInput from "./@types/PushCommandInput.js";
-import ListCommand from "./commands/ListCommand.js";
+import ListCommand, { ListResult } from "./commands/ListCommand.js";
 import figlet from "figlet";
 import CatCommand from "./commands/CatCommand.js";
 import * as fs from "fs";
 import * as path from "path";
 import SecretBackend from "./backends/SecretBackend.js";
 import BaseCommand from "./commands/BaseCommand.js";
-import defaultBackend from "./backends/defaultBackend.js";
+import ProjectBackends from "./backends/ProjectBackends.js";
+import ListAllCommand from "./commands/ListAllCommand.js";
+import {
+  loadProjectConfig,
+  ProjectConfigError,
+} from "./config/ProjectConfig.js";
 
 class HushCommand extends Command {
-  private backend?: SecretBackend;
+  private backends?: ProjectBackends;
 
   constructor() {
     super();
@@ -36,21 +41,60 @@ class HushCommand extends Command {
   }
 
   /**
-   * Sets the backend every command uses. Without it, each command uses the
-   * default backend.
+   * Sets the backend every command uses, instead of the ones from the
+   * project setting.
    */
   public setBackend(backend: SecretBackend): this {
-    this.backend = backend;
+    this.backends = ProjectBackends.single(backend);
+    return this;
+  }
+
+  /** Sets the project's backends instead of reading the project setting. */
+  public setProjectBackends(backends: ProjectBackends): this {
+    this.backends = backends;
     return this;
   }
 
   /**
-   * The backend a command uses: the one set with setBackend, otherwise the
-   * default backend. The only place that picks a backend; choosing it per
-   * key from the project setting goes here.
+   * The project's backends: from hush.config.json, or the default backend
+   * without one (BR-04). Read only when a command runs, so the help works
+   * with a broken file. An invalid file stops Hush! with exit code 1 before
+   * any backend is called; then this returns undefined.
    */
-  private backendFor(): SecretBackend {
-    return this.backend ?? defaultBackend();
+  private projectBackends(): ProjectBackends | undefined {
+    if (!this.backends) {
+      try {
+        const config = loadProjectConfig();
+        this.backends = config
+          ? ProjectBackends.fromConfig(config)
+          : ProjectBackends.fromDefault();
+      } catch (error) {
+        if (!(error instanceof ProjectConfigError)) {
+          throw error;
+        }
+        this.printSetupError(error.message);
+        process.exit(1);
+        return undefined;
+      }
+    }
+    return this.backends;
+  }
+
+  private printSetupError(message: string): void {
+    console.log(`${chalk.bold("Hush! 🤫 — Error")}: ${message}`);
+  }
+
+  /** Runs a command for one key, with the backend that holds the key. */
+  private runCommand<R>(
+    title: string,
+    key: string,
+    build: () => Omit<BaseCommand, "execute"> & { execute(): Promise<R> },
+    onResult: (result: R) => void
+  ): void {
+    const backends = this.projectBackends();
+    if (backends) {
+      this.runWithBackend(backends.forKey(key), title, build, onResult);
+    }
   }
 
   /**
@@ -60,15 +104,15 @@ class HushCommand extends Command {
    * exit code as the global check of 4.1.0. Then prints the header, builds
    * the command and hands the result of execute() to onResult.
    */
-  private runCommand<R>(
+  private runWithBackend<R>(
+    backend: SecretBackend,
     title: string,
     build: () => Omit<BaseCommand, "execute"> & { execute(): Promise<R> },
     onResult: (result: R) => void
   ): void {
-    const backend = this.backendFor();
     const problem = backend.setupProblem?.();
     if (problem) {
-      console.log(`${chalk.bold("Hush! 🤫 — Error")}: ${problem}`);
+      this.printSetupError(problem);
       process.exit(1);
       return;
     }
@@ -106,15 +150,31 @@ class HushCommand extends Command {
 
   private listCommand(): void {
     this.command("list").action(async () => {
-      this.runCommand(
-        "List",
-        () => new ListCommand(),
-        ({ output, hasErrors }) => {
-          console.log(output);
-          // Unreadable secrets are listed in the table; signal them with the exit code.
-          process.exit(hasErrors ? 1 : 0);
-        }
-      );
+      const backends = this.projectBackends();
+      if (!backends) {
+        return;
+      }
+      const onResult = ({ output, hasErrors }: ListResult) => {
+        console.log(output);
+        // Unreadable secrets are listed in the table; signal them with the exit code.
+        process.exit(hasErrors ? 1 : 0);
+      };
+
+      const all = backends.all();
+      if (all.length === 1) {
+        // One backend: the output of 4.1.0, without a heading.
+        this.runWithBackend(
+          all[0].backend,
+          "List",
+          () => new ListCommand(),
+          onResult
+        );
+        return;
+      }
+
+      // Several backends: each one checks its setup on its own (ListAllCommand).
+      console.log(`${chalk.bold("Hush! 🤫")} — List\n`);
+      new ListAllCommand(all).execute().then(onResult).catch(this.handleError);
     });
   }
 
@@ -124,6 +184,7 @@ class HushCommand extends Command {
       .action(async (key: string) => {
         this.runCommand(
           "Cat",
+          key,
           () => new CatCommand({ key }),
           (result: any) => {
             console.log(result);
@@ -146,6 +207,7 @@ class HushCommand extends Command {
       .action(async (key: string, userIdentifier: string) => {
         this.runCommand(
           "Grant",
+          key,
           () => new GrantCommand({ key, userIdentifier }),
           (result) => {
             console.log(result);
@@ -169,6 +231,7 @@ class HushCommand extends Command {
         // "Grant" as in 4.1.0.
         this.runCommand(
           "Grant",
+          key,
           () => new RevokeCommand({ key, userIdentifier }),
           (result) => {
             console.log(result);
@@ -195,6 +258,7 @@ class HushCommand extends Command {
         }
         this.runCommand(
           "Delete",
+          key,
           () => new DeleteCommand(input),
           (result) => {
             console.log(result);
@@ -232,6 +296,7 @@ class HushCommand extends Command {
 
         this.runCommand(
           "Push",
+          key,
           () => new PushCommand(input),
           (result) => {
             console.log(result);
@@ -263,6 +328,7 @@ class HushCommand extends Command {
 
         this.runCommand(
           "Pull",
+          key,
           () => new PullCommand(input),
           (result) => {
             if (typeof result === "object") {
