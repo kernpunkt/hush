@@ -18,8 +18,11 @@ const secretsManagerMock = mockClient(SecretsManagerClient);
 const now = new Date("2026-11-19T10:00:00.000Z");
 let workDir: string;
 const originalCwd = process.cwd();
+const originalAwsProfile = process.env.AWS_PROFILE;
 
 beforeEach(() => {
+    // The AWS backend needs a selected profile before it is called (made up).
+    process.env.AWS_PROFILE = "hush-test-profile";
     // push and pull read and write .env files and .hushrc.json in the cwd.
     workDir = mkdtempSync(path.join(tmpdir(), "hush-backend-"));
     process.chdir(workDir);
@@ -28,6 +31,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    if (originalAwsProfile === undefined) {
+        delete process.env.AWS_PROFILE;
+    } else {
+        process.env.AWS_PROFILE = originalAwsProfile;
+    }
     vi.useRealTimers();
     process.chdir(originalCwd);
     rmSync(workDir, { recursive: true, force: true });

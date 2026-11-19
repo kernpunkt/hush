@@ -7,30 +7,58 @@ import SecretBackend, {
   WriteResult,
 } from "../SecretBackend.js";
 import toBackendError from "./toBackendError.js";
-import GetSecretValueRequest from "../../requests/GetSecretValueRequest.js";
-import PutSecretValueRequest from "../../requests/PutSecretValueRequest.js";
-import CreateSecretRequest from "../../requests/CreateSecretRequest.js";
-import ListSecretsRequest from "../../requests/ListSecretsRequest.js";
-import DeleteRequest from "../../requests/DeleteRequest.js";
-import GetCallerIdentityRequest from "../../requests/GetCallerIdentityRequest.js";
-import GetResourcePolicyRequest from "../../requests/GetResourcePolicyRequest.js";
-import PutResourcePolicyRequest from "../../requests/PutResourcePolicyRequest.js";
+import { DEFAULT_AWS_REGION } from "./requests/BaseRequest.js";
+import GetSecretValueRequest from "./requests/GetSecretValueRequest.js";
+import PutSecretValueRequest from "./requests/PutSecretValueRequest.js";
+import CreateSecretRequest from "./requests/CreateSecretRequest.js";
+import ListSecretsRequest from "./requests/ListSecretsRequest.js";
+import DeleteRequest from "./requests/DeleteRequest.js";
+import GetCallerIdentityRequest from "./requests/GetCallerIdentityRequest.js";
+import GetResourcePolicyRequest from "./requests/GetResourcePolicyRequest.js";
+import PutResourcePolicyRequest from "./requests/PutResourcePolicyRequest.js";
 import findStatementByArn from "../../utils/findStatementByArn.js";
 import removeStatementByArn from "../../utils/removeStatementByArn.js";
+
+export type AwsBackendOptions = {
+  /** The AWS region of the Secrets Manager; eu-central-1 if not given. */
+  region?: string;
+};
 
 /**
  * The AWS Secrets Manager behind the backend interface.
  *
  * It uses the request classes of Hush! 4.1.0 and keeps their messages, so
- * the output of every command stays the same.
+ * the output of every command stays the same. Secrets Manager and STS are
+ * called in the backend's region.
  */
 class AwsBackend implements SecretBackend {
   public readonly displayName = "AWS Secrets Manager";
+  public readonly region: string;
+
+  constructor(options: AwsBackendOptions = {}) {
+    this.region = options.region ?? DEFAULT_AWS_REGION;
+  }
+
+  /**
+   * As in 4.1.0, Hush! needs a selected AWS profile. Checked only when a
+   * command uses this backend, so the help runs without one.
+   */
+  public setupProblem(): string | undefined {
+    if (process.env["AWS_PROFILE"]) {
+      return undefined;
+    }
+    return `You do not have an AWS profile selected. Please export it by running ${chalk.bold(
+      "export AWS_PROFILE=your-profile-name"
+    )}.`;
+  }
 
   public async read(name: string): Promise<string | undefined> {
     try {
       // An empty mapping keeps the original AWS error, so its kind can be told.
-      const response = await new GetSecretValueRequest().execute(name, {});
+      const response = await new GetSecretValueRequest(this.region).execute(
+        name,
+        {}
+      );
       return response?.SecretString;
     } catch (error) {
       throw toBackendError(error, {
@@ -43,7 +71,7 @@ class AwsBackend implements SecretBackend {
 
   public async write(name: string, value: string): Promise<WriteResult> {
     try {
-      await new PutSecretValueRequest().execute({
+      await new PutSecretValueRequest(this.region).execute({
         SecretId: name,
         SecretString: value,
       });
@@ -51,7 +79,7 @@ class AwsBackend implements SecretBackend {
     } catch {
       // As in 4.1.0: any failed update is retried as a creation.
       try {
-        await new CreateSecretRequest().execute({
+        await new CreateSecretRequest(this.region).execute({
           Name: name,
           SecretString: value,
         });
@@ -64,7 +92,7 @@ class AwsBackend implements SecretBackend {
 
   public async listNames(prefix: string): Promise<string[]> {
     try {
-      const result = await new ListSecretsRequest().execute();
+      const result = await new ListSecretsRequest(this.region).execute();
       return (result.SecretList ?? [])
         .map((secret) => secret.Name)
         .filter(
@@ -81,7 +109,7 @@ class AwsBackend implements SecretBackend {
     options: DeleteOptions = {}
   ): Promise<DeleteResult> {
     try {
-      const result = await new DeleteRequest().execute(
+      const result = await new DeleteRequest(this.region).execute(
         name,
         options.force ?? false,
         {}
@@ -102,10 +130,10 @@ class AwsBackend implements SecretBackend {
     userIdentifier: string
   ): Promise<AccessResult> {
     try {
-      const iamARN = await new GetCallerIdentityRequest().execute(
+      const iamARN = await new GetCallerIdentityRequest(this.region).execute(
         userIdentifier
       );
-      const policy = await new GetResourcePolicyRequest().execute({
+      const policy = await new GetResourcePolicyRequest(this.region).execute({
         SecretId: name,
       });
 
@@ -122,7 +150,7 @@ class AwsBackend implements SecretBackend {
         })
       );
 
-      await new PutResourcePolicyRequest().execute(name, policy, {
+      await new PutResourcePolicyRequest(this.region).execute(name, policy, {
         MalformedPolicyDocumentException: `Could not grant access to secret ${chalk.bold(
           name
         )} because the user with the ARN ${chalk.bold(
@@ -140,10 +168,10 @@ class AwsBackend implements SecretBackend {
     userIdentifier: string
   ): Promise<AccessResult> {
     try {
-      const iamARN = await new GetCallerIdentityRequest().execute(
+      const iamARN = await new GetCallerIdentityRequest(this.region).execute(
         userIdentifier
       );
-      const policy = await new GetResourcePolicyRequest().execute({
+      const policy = await new GetResourcePolicyRequest(this.region).execute({
         SecretId: name,
       });
 
@@ -154,7 +182,11 @@ class AwsBackend implements SecretBackend {
       const updatedPolicy = removeStatementByArn(policy, iamARN);
       // 4.1.0 passed a mapping here whose key never matched an AWS error
       // (a typo), so AWS errors were always shown as they are. Kept that way.
-      await new PutResourcePolicyRequest().execute(name, updatedPolicy, {});
+      await new PutResourcePolicyRequest(this.region).execute(
+        name,
+        updatedPolicy,
+        {}
+      );
       return { status: "changed", principal: iamARN };
     } catch (error) {
       throw toBackendError(error);

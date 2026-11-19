@@ -1,6 +1,6 @@
 import { DeleteSecretCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import DeleteCommand from "../../../src/commands/DeleteCommand";
-import DeleteRequest from "../../../src/requests/DeleteRequest";
+import DeleteRequest from "../../../src/backends/aws/requests/DeleteRequest";
 import DateFormatter from "../../../src/utils/DateFormatter";
 import {mockClient} from 'aws-sdk-client-mock';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'

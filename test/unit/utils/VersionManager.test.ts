@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import VersionManager from "../../../src/utils/VersionManager";
-import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
+import GetSecretValueRequest from "../../../src/backends/aws/requests/GetSecretValueRequest";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
 
 // Mock console methods to prevent output during tests

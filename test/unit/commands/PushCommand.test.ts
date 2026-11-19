@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import PushCommand from "../../../src/commands/PushCommand";
 import MockLineReader from "../../support/MockLineReader";
-import PutSecretValueRequest from "../../../src/requests/PutSecretValueRequest";
-import CreateSecretRequest from "../../../src/requests/CreateSecretRequest";
-import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
+import PutSecretValueRequest from "../../../src/backends/aws/requests/PutSecretValueRequest";
+import CreateSecretRequest from "../../../src/backends/aws/requests/CreateSecretRequest";
+import GetSecretValueRequest from "../../../src/backends/aws/requests/GetSecretValueRequest";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
 import { userInfo } from "os";
 import VersionManager from "../../../src/utils/VersionManager";
@@ -14,7 +14,7 @@ const mockPutExecute = vi.hoisted(() => vi.fn());
 const mockCreateExecute = vi.hoisted(() => vi.fn());
 const mockToSecretString = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../src/requests/PutSecretValueRequest", () => {
+vi.mock("../../../src/backends/aws/requests/PutSecretValueRequest", () => {
     return {
         default: vi.fn().mockImplementation(function () {
             return { execute: mockPutExecute };
@@ -22,7 +22,7 @@ vi.mock("../../../src/requests/PutSecretValueRequest", () => {
     };
 });
 
-vi.mock("../../../src/requests/CreateSecretRequest", () => {
+vi.mock("../../../src/backends/aws/requests/CreateSecretRequest", () => {
     return {
         default: vi.fn().mockImplementation(function () {
             return { execute: mockCreateExecute };

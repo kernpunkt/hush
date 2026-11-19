@@ -13,7 +13,7 @@ class GetCallerIdentityRequest extends BaseRequest {
       return input;
     }
 
-    const client = new STSClient({ region: "eu-central-1" });
+    const client = new STSClient({ region: this.region });
     const result = await client.send(new GetCallerIdentityCommand({}));
 
     if (!result.Arn) {

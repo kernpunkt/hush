@@ -50,20 +50,23 @@ class HushCommand extends Command {
     return command;
   }
 
+  /**
+   * Stops with the backend's setup problem (e.g. no AWS profile selected)
+   * before the command prints anything or calls its backend. Same output
+   * and exit code as the global check of 4.1.0. Returns true if it stopped.
+   */
+  private failsSetup(command: BaseCommand): boolean {
+    const problem = command.setupProblem();
+    if (!problem) {
+      return false;
+    }
+    console.log(`${chalk.bold("Hush! 🤫 — Error")}: ${problem}`);
+    process.exit(1);
+    return true;
+  }
+
   run(argv?: readonly string[], options?: ParseOptions): this {
     console.log(figlet.textSync("Hush!", {}));
-
-    const awsProfile = process.env["AWS_PROFILE"];
-    if (!awsProfile) {
-      console.log(
-        `${chalk.bold(
-          "Hush! 🤫 — Error"
-        )}: You do not have an AWS profile selected. Please export it by running ${chalk.bold(
-          "export AWS_PROFILE=your-profile-name"
-        )}.`
-      );
-      process.exit(1);
-    }
 
     // Show version information when help is requested or no command is provided
     if (
@@ -88,9 +91,10 @@ class HushCommand extends Command {
 
   private listCommand(): void {
     this.command("list").action(async () => {
-      console.log(`${chalk.bold("Hush! 🤫")} — List\n`);
-
       const command = this.withBackend(new ListCommand());
+      if (this.failsSetup(command)) return;
+
+      console.log(`${chalk.bold("Hush! 🤫")} — List\n`);
       command
         .execute()
         .then(({ output, hasErrors }) => {
@@ -106,9 +110,10 @@ class HushCommand extends Command {
     this.command("cat")
       .argument("<key>", "The designator of a secret you want to output.")
       .action(async (key: string) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Cat\n`);
-
         const command = this.withBackend(new CatCommand({ key }));
+        if (this.failsSetup(command)) return;
+
+        console.log(`${chalk.bold("Hush! 🤫")} — Cat\n`);
         command
           .execute()
           .then((result: any) => {
@@ -130,10 +135,12 @@ class HushCommand extends Command {
         "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
       )
       .action(async (key: string, userIdentifier: string) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
         const command = this.withBackend(
           new GrantCommand({ key, userIdentifier })
         );
+        if (this.failsSetup(command)) return;
+
+        console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
         command
           .execute()
           .then((result) => {
@@ -155,10 +162,13 @@ class HushCommand extends Command {
         "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
       )
       .action(async (key: string, userIdentifier: string) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
         const command = this.withBackend(
           new RevokeCommand({ key, userIdentifier })
         );
+        if (this.failsSetup(command)) return;
+
+        // "Grant" as in 4.1.0.
+        console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
         command
           .execute()
           .then((result) => {
@@ -180,12 +190,14 @@ class HushCommand extends Command {
         "Force the secret to be deleted without prior scheduling for deletion."
       )
       .action(async (key: string, options: DeleteCommandOptions) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Delete\n`);
         const input: DeleteCommandInput = { key };
         if (options.force) {
           input.force = options.force;
         }
         const command = this.withBackend(new DeleteCommand(input));
+        if (this.failsSetup(command)) return;
+
+        console.log(`${chalk.bold("Hush! 🤫")} — Delete\n`);
         command
           .execute()
           .then((result) => {
@@ -222,8 +234,10 @@ class HushCommand extends Command {
           input.force = options.force;
         }
 
-        console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
         const command = this.withBackend(new PushCommand(input));
+        if (this.failsSetup(command)) return;
+
+        console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
         command
           .execute()
           .then((result) => {
@@ -254,9 +268,10 @@ class HushCommand extends Command {
           input.force = options.force;
         }
 
-        console.log(`${chalk.bold("Hush! 🤫")} — Pull\n`);
-
         const command = this.withBackend(new PullCommand(input));
+        if (this.failsSetup(command)) return;
+
+        console.log(`${chalk.bold("Hush! 🤫")} — Pull\n`);
         command
           .execute()
           .then((result) => {
