@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import ProjectBackends from "../../../src/backends/ProjectBackends";
+import { parseProjectConfig } from "../../../src/config/ProjectConfig";
 import AwsBackend from "../../../src/backends/aws/AwsBackend";
 import InMemoryBackend from "../../support/InMemoryBackend";
 
@@ -29,6 +30,15 @@ describe("ProjectBackends", () => {
         expect(backends.forKey("shop")).toBe(all[1].backend);
         expect(backends.forKey("blog")).toBe(all[0].backend);
         expect(backends.forKey("other")).toBe(all[0].backend);
+    });
+
+    it("lists names that are whole numbers first, in ascending order, as in JSON objects", () => {
+        const aws = '{"type":"aws-secrets-manager"}';
+        const config = parseProjectConfig(
+            JSON.parse(`{"backends":{"zeta":${aws},"2024":${aws},"alpha":${aws},"7":${aws},"01":${aws}},"default":"zeta"}`)
+        );
+        const names = ProjectBackends.fromConfig(config).all().map(({ name }) => name);
+        expect(names).toEqual(["7", "2024", "zeta", "alpha", "01"]);
     });
 
     it("doesn't take a key from the prototype for a key of the setting", () => {

@@ -133,6 +133,33 @@ describe("parseProjectConfig", () => {
         expect(error).not.toMatch(/example-password-1|EXAMPLEACCESSKEY1/);
     });
 
+    it.each([
+        [
+            "a backend name",
+            { backends: { "main\u001b[2J": { type: "floppy-disk" } }, default: "main" },
+            "field backends.main\\u001b[2J.type: unknown type",
+        ],
+        [
+            "a key with an unknown backend",
+            { backends: { main: aws }, default: "main", keys: { "shop\u001b[2J": "other\u009b2J" } },
+            'field keys.shop\\u001b[2J: names the backend "other\\u009b2J", which is not in backends.',
+        ],
+        [
+            "an unknown field",
+            { backends: { main: aws }, default: "main", "extra\u0007": 1 },
+            "field extra\\u0007: this field doesn't exist here.",
+        ],
+        [
+            "a type",
+            { backends: { main: { type: "floppy\u0085disk" } }, default: "main" },
+            'unknown type "floppy\\u0085disk".',
+        ],
+    ])("escapes control characters in %s from the file in the message", (_, content, message) => {
+        const error = errorOf(() => parseProjectConfig(content));
+        expect(error).toContain(message);
+        expect(error).not.toMatch(/[\u0000-\u001f\u007f-\u009f]/);
+    });
+
     it("keeps a backend named __proto__ an ordinary backend", () => {
         const content = JSON.parse('{"backends":{"__proto__":{"type":"aws-secrets-manager"}},"default":"__proto__"}');
         const config = parseProjectConfig(content);
@@ -161,6 +188,11 @@ describe("loadProjectConfig", () => {
 
     it("reads hush.config.json from the working directory", () => {
         writeFileSync("hush.config.json", JSON.stringify({ backends: { main: aws }, default: "main" }));
+        expect(loadProjectConfig()).toEqual({ backends: { main: aws }, default: "main" });
+    });
+
+    it("reads a hush.config.json that starts with a UTF-8 byte order mark", () => {
+        writeFileSync("hush.config.json", "\uFEFF" + JSON.stringify({ backends: { main: aws }, default: "main" }));
         expect(loadProjectConfig()).toEqual({ backends: { main: aws }, default: "main" });
     });
 

@@ -2,6 +2,7 @@ import chalk from "chalk";
 import ListCommand, { ListResult } from "./ListCommand.js";
 import type { NamedBackend } from "../backends/ProjectBackends.js";
 import { stripAnsi } from "../utils/ChalkTable.js";
+import printable from "../utils/printable.js";
 
 /**
  * `list` for a project with several backends: one table per backend, with
@@ -10,14 +11,7 @@ import { stripAnsi } from "../utils/ChalkTable.js";
  * are still listed.
  */
 class ListAllCommand {
-  private prefix = "hush";
-
   constructor(private readonly backends: NamedBackend[]) {}
-
-  public setPrefix(prefix: string): this {
-    this.prefix = prefix;
-    return this;
-  }
 
   public async execute(): Promise<ListResult> {
     const sections = await Promise.all(
@@ -30,14 +24,14 @@ class ListAllCommand {
   }
 
   private async section({ name, backend }: NamedBackend): Promise<ListResult> {
-    const heading = chalk.bold(name);
+    // The name comes from hush.config.json.
+    const heading = chalk.bold(printable(name));
     const problem = backend.setupProblem?.();
     if (problem) {
       return ListAllCommand.failed(heading, problem);
     }
     try {
       const { output, hasErrors } = await new ListCommand()
-        .setPrefix(this.prefix)
         .setBackend(backend)
         .execute();
       return { output: `${heading}\n${output}`, hasErrors };

@@ -6,6 +6,7 @@ import {
   BackendSettings,
   isBackendType,
 } from "../backends/backendTypes.js";
+import printable from "../utils/printable.js";
 
 /** The project setting, in the working directory next to .hushrc.json. */
 export const PROJECT_CONFIG_FILE = "hush.config.json";
@@ -36,11 +37,15 @@ export class ProjectConfigError extends Error {
   }
 }
 
+/**
+ * Names, keys and values from the file reach the message (and the terminal)
+ * with their control characters escaped.
+ */
 const fail = (message: string, field?: string): never => {
   const where = field
-    ? `${PROJECT_CONFIG_FILE}, field ${chalk.bold(field)}`
+    ? `${PROJECT_CONFIG_FILE}, field ${chalk.bold(printable(field))}`
     : PROJECT_CONFIG_FILE;
-  throw new ProjectConfigError(`${where}: ${message}`);
+  throw new ProjectConfigError(`${where}: ${printable(message)}`);
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -177,6 +182,11 @@ export function loadProjectConfig(): ProjectConfig | undefined {
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     return fail(`can't be read: ${reason}`);
+  }
+
+  // Some editors start a UTF-8 file with a byte order mark.
+  if (text.startsWith("\uFEFF")) {
+    text = text.slice(1);
   }
 
   let content: unknown;

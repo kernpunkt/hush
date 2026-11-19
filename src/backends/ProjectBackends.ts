@@ -31,7 +31,10 @@ class ProjectBackends {
     }
   }
 
-  /** One backend per name in the project setting. */
+  /**
+   * One backend per name in the project setting, in its order (names that
+   * are whole numbers first, see all()).
+   */
   public static fromConfig(config: ProjectConfig): ProjectBackends {
     return new ProjectBackends(
       Object.entries(config.backends).map(([name, settings]) => ({
@@ -64,7 +67,11 @@ class ProjectBackends {
     return this.byName.get(name)!;
   }
 
-  /** All backends with their names, in the order of the project setting. */
+  /**
+   * All backends with their names, in the order of the project setting.
+   * Names that are whole numbers (like "2024") come first, in ascending
+   * order, as in every JSON object read by JavaScript.
+   */
   public all(): NamedBackend[] {
     return [...this.byName].map(([name, backend]) => ({ name, backend }));
   }

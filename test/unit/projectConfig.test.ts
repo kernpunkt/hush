@@ -283,6 +283,22 @@ describe("AC-F03-4: list with several backends", () => {
         expect(section(run.output, "unreadable")).toContain("Can't be read: unknown or invalid format");
     });
 
+    it("escapes control characters in a backend name in its heading", async () => {
+        const backends = new ProjectBackends(
+            [
+                { name: "main", backend: new InMemoryBackend().seed("hush-blog", payload("Example message")) },
+                { name: "evil\u001b[2J", backend: new InMemoryBackend() },
+            ],
+            "main"
+        );
+
+        const run = await runHush(["list"], backends);
+
+        // runHush strips ANSI codes, so an unescaped ESC[2J would vanish here.
+        expect(run.exitCode, run.output).toBe(0);
+        expect(run.output.split("\n")).toContain("evil\\u001b[2J");
+    });
+
     it("lists a backend that can't start as failed, without calling AWS (no AWS_PROFILE)", async () => {
         delete process.env.AWS_PROFILE;
         writeConfig(twoRegions);
