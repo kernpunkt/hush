@@ -70,31 +70,31 @@ describe("PushCommand", () => {
             expect(mockToSecretString).toHaveBeenCalled();
             mockToSecretString.mockReset();
         });
-        it("creates a fallback commit message if none is provided", () => {
+        it("creates a fallback commit message if none is provided", async () => {
             const command = new PushCommand({key: "hello-world", envFile: ".env.test", force: true});
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
             
-            command.execute();
+            await command.execute();
 
             const secretPayload = mockToSecretString.mock.calls[0][0];
             const username = userInfo().username;
             expect(secretPayload.message).toContain("Secret version uploaded by");
             expect(secretPayload.message).toContain(username);
         });
-        it("uses the commit message it it IS provided", () => {
+        it("uses the commit message it it IS provided", async () => {
             const message = "Hello world";
             const command = new PushCommand({key: "hello-world", envFile: ".env.test", message, force: true });
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
             mockPutExecute.mockResolvedValue(undefined);
-            command.execute();
+            await command.execute();
 
             const secretPayload = mockToSecretString.mock.calls[0][0];
             expect(secretPayload.message).toBe(message);
         });
-        it("updates a date in the payload", () => {
+        it("updates a date in the payload", async () => {
             const command = new PushCommand({key: "hello-world", envFile: ".env.test", force: true });
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
-            command.execute();
+            await command.execute();
 
             const secretPayload = mockToSecretString.mock.calls[0][0];
             const year = new Date().getFullYear();

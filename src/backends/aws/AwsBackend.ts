@@ -1,0 +1,169 @@
+import chalk from "chalk";
+import { ArnPrincipal, Statement } from "@thinkinglabs/aws-iam-policy";
+import SecretBackend, {
+  AccessResult,
+  DeleteOptions,
+  DeleteResult,
+  WriteResult,
+} from "../SecretBackend.js";
+import toBackendError from "./toBackendError.js";
+import GetSecretValueRequest from "../../requests/GetSecretValueRequest.js";
+import PutSecretValueRequest from "../../requests/PutSecretValueRequest.js";
+import CreateSecretRequest from "../../requests/CreateSecretRequest.js";
+import ListSecretsRequest from "../../requests/ListSecretsRequest.js";
+import DeleteRequest from "../../requests/DeleteRequest.js";
+import GetCallerIdentityRequest from "../../requests/GetCallerIdentityRequest.js";
+import GetResourcePolicyRequest from "../../requests/GetResourcePolicyRequest.js";
+import PutResourcePolicyRequest from "../../requests/PutResourcePolicyRequest.js";
+import findStatementByArn from "../../utils/findStatementByArn.js";
+import removeStatementByArn from "../../utils/removeStatementByArn.js";
+
+/**
+ * The AWS Secrets Manager behind the backend interface.
+ *
+ * It uses the request classes of Hush! 4.1.0 and keeps their messages, so
+ * the output of every command stays the same.
+ */
+class AwsBackend implements SecretBackend {
+  public readonly displayName = "AWS Secrets Manager";
+
+  public async read(name: string): Promise<string | undefined> {
+    try {
+      // An empty mapping keeps the original AWS error, so its kind can be told.
+      const response = await new GetSecretValueRequest().execute(name, {});
+      return response?.SecretString;
+    } catch (error) {
+      throw toBackendError(error, {
+        notFound: `AWS SecretManager could not find ${chalk.bold(
+          name
+        )}. Are you sure it exists and you have read access?`,
+      });
+    }
+  }
+
+  public async write(name: string, value: string): Promise<WriteResult> {
+    try {
+      await new PutSecretValueRequest().execute({
+        SecretId: name,
+        SecretString: value,
+      });
+      return "updated";
+    } catch {
+      // As in 4.1.0: any failed update is retried as a creation.
+      try {
+        await new CreateSecretRequest().execute({
+          Name: name,
+          SecretString: value,
+        });
+        return "created";
+      } catch (error) {
+        throw toBackendError(error);
+      }
+    }
+  }
+
+  public async listNames(prefix: string): Promise<string[]> {
+    try {
+      const result = await new ListSecretsRequest().execute();
+      return (result.SecretList ?? [])
+        .map((secret) => secret.Name)
+        .filter(
+          (name): name is string =>
+            typeof name === "string" && name.startsWith(prefix)
+        );
+    } catch (error) {
+      throw toBackendError(error);
+    }
+  }
+
+  public async delete(
+    name: string,
+    options: DeleteOptions = {}
+  ): Promise<DeleteResult> {
+    try {
+      const result = await new DeleteRequest().execute(
+        name,
+        options.force ?? false,
+        {}
+      );
+      const deletionDate = result?.DeletionDate;
+      return deletionDate ? { deletionDate: new Date(deletionDate) } : {};
+    } catch (error) {
+      throw toBackendError(error, {
+        notFound: `Secret with key ${chalk.bold(
+          name
+        )} could not be deleted because it was not found.`,
+      });
+    }
+  }
+
+  public async grantAccess(
+    name: string,
+    userIdentifier: string
+  ): Promise<AccessResult> {
+    try {
+      const iamARN = await new GetCallerIdentityRequest().execute(
+        userIdentifier
+      );
+      const policy = await new GetResourcePolicyRequest().execute({
+        SecretId: name,
+      });
+
+      if (findStatementByArn(policy, iamARN)) {
+        return { status: "unchanged", principal: iamARN };
+      }
+
+      policy.addStatements(
+        new Statement({
+          effect: "Allow",
+          principals: [new ArnPrincipal(iamARN)],
+          actions: ["secretsmanager:*"],
+          resources: ["*"],
+        })
+      );
+
+      await new PutResourcePolicyRequest().execute(name, policy, {
+        MalformedPolicyDocumentException: `Could not grant access to secret ${chalk.bold(
+          name
+        )} because the user with the ARN ${chalk.bold(
+          iamARN
+        )} could not be found.`,
+      });
+      return { status: "changed", principal: iamARN };
+    } catch (error) {
+      throw toBackendError(error);
+    }
+  }
+
+  public async revokeAccess(
+    name: string,
+    userIdentifier: string
+  ): Promise<AccessResult> {
+    try {
+      const iamARN = await new GetCallerIdentityRequest().execute(
+        userIdentifier
+      );
+      const policy = await new GetResourcePolicyRequest().execute({
+        SecretId: name,
+      });
+
+      if (!findStatementByArn(policy, iamARN)) {
+        return { status: "unchanged", principal: iamARN };
+      }
+
+      const updatedPolicy = removeStatementByArn(policy, iamARN);
+      // 4.1.0 passed a mapping here whose key never matched an AWS error
+      // (a typo), so AWS errors were always shown as they are. Kept that way.
+      await new PutResourcePolicyRequest().execute(name, updatedPolicy, {});
+      return { status: "changed", principal: iamARN };
+    } catch (error) {
+      throw toBackendError(error);
+    }
+  }
+
+  public accessHint(): string {
+    return "Access is granted per secret with a resource policy for IAM users in the same AWS account.";
+  }
+}
+
+export default AwsBackend;

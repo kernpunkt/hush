@@ -16,8 +16,12 @@ import figlet from "figlet";
 import CatCommand from "./commands/CatCommand.js";
 import * as fs from "fs";
 import * as path from "path";
+import SecretBackend from "./backends/SecretBackend.js";
+import BaseCommand from "./commands/BaseCommand.js";
 
 class HushCommand extends Command {
+  private backend?: SecretBackend;
+
   constructor() {
     super();
     this.name("hush").argument("<command>", "The command to run.");
@@ -28,6 +32,22 @@ class HushCommand extends Command {
     this.revokeCommand();
     this.listCommand();
     this.catCommand();
+  }
+
+  /**
+   * Sets the backend every command uses. Without it, each command uses the
+   * default backend.
+   */
+  public setBackend(backend: SecretBackend): this {
+    this.backend = backend;
+    return this;
+  }
+
+  private withBackend<T extends BaseCommand>(command: T): T {
+    if (this.backend) {
+      command.setBackend(this.backend);
+    }
+    return command;
   }
 
   run(argv?: readonly string[], options?: ParseOptions): this {
@@ -70,7 +90,7 @@ class HushCommand extends Command {
     this.command("list").action(async () => {
       console.log(`${chalk.bold("Hush! 🤫")} — List\n`);
 
-      const command = new ListCommand();
+      const command = this.withBackend(new ListCommand());
       command
         .execute()
         .then(({ output, hasErrors }) => {
@@ -88,7 +108,7 @@ class HushCommand extends Command {
       .action(async (key: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Cat\n`);
 
-        const command = new CatCommand({ key });
+        const command = this.withBackend(new CatCommand({ key }));
         command
           .execute()
           .then((result: any) => {
@@ -111,7 +131,9 @@ class HushCommand extends Command {
       )
       .action(async (key: string, userIdentifier: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
-        const command = new GrantCommand({ key, userIdentifier });
+        const command = this.withBackend(
+          new GrantCommand({ key, userIdentifier })
+        );
         command
           .execute()
           .then((result) => {
@@ -134,7 +156,9 @@ class HushCommand extends Command {
       )
       .action(async (key: string, userIdentifier: string) => {
         console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
-        const command = new RevokeCommand({ key, userIdentifier });
+        const command = this.withBackend(
+          new RevokeCommand({ key, userIdentifier })
+        );
         command
           .execute()
           .then((result) => {
@@ -161,7 +185,7 @@ class HushCommand extends Command {
         if (options.force) {
           input.force = options.force;
         }
-        const command = new DeleteCommand(input);
+        const command = this.withBackend(new DeleteCommand(input));
         command
           .execute()
           .then((result) => {
@@ -199,7 +223,7 @@ class HushCommand extends Command {
         }
 
         console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
-        const command = new PushCommand(input);
+        const command = this.withBackend(new PushCommand(input));
         command
           .execute()
           .then((result) => {
@@ -232,7 +256,7 @@ class HushCommand extends Command {
 
         console.log(`${chalk.bold("Hush! 🤫")} — Pull\n`);
 
-        const command = new PullCommand(input);
+        const command = this.withBackend(new PullCommand(input));
         command
           .execute()
           .then((result) => {
