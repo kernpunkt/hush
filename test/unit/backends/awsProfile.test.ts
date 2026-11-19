@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
@@ -12,6 +12,16 @@ import runHush from "../../support/runHush";
 // AC-F02-5: without AWS_PROFILE, a command that uses the AWS backend shows
 // the profile message of 4.1.0 and exits 1 before AWS is called. Values
 // below are made up.
+
+// push names the OS user in its default message, so building a PushCommand
+// calls os.userInfo(), which can throw (e.g. for a UID without a passwd
+// entry). Watched to prove that the profile check comes first.
+const { userInfo } = vi.hoisted(() => ({ userInfo: vi.fn() }));
+vi.mock("os", async (importOriginal) => {
+    const os = await importOriginal<typeof import("os")>();
+    userInfo.mockImplementation(os.userInfo);
+    return { ...os, userInfo, default: { ...os, userInfo } };
+});
 
 const secretsManagerMock = mockClient(SecretsManagerClient);
 const stsMock = mockClient(STSClient);
@@ -61,6 +71,23 @@ describe("AWS profile check", () => {
         expect(run.exitCode).toBe(1);
         expect(secretsManagerMock.calls()).toHaveLength(0);
         expect(stsMock.calls()).toHaveLength(0);
+    });
+
+    it("checks the profile before the command is built", async () => {
+        const original = userInfo.getMockImplementation();
+        userInfo.mockClear();
+        userInfo.mockImplementation(() => {
+            throw new Error("user id does not exist");
+        });
+        try {
+            const run = await runHush(["push", "example-app", ".env"]);
+
+            expect(run.output).toBe(PROFILE_MESSAGE);
+            expect(run.exitCode).toBe(1);
+            expect(userInfo).not.toHaveBeenCalled();
+        } finally {
+            userInfo.mockImplementation(original!);
+        }
     });
 
     it("does not ask for an AWS profile when a command uses a backend without that need", async () => {

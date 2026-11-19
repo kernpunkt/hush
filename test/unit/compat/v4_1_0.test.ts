@@ -53,8 +53,11 @@ vi.mock("os", osWithTestUser);
  * version (no `vitest -u` for this file): a difference is a compatibility
  * break, not an outdated snapshot.
  *
- * The file has to run unchanged on 4.1.0, so it imports nothing from src/
- * except HushCommand and nothing from test/support/. All values are made up.
+ * The golden transcript test runs unchanged on 4.1.0, so this file imports
+ * nothing from src/ except HushCommand and nothing from test/support/. The
+ * block marked "intended difference from 4.1.0" at the end is branch-only:
+ * it fails on 4.1.0, so skip it when re-recording the snapshot there. All
+ * values are made up.
  */
 
 const NOW = new Date("2026-03-14T09:26:53.000Z");

@@ -62,9 +62,9 @@ interface SecretBackend {
 
   /**
    * One line on what keeps the backend from working here (e.g. no AWS
-   * profile selected), or undefined if nothing does. Commands check it
-   * before calling the backend. Optional: without it, there is nothing to
-   * check.
+   * profile selected), or undefined if nothing does. Checked before a
+   * command that uses the backend is built. Optional: without it, there is
+   * nothing to check.
    */
   setupProblem?(): string | undefined;
 }

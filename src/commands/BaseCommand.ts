@@ -21,14 +21,6 @@ abstract class BaseCommand {
     return this;
   }
 
-  /**
-   * What keeps this command's backend from working here, if anything.
-   * Checked before the command runs.
-   */
-  public setupProblem(): string | undefined {
-    return this.backend.setupProblem?.();
-  }
-
   protected getKey(): string {
     return `${this.prefix}-${this.key}`;
   }
