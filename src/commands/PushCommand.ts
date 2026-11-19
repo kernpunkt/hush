@@ -75,10 +75,6 @@ class PushCommand extends BaseCommand {
       secrets: secretArray,
       updated_at: new Date(),
     };
-    // Serialized once before the backend is called, as in 4.1.0. The unit
-    // tests for push read this first serialization synchronously.
-    new SecretPayloadManager().toSecretString(payload);
-
     // Get and log the current version before pushing
     const currentVersion = await this.getCurrentVersion();
 
