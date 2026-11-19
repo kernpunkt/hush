@@ -5,7 +5,7 @@ import {
 import BaseRequest from "./BaseRequest.js";
 import { PolicyDocument } from "@thinkinglabs/aws-iam-policy";
 import chalk from "chalk";
-import TypedErrorHandler from "../utils/TypedErrorHandler.js";
+import TypedErrorHandler from "../../../utils/TypedErrorHandler.js";
 
 class GetResourcePolicyRequest extends BaseRequest {
   public async execute(

@@ -59,6 +59,14 @@ interface SecretBackend {
 
   /** One line on how access to entries is granted in this backend. */
   accessHint(): string;
+
+  /**
+   * One line on what keeps the backend from working here (e.g. no AWS
+   * profile selected), or undefined if nothing does. Checked before a
+   * command that uses the backend is built. Optional: without it, there is
+   * nothing to check.
+   */
+  setupProblem?(): string | undefined;
 }
 
 export default SecretBackend;

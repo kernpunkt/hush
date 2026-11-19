@@ -4,8 +4,8 @@ import {
   GetSecretValueCommandOutput,
 } from "@aws-sdk/client-secrets-manager";
 import BaseRequest from "./BaseRequest.js";
-import StringMap from "../@types/StringMap.js";
-import TypedErrorHandler from "../utils/TypedErrorHandler.js";
+import StringMap from "../../../@types/StringMap.js";
+import TypedErrorHandler from "../../../utils/TypedErrorHandler.js";
 import chalk from "chalk";
 
 class GetSecretValueRequest extends BaseRequest {

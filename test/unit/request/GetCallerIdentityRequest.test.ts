@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import GetCallerIdentityRequest from "../../../src/requests/GetCallerIdentityRequest";
+import GetCallerIdentityRequest from "../../../src/backends/aws/requests/GetCallerIdentityRequest";
 import { STSClient } from "@aws-sdk/client-sts";
 
 describe("GetCallerIdentityRequest", () => {

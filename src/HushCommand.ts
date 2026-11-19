@@ -18,6 +18,7 @@ import * as fs from "fs";
 import * as path from "path";
 import SecretBackend from "./backends/SecretBackend.js";
 import BaseCommand from "./commands/BaseCommand.js";
+import defaultBackend from "./backends/defaultBackend.js";
 
 class HushCommand extends Command {
   private backend?: SecretBackend;
@@ -43,27 +44,44 @@ class HushCommand extends Command {
     return this;
   }
 
-  private withBackend<T extends BaseCommand>(command: T): T {
-    if (this.backend) {
-      command.setBackend(this.backend);
+  /**
+   * The backend a command uses: the one set with setBackend, otherwise the
+   * default backend. The only place that picks a backend; choosing it per
+   * key from the project setting goes here.
+   */
+  private backendFor(): SecretBackend {
+    return this.backend ?? defaultBackend();
+  }
+
+  /**
+   * Runs a command the same way for every action. Stops first with the
+   * backend's setup problem (e.g. no AWS profile selected), before the
+   * command is built, prints anything or calls its backend: same output and
+   * exit code as the global check of 4.1.0. Then prints the header, builds
+   * the command and hands the result of execute() to onResult.
+   */
+  private runCommand<R>(
+    title: string,
+    build: () => Omit<BaseCommand, "execute"> & { execute(): Promise<R> },
+    onResult: (result: R) => void
+  ): void {
+    const backend = this.backendFor();
+    const problem = backend.setupProblem?.();
+    if (problem) {
+      console.log(`${chalk.bold("Hush! 🤫 — Error")}: ${problem}`);
+      process.exit(1);
+      return;
     }
-    return command;
+
+    // Header before building, as in 4.1.0.
+    console.log(`${chalk.bold("Hush! 🤫")} — ${title}\n`);
+    const command = build();
+    command.setBackend(backend);
+    command.execute().then(onResult).catch(this.handleError);
   }
 
   run(argv?: readonly string[], options?: ParseOptions): this {
     console.log(figlet.textSync("Hush!", {}));
-
-    const awsProfile = process.env["AWS_PROFILE"];
-    if (!awsProfile) {
-      console.log(
-        `${chalk.bold(
-          "Hush! 🤫 — Error"
-        )}: You do not have an AWS profile selected. Please export it by running ${chalk.bold(
-          "export AWS_PROFILE=your-profile-name"
-        )}.`
-      );
-      process.exit(1);
-    }
 
     // Show version information when help is requested or no command is provided
     if (
@@ -88,17 +106,15 @@ class HushCommand extends Command {
 
   private listCommand(): void {
     this.command("list").action(async () => {
-      console.log(`${chalk.bold("Hush! 🤫")} — List\n`);
-
-      const command = this.withBackend(new ListCommand());
-      command
-        .execute()
-        .then(({ output, hasErrors }) => {
+      this.runCommand(
+        "List",
+        () => new ListCommand(),
+        ({ output, hasErrors }) => {
           console.log(output);
           // Unreadable secrets are listed in the table; signal them with the exit code.
           process.exit(hasErrors ? 1 : 0);
-        })
-        .catch(this.handleError);
+        }
+      );
     });
   }
 
@@ -106,16 +122,14 @@ class HushCommand extends Command {
     this.command("cat")
       .argument("<key>", "The designator of a secret you want to output.")
       .action(async (key: string) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Cat\n`);
-
-        const command = this.withBackend(new CatCommand({ key }));
-        command
-          .execute()
-          .then((result: any) => {
+        this.runCommand(
+          "Cat",
+          () => new CatCommand({ key }),
+          (result: any) => {
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 
@@ -130,17 +144,14 @@ class HushCommand extends Command {
         "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
       )
       .action(async (key: string, userIdentifier: string) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
-        const command = this.withBackend(
-          new GrantCommand({ key, userIdentifier })
-        );
-        command
-          .execute()
-          .then((result) => {
+        this.runCommand(
+          "Grant",
+          () => new GrantCommand({ key, userIdentifier }),
+          (result) => {
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 
@@ -155,17 +166,15 @@ class HushCommand extends Command {
         "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
       )
       .action(async (key: string, userIdentifier: string) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
-        const command = this.withBackend(
-          new RevokeCommand({ key, userIdentifier })
-        );
-        command
-          .execute()
-          .then((result) => {
+        // "Grant" as in 4.1.0.
+        this.runCommand(
+          "Grant",
+          () => new RevokeCommand({ key, userIdentifier }),
+          (result) => {
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 
@@ -180,19 +189,18 @@ class HushCommand extends Command {
         "Force the secret to be deleted without prior scheduling for deletion."
       )
       .action(async (key: string, options: DeleteCommandOptions) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Delete\n`);
         const input: DeleteCommandInput = { key };
         if (options.force) {
           input.force = options.force;
         }
-        const command = this.withBackend(new DeleteCommand(input));
-        command
-          .execute()
-          .then((result) => {
+        this.runCommand(
+          "Delete",
+          () => new DeleteCommand(input),
+          (result) => {
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 
@@ -222,15 +230,14 @@ class HushCommand extends Command {
           input.force = options.force;
         }
 
-        console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
-        const command = this.withBackend(new PushCommand(input));
-        command
-          .execute()
-          .then((result) => {
+        this.runCommand(
+          "Push",
+          () => new PushCommand(input),
+          (result) => {
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 
@@ -254,12 +261,10 @@ class HushCommand extends Command {
           input.force = options.force;
         }
 
-        console.log(`${chalk.bold("Hush! 🤫")} — Pull\n`);
-
-        const command = this.withBackend(new PullCommand(input));
-        command
-          .execute()
-          .then((result) => {
+        this.runCommand(
+          "Pull",
+          () => new PullCommand(input),
+          (result) => {
             if (typeof result === "object") {
               const changeset = result as EnvDiffResult;
               console.log(
@@ -286,8 +291,8 @@ class HushCommand extends Command {
 
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 

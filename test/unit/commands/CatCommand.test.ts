@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 const secretName = "hush-secret";
 import CatCommand from "../../../src/commands/CatCommand";
-import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
+import GetSecretValueRequest from "../../../src/backends/aws/requests/GetSecretValueRequest";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
 import chalkTable from "../../../src/utils/ChalkTable";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
