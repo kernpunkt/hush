@@ -102,7 +102,33 @@ const checkBackend = (name: string, value: unknown): BackendSettings => {
       fail("must be a non-empty string.", `${at}.${field}`);
     }
   }
-  return value as BackendSettings;
+  const settings = value as BackendSettings;
+  const wrong = BACKEND_TYPES[type].checkValues?.(settings);
+  if (wrong !== undefined) {
+    fail(wrong.problem, `${at}.${wrong.field}`);
+  }
+  return settings;
+};
+
+/**
+ * Fails if two backends use the same store, naming both. Which of the two is
+ * the field depends on the order of Object.entries, which puts whole-number
+ * names first; the order in the file is lost after JSON.parse.
+ */
+const rejectSameStore = (backends: Record<string, BackendSettings>): void => {
+  const names = new Map<string, string>();
+  for (const [name, settings] of Object.entries(backends)) {
+    const store = BACKEND_TYPES[settings.type].store(settings);
+    const id = `${settings.type}\0${store}`;
+    const other = names.get(id);
+    if (other !== undefined) {
+      fail(
+        `uses the same store as backends.${other} (${store}). Give every store one name.`,
+        `backends.${name}`
+      );
+    }
+    names.set(id, name);
+  }
 };
 
 const checkBackendName = (
@@ -145,6 +171,7 @@ export function parseProjectConfig(content: unknown): ProjectConfig {
       checkBackend(name, value),
     ])
   );
+  rejectSameStore(backends);
 
   if (!has(content, "default")) {
     return fail("is missing.", "default");

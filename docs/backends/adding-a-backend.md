@@ -55,12 +55,15 @@ export const BACKEND_TYPES: Record<BackendType, BackendTypeDefinition> = {
   "aws-secrets-manager": {
     required: [],
     optional: ["region"],
+    // checkValues and store as today; they narrow settings the same way
     create: (settings) =>
       new AwsBackend({ region: (settings as AwsBackendSettings).region }),
   },
   "example-vault": {
     required: ["vaultName"],
     optional: [],
+    store: (settings) =>
+      `Example vault ${(settings as ExampleBackendSettings).vaultName}`,
     create: (settings) =>
       new ExampleBackend({
         vaultName: (settings as ExampleBackendSettings).vaultName,
@@ -69,9 +72,11 @@ export const BACKEND_TYPES: Record<BackendType, BackendTypeDefinition> = {
 };
 ```
 
-- With more than one settings type, `settings` in `create` is the union of all of them, so each `create` narrows it to its own type, **the AWS entry included**; otherwise `yarn build` fails.
+- With more than one settings type, `settings` is the union of all of them in every function of an entry (`create`, `store` and `checkValues`), so each of them narrows it to its own type, **the AWS entry included** (it does so already); otherwise `yarn build` fails.
 - `required` and `optional` list every field besides `type` that a backend of this type may have. Hush! refuses any other field, so **no credentials can end up in the file**: let the backend find them the way its service's tools do (a profile, an environment variable, a login), never as a field.
 - The project setting checks that every listed field is a non-empty string. A field of another kind (a number, a list) needs a change to that check in `checkBackend` in `src/config/ProjectConfig.ts`, which today refuses every field that isn't a string.
+- `store` names the store a backend points to, e.g. `AWS eu-central-1`. Two backends of the same type with the same `store` are refused, so give it everything that tells two stores apart and fill in the defaults of optional fields.
+- `checkValues` is optional and checks the values beyond "non-empty string", like the shape of the AWS region. It returns the field and the problem; the problem must not repeat the value.
 - Add the new type and its fields to the [project setting page](/backends/project-setting).
 
 ## 3. Pass the shared backend tests

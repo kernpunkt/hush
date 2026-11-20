@@ -33,9 +33,13 @@ describe("ProjectBackends", () => {
     });
 
     it("lists names that are whole numbers first, in ascending order, as in JSON objects", () => {
-        const aws = '{"type":"aws-secrets-manager"}';
+        // Every backend in another region: two names for one store are refused.
+        const aws = (region: string) => `{"type":"aws-secrets-manager","region":"${region}"}`;
         const config = parseProjectConfig(
-            JSON.parse(`{"backends":{"zeta":${aws},"2024":${aws},"alpha":${aws},"7":${aws},"01":${aws}},"default":"zeta"}`)
+            JSON.parse(
+                `{"backends":{"zeta":${aws("eu-west-1")},"2024":${aws("eu-west-2")},"alpha":${aws("eu-west-3")},` +
+                    `"7":${aws("eu-north-1")},"01":${aws("eu-south-1")}},"default":"zeta"}`
+            )
         );
         const names = ProjectBackends.fromConfig(config).all().map(({ name }) => name);
         expect(names).toEqual(["7", "2024", "zeta", "alpha", "01"]);

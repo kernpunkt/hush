@@ -1,5 +1,6 @@
 import SecretBackend from "./SecretBackend.js";
 import AwsBackend from "./aws/AwsBackend.js";
+import { isAwsRegion } from "./aws/awsRegion.js";
 
 /** The settings of one backend in the project setting, by type. */
 export type AwsBackendSettings = {
@@ -16,6 +17,20 @@ type BackendTypeDefinition = {
   required: readonly string[];
   /** Fields besides `type` that may be given. */
   optional: readonly string[];
+  /**
+   * Checks the values of the fields, which are already non-empty strings.
+   * Returns the first field with a wrong value and the problem, if any. The
+   * problem doesn't repeat the value.
+   */
+  checkValues?(
+    settings: BackendSettings
+  ): { field: string; problem: string } | undefined;
+  /**
+   * The store the settings point to, e.g. "AWS eu-central-1". Two backends
+   * of the same type with the same store are refused, so every secret is
+   * listed once.
+   */
+  store(settings: BackendSettings): string;
   create(settings: BackendSettings): SecretBackend;
 };
 
@@ -28,7 +43,16 @@ export const BACKEND_TYPES: Record<BackendType, BackendTypeDefinition> = {
   "aws-secrets-manager": {
     required: [],
     optional: ["region"],
-    create: (settings) => new AwsBackend({ region: settings.region }),
+    checkValues: (settings) => {
+      const { region } = settings as AwsBackendSettings;
+      return region === undefined || isAwsRegion(region)
+        ? undefined
+        : { field: "region", problem: "must be an AWS region like eu-west-1." };
+    },
+    store: (settings) =>
+      AwsBackend.locationOf((settings as AwsBackendSettings).region),
+    create: (settings) =>
+      new AwsBackend({ region: (settings as AwsBackendSettings).region }),
   },
 };
 
