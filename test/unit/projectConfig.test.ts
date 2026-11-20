@@ -202,16 +202,23 @@ describe("AC-F03-4: list with several backends", () => {
         });
     };
 
-    /** The lines from the heading `name` up to the next blank line. */
+    /** The text of a line without the table border around it. */
+    const unframed = (line: string): string => line.replace(/^\| (.*?) *\|$/, "$1").trimEnd();
+
+    /** The index of the line with the title "Region: <name>", in a table or not. */
+    const headingLine = (lines: string[], name: string): number =>
+        lines.findIndex((line) => unframed(line) === `Region: ${name}`);
+
+    /** The lines from the heading of backend `name` up to the next blank line. */
     const section = (output: string, name: string): string => {
         const lines = output.split("\n");
-        const start = lines.indexOf(name);
+        const start = headingLine(lines, name);
         expect(start, `heading ${name} in\n${output}`).toBeGreaterThanOrEqual(0);
         const end = lines.findIndex((line, index) => index > start && line.trim() === "");
         return lines.slice(start, end === -1 ? undefined : end).join("\n");
     };
 
-    it("shows one table per backend, with its name as heading, in the order of the setting", async () => {
+    it("shows one table per backend, titled with its name, in the order of the setting", async () => {
         writeConfig(twoRegions);
         listByRegion({
             "eu-central-1": ["hush-blog", "hush-a"],
@@ -221,7 +228,13 @@ describe("AC-F03-4: list with several backends", () => {
         const run = await runHush(["list"]);
 
         expect(run.exitCode, run.output).toBe(0);
-        expect(run.output.indexOf("\nfrankfurt\n")).toBeLessThan(run.output.indexOf("\nireland\n"));
+        const lines = run.output.split("\n");
+        expect(headingLine(lines, "frankfurt")).toBeGreaterThanOrEqual(0);
+        expect(headingLine(lines, "frankfurt")).toBeLessThan(headingLine(lines, "ireland"));
+        // The title is the first row inside the table's border.
+        const title = headingLine(lines, "frankfurt");
+        expect(lines[title - 1]).toMatch(/^\+-+\+$/);
+        expect(lines[title + 2]).toMatch(/^\| Name +\| Message/);
         // Every entry of a backend, also one the setting routes elsewhere (hush-a).
         const frankfurt = section(run.output, "frankfurt");
         expect(frankfurt).toContain("hush-blog");
@@ -243,7 +256,7 @@ describe("AC-F03-4: list with several backends", () => {
 
         expect(withoutConfig.exitCode).toBe(0);
         expect(withConfig).toEqual(withoutConfig);
-        expect(withConfig.output).not.toMatch(/^main$/m);
+        expect(withConfig.output).not.toContain("Region:");
     });
 
     it("shows the other table when one backend fails, names the reason and ends with 1", async () => {
@@ -296,7 +309,7 @@ describe("AC-F03-4: list with several backends", () => {
 
         // runHush strips ANSI codes, so an unescaped ESC[2J would vanish here.
         expect(run.exitCode, run.output).toBe(0);
-        expect(run.output.split("\n")).toContain("evil\\u001b[2J");
+        expect(run.output.split("\n").map(unframed)).toContain("Region: evil\\u001b[2J");
     });
 
     it("lists a backend that can't start as failed, without calling AWS (no AWS_PROFILE)", async () => {

@@ -94,6 +94,16 @@ function chalkTable(options: any, data: any) {
     })
   );
 
+  // An optional title row above the column names, as wide as the table.
+  const titleWidth =
+    options.title === undefined ? 0 : stripAnsi(options.title).length;
+  const innerWidth = () =>
+    columns.reduce((sum: number, e: any) => sum + e.width, 0) +
+    3 * (columns.length - 1);
+  if (titleWidth > innerWidth()) {
+    columns[columns.length - 1].width += titleWidth - innerWidth();
+  }
+
   const output = [];
 
   const separator = [""]
@@ -101,6 +111,10 @@ function chalkTable(options: any, data: any) {
     .concat([""])
     .join("-" + options.intersectionCharacter + "-");
 
+  if (options.title !== undefined) {
+    output.push(`-+${"-".repeat(innerWidth() + 2)}+-`);
+    output.push(` | ${pad(options.title, innerWidth())} | `);
+  }
   output.push(separator);
   output.push(
     [""]

@@ -22,6 +22,13 @@ export type ListResult = {
 
 class ListCommand extends BaseCommand {
   private static readonly MAX_REASON_LENGTH = 80;
+  private title?: string;
+
+  /** A title row at the top of the table, e.g. the backend's name. */
+  public setTitle(title: string): this {
+    this.title = title;
+    return this;
+  }
 
   public async execute(): Promise<ListResult> {
     const names = await this.backend.listNames(this.prefix);
@@ -46,6 +53,7 @@ class ListCommand extends BaseCommand {
     });
 
     const options = {
+      title: this.title,
       columns: [
         { field: "name", name: chalk.green("Name") },
         { field: "message", name: chalk.green("Message") },

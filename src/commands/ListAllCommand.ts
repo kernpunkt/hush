@@ -6,7 +6,7 @@ import printable from "../utils/printable.js";
 
 /**
  * `list` for a project with several backends: one table per backend, with
- * the backend's name as heading. A backend that fails, or can't start (e.g.
+ * "Region: <the backend's name>" as its title row. A backend that fails, or can't start (e.g.
  * no AWS profile selected), gets its reason instead of a table; the others
  * are still listed.
  */
@@ -25,16 +25,16 @@ class ListAllCommand {
 
   private async section({ name, backend }: NamedBackend): Promise<ListResult> {
     // The name comes from hush.config.json.
-    const heading = chalk.bold(printable(name));
+    const heading = `${chalk.bold.green("Region:")} ${chalk.bold(printable(name))}`;
     const problem = backend.setupProblem?.();
     if (problem) {
       return ListAllCommand.failed(heading, problem);
     }
     try {
-      const { output, hasErrors } = await new ListCommand()
+      return await new ListCommand()
         .setBackend(backend)
+        .setTitle(heading)
         .execute();
-      return { output: `${heading}\n${output}`, hasErrors };
     } catch (error) {
       return ListAllCommand.failed(
         heading,
