@@ -12,23 +12,25 @@ author:
 
 This page is for **contributors** who want Hush! to store secrets in another service. A new backend takes three steps: implement the backend interface, register the type so projects can choose it in [`hush.config.json`](/backends/project-setting), and pass the shared backend tests.
 
-The commands don't need to change. They talk to a backend only through the interface, and a lint rule keeps it that way: files in `src/commands/` may not import a cloud library (`@aws-sdk/*`, `@azure/*`, …) or a backend implementation.
+The commands' logic doesn't need to change: commands talk to a backend only through the interface. A few user texts in `src/HushCommand.ts` still name AWS (the warning of `pull`, the argument help of `grant` and `revoke`); check whether they fit your backend.
+
+A lint rule keeps commands away from cloud code: files in `src/commands/` may not import the packages and paths listed under `no-restricted-imports` in `eslint.config.js` (today `@aws-sdk/*`, `@azure/*`, the AWS backend folder and its requests). **Add your service's SDK and your backend's folder to that list.**
 
 ## 1. Implement the backend interface
 
 Create a class in its own folder, for example `src/backends/example/ExampleBackend.ts`, that implements `SecretBackend` from `src/backends/SecretBackend.ts`. The AWS backend in `src/backends/aws/` is a complete example.
 
-| Member                                       | What it does                                                                                                  |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `displayName`                                | A readable name, e.g. `"AWS Secrets Manager"`.                                                                |
-| `read(name)`                                 | Resolves to the current value of an entry, or `undefined` if the entry has no text value.                     |
-| `write(name, value)`                         | Creates the entry (`"created"`) or adds a new version to it (`"updated"`).                                    |
-| `listNames(prefix)`                          | The names of all entries that start with `prefix`.                                                            |
-| `delete(name, options)`                      | Schedules the entry for deletion, or deletes it for good with `{ force: true }`. May report a `deletionDate`. |
-| `accessHint()`                               | One line on how access to entries is granted in this backend.                                                 |
-| `grantAccess(name, user)`, `revokeAccess(…)` | Optional. Give or take away one user's access to one entry. Implement **both or neither**.                    |
-| `setupProblem()`                             | Optional. One line on what keeps the backend from working here (e.g. not signed in), or `undefined`.          |
-| `location`                                   | Optional. Where the entries are, in a few words, e.g. `"AWS eu-west-1"`. `list` shows it in the table title.  |
+| Member                                       | What it does                                                                                                                                                                                                               |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `displayName`                                | A readable name, e.g. `"AWS Secrets Manager"`.                                                                                                                                                                             |
+| `read(name)`                                 | Resolves to the current value of an entry, or `undefined` if the entry has no text value.                                                                                                                                  |
+| `write(name, value)`                         | Creates the entry (`"created"`) or adds a new version to it (`"updated"`).                                                                                                                                                 |
+| `listNames(prefix)`                          | The names of all entries that start with `prefix`.                                                                                                                                                                         |
+| `delete(name, options)`                      | Schedules the entry for deletion, or deletes it for good with `{ force: true }`. When it schedules, it reports the `deletionDate`, and reading the entry fails with `softDeleted` until then; the shared tests check both. |
+| `accessHint()`                               | One line on how access to entries is granted in this backend.                                                                                                                                                              |
+| `grantAccess(name, user)`, `revokeAccess(…)` | Optional. Give or take away one user's access to one entry. Implement **both or neither**.                                                                                                                                 |
+| `setupProblem()`                             | Optional. One line on what keeps the backend from working here (e.g. not signed in), or `undefined`.                                                                                                                       |
+| `location`                                   | Optional. Where the entries are, in a few words, e.g. `"AWS eu-west-1"`. With several backends, `list` shows it in the table title.                                                                                        |
 
 Things every backend must get right:
 
@@ -50,7 +52,12 @@ export type ExampleBackendSettings = {
 export type BackendSettings = AwsBackendSettings | ExampleBackendSettings;
 
 export const BACKEND_TYPES: Record<BackendType, BackendTypeDefinition> = {
-  "aws-secrets-manager": {/* … */},
+  "aws-secrets-manager": {
+    required: [],
+    optional: ["region"],
+    create: (settings) =>
+      new AwsBackend({ region: (settings as AwsBackendSettings).region }),
+  },
   "example-vault": {
     required: ["vaultName"],
     optional: [],
@@ -62,13 +69,14 @@ export const BACKEND_TYPES: Record<BackendType, BackendTypeDefinition> = {
 };
 ```
 
+- With more than one settings type, `settings` in `create` is the union of all of them, so each `create` narrows it to its own type, **the AWS entry included**; otherwise `yarn build` fails.
 - `required` and `optional` list every field besides `type` that a backend of this type may have. Hush! refuses any other field, so **no credentials can end up in the file**: let the backend find them the way its service's tools do (a profile, an environment variable, a login), never as a field.
-- The project setting checks that every listed field is a non-empty string. A field of another kind (a number, a list) needs a check in `src/config/ProjectConfig.ts`.
+- The project setting checks that every listed field is a non-empty string. A field of another kind (a number, a list) needs a change to that check in `checkBackend` in `src/config/ProjectConfig.ts`, which today refuses every field that isn't a string.
 - Add the new type and its fields to the [project setting page](/backends/project-setting).
 
 ## 3. Pass the shared backend tests
 
-`test/unit/backends/contract.test.ts` holds the tests every backend has to pass: reading, writing, new versions, listing by prefix, deleting with and without `force`, the error kinds for missing and deleted entries, and the grant/revoke pair. Add your backend to the `backends` list at the top of the file:
+`test/unit/backends/contract.test.ts` holds the tests every backend has to pass: reading, writing, new versions, listing by prefix, deleting with and without `force`, the error kinds for missing and deleted entries, and that `grantAccess` and `revokeAccess` come as a pair. They don't try granting or revoking, so write your own tests for those. Add your backend to the `backends` list at the top of the file:
 
 ```ts
 const backends: { label: string; create: () => SecretBackend }[] = [

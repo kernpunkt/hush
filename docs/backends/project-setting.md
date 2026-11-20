@@ -39,12 +39,12 @@ With this file, `hush push shop-prod .env` stores the secret `hush-shop-prod` in
 
 ## Fields
 
-| Field                  | Required | What it is                                                                                                                                              |
-| ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `backends`             | yes      | The backends of the project, as an object of **name → backend**. You pick the names; they appear in `list` and in `default` and `keys`.                 |
-| `backends.<name>.type` | yes      | The kind of backend. Available: `aws-secrets-manager` (the AWS Secrets Manager).                                                                        |
-| `default`              | yes      | The name of the backend for every key that `keys` doesn't list. It must be one of the names in `backends`.                                              |
-| `keys`                 | no       | Keys that go to a different backend than the default, as an object of **key → backend name**. Give the key as you type it in commands, without `hush-`. |
+| Field                  | Required | What it is                                                                                                                                                                                                                                                                  |
+| ---------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `backends`             | yes      | The backends of the project, as an object of **name → backend**. You pick the names; they appear in `list` and in `default` and `keys`.                                                                                                                                     |
+| `backends.<name>.type` | yes      | The kind of backend. Available: `aws-secrets-manager` (the AWS Secrets Manager).                                                                                                                                                                                            |
+| `default`              | yes      | The name of the backend for every key that `keys` doesn't list. It must be one of the names in `backends`.                                                                                                                                                                  |
+| `keys`                 | no       | Keys that go to a different backend than the default, as an object of **key → backend name**. Give the key as you type it in commands, **without `hush-`**: a key written as `hush-shop-prod` never matches, and `shop-prod` goes to the default backend without a warning. |
 
 Each backend type has its own fields besides `type`:
 
@@ -62,7 +62,7 @@ A key belongs to the backend that `keys` names for it, otherwise to the `default
 
 ## `list` with several backends
 
-With more than one backend, [`hush list`](/commands/list) shows **one table per backend**, in the order of `backends`. Each table starts with a title row like `Backend: ireland (AWS eu-west-1)`. A table shows every Hush! secret in that backend, also secrets that `keys` assigns to another backend.
+With more than one backend, [`hush list`](/commands/list) shows **one table per backend**, in the order of `backends` (names that are whole numbers, like `2024`, come first, as in every JSON object read by JavaScript). Each table starts with a title row like `Backend: ireland (AWS eu-west-1)`. A table shows every Hush! secret in that backend, also secrets that `keys` assigns to another backend.
 
 If a backend can't be listed, for example because no AWS profile is selected, `list` shows the reason instead of its table, still lists the other backends and ends with exit code 1.
 
