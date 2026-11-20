@@ -11,31 +11,42 @@ describe("HushCommand", () => {
         consoleLogSpy.mockClear();
     });
 
-    it("throws an error if no AWS_PROFILE can be found", () => {
+    // AC-F02-4 (replaces the 4.1.0 test that expected exit code 1 without
+    // AWS_PROFILE): the call without a command and the help need no profile.
+    it.each([
+        ["without a command", []],
+        ["with --help", ["--help"]],
+    ])("runs without an AWS_PROFILE %s and shows the help", (_, argv: string[]) => {
         const awsProfile = process.env.AWS_PROFILE;
         delete process.env.AWS_PROFILE;
-        
-        const spy = vi.spyOn(process, "exit");
-        spy.mockImplementation((number) => { throw new Error(`proccess.exit: ${number}`);});
 
-        const command = new HushCommand();
+        const exitSpy = vi.spyOn(process, "exit");
+        exitSpy.mockImplementation((number) => { throw new Error(`proccess.exit: ${number}`);});
+        const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+        const parseSpy = vi.spyOn(Command.prototype, "parse").mockReturnValue(new Command());
 
-        expect(() => {
-            command.run([]);
-        }).toThrow();
-        expect(spy).toHaveBeenCalledWith(1);
-        
-        // Verify the figlet banner and error message were logged
-        expect(consoleLogSpy).toHaveBeenCalled();
-        // Check for ASCII art characters from the figlet banner
-        expect(consoleLogSpy.mock.calls[0][0]).toMatch(/[|_]/);
-        const errorCall = consoleLogSpy.mock.calls.find(call => 
-            call[0].includes("You do not have an AWS profile selected")
-        );
-        expect(errorCall).toBeDefined();
-        
-        spy.mockRestore();
-        process.env.AWS_PROFILE = awsProfile; 
+        try {
+            new HushCommand().run(argv);
+
+            expect(exitSpy).not.toHaveBeenCalled();
+            expect(parseSpy).toHaveBeenCalledWith(argv, undefined);
+            // The figlet banner and the version come before the help.
+            expect(consoleLogSpy.mock.calls[0][0]).toMatch(/[|_]/);
+            expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining("Version"));
+            const errorCall = consoleLogSpy.mock.calls.find(call =>
+                String(call[0]).includes("You do not have an AWS profile selected")
+            );
+            expect(errorCall).toBeUndefined();
+        } finally {
+            exitSpy.mockRestore();
+            infoSpy.mockRestore();
+            parseSpy.mockRestore();
+            if (awsProfile === undefined) {
+                delete process.env.AWS_PROFILE;
+            } else {
+                process.env.AWS_PROFILE = awsProfile;
+            }
+        }
     });
     it("does not throw an error if an AWS_PROFILE is found", () => {
         const command = new HushCommand();

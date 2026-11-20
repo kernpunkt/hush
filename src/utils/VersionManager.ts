@@ -2,8 +2,10 @@ import path from "path";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import chalk from "chalk";
 import VersionEntry from "../@types/VersionEntry.js";
-import GetSecretValueRequest from "../requests/GetSecretValueRequest.js";
 import SecretPayloadManager from "./SecretPayloadManager.js";
+import SecretBackend from "../backends/SecretBackend.js";
+import defaultBackend from "../backends/defaultBackend.js";
+import { isBackendError } from "../backends/BackendError.js";
 
 /**
  * Manages version control for secrets through the .hushrc.json file
@@ -108,28 +110,31 @@ class VersionManager {
   }
 
   /**
-   * Get the version from the current secret in AWS Secrets Manager.
+   * Get the version from the current secret in the backend.
    *
    * @param {string} key - The secret key
+   * @param {SecretBackend} backend - The backend that stores the secret
    * @returns {Promise<number>} - The current version or -1 if secret doesn't exist
    * @throws {Error} If the secret can't be retrieved or read for any other reason
    */
-  public async getSecretVersion(key: string): Promise<number> {
-    let data;
+  public async getSecretVersion(
+    key: string,
+    backend: SecretBackend = defaultBackend()
+  ): Promise<number> {
+    let secretString: string | undefined;
     try {
-      // An empty mapping keeps the original AWS error, so its name can be checked.
-      data = await new GetSecretValueRequest().execute(key, {});
+      secretString = await backend.read(key);
     } catch (error) {
-      if ((error as Error)?.name === "ResourceNotFoundException") {
+      if (isBackendError(error, "notFound")) {
         return -1;
       }
       throw error;
     }
 
-    if (!data?.SecretString) {
+    if (!secretString) {
       return 0;
     }
-    return new SecretPayloadManager().fromSecretString(data.SecretString, key)
+    return new SecretPayloadManager().fromSecretString(secretString, key)
       .version;
   }
 

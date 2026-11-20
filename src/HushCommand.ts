@@ -11,13 +11,23 @@ import RevokeCommand from "./commands/RevokeCommand.js";
 import DeleteCommandInput from "./@types/DeleteCommandInput.js";
 import PullCommandInput from "./@types/PullCommandInput.js";
 import PushCommandInput from "./@types/PushCommandInput.js";
-import ListCommand from "./commands/ListCommand.js";
+import ListCommand, { ListResult } from "./commands/ListCommand.js";
 import figlet from "figlet";
 import CatCommand from "./commands/CatCommand.js";
 import * as fs from "fs";
 import * as path from "path";
+import SecretBackend from "./backends/SecretBackend.js";
+import BaseCommand from "./commands/BaseCommand.js";
+import ProjectBackends from "./backends/ProjectBackends.js";
+import ListAllCommand from "./commands/ListAllCommand.js";
+import {
+  loadProjectConfig,
+  ProjectConfigError,
+} from "./config/ProjectConfig.js";
 
 class HushCommand extends Command {
+  private backends?: ProjectBackends;
+
   constructor() {
     super();
     this.name("hush").argument("<command>", "The command to run.");
@@ -30,20 +40,92 @@ class HushCommand extends Command {
     this.catCommand();
   }
 
+  /**
+   * Sets the backend every command uses, instead of the ones from the
+   * project setting.
+   */
+  public setBackend(backend: SecretBackend): this {
+    this.backends = ProjectBackends.single(backend);
+    return this;
+  }
+
+  /** Sets the project's backends instead of reading the project setting. */
+  public setProjectBackends(backends: ProjectBackends): this {
+    this.backends = backends;
+    return this;
+  }
+
+  /**
+   * The project's backends: from hush.config.json, or the default backend
+   * without one (BR-04). Read only when a command runs, so the help works
+   * with a broken file. An invalid file stops Hush! with exit code 1 before
+   * any backend is called; then this returns undefined.
+   */
+  private projectBackends(): ProjectBackends | undefined {
+    if (!this.backends) {
+      try {
+        const config = loadProjectConfig();
+        this.backends = config
+          ? ProjectBackends.fromConfig(config)
+          : ProjectBackends.fromDefault();
+      } catch (error) {
+        if (!(error instanceof ProjectConfigError)) {
+          throw error;
+        }
+        this.printSetupError(error.message);
+        process.exit(1);
+        return undefined;
+      }
+    }
+    return this.backends;
+  }
+
+  private printSetupError(message: string): void {
+    console.log(`${chalk.bold("Hush! 🤫 — Error")}: ${message}`);
+  }
+
+  /** Runs a command for one key, with the backend that holds the key. */
+  private runCommand<R>(
+    title: string,
+    key: string,
+    build: () => Omit<BaseCommand, "execute"> & { execute(): Promise<R> },
+    onResult: (result: R) => void
+  ): void {
+    const backends = this.projectBackends();
+    if (backends) {
+      this.runWithBackend(backends.forKey(key), title, build, onResult);
+    }
+  }
+
+  /**
+   * Runs a command the same way for every action. Stops first with the
+   * backend's setup problem (e.g. no AWS profile selected), before the
+   * command is built, prints anything or calls its backend: same output and
+   * exit code as the global check of 4.1.0. Then prints the header, builds
+   * the command and hands the result of execute() to onResult.
+   */
+  private runWithBackend<R>(
+    backend: SecretBackend,
+    title: string,
+    build: () => Omit<BaseCommand, "execute"> & { execute(): Promise<R> },
+    onResult: (result: R) => void
+  ): void {
+    const problem = backend.setupProblem?.();
+    if (problem) {
+      this.printSetupError(problem);
+      process.exit(1);
+      return;
+    }
+
+    // Header before building, as in 4.1.0.
+    console.log(`${chalk.bold("Hush! 🤫")} — ${title}\n`);
+    const command = build();
+    command.setBackend(backend);
+    command.execute().then(onResult).catch(this.handleError);
+  }
+
   run(argv?: readonly string[], options?: ParseOptions): this {
     console.log(figlet.textSync("Hush!", {}));
-
-    const awsProfile = process.env["AWS_PROFILE"];
-    if (!awsProfile) {
-      console.log(
-        `${chalk.bold(
-          "Hush! 🤫 — Error"
-        )}: You do not have an AWS profile selected. Please export it by running ${chalk.bold(
-          "export AWS_PROFILE=your-profile-name"
-        )}.`
-      );
-      process.exit(1);
-    }
 
     // Show version information when help is requested or no command is provided
     if (
@@ -68,17 +150,31 @@ class HushCommand extends Command {
 
   private listCommand(): void {
     this.command("list").action(async () => {
-      console.log(`${chalk.bold("Hush! 🤫")} — List\n`);
+      const backends = this.projectBackends();
+      if (!backends) {
+        return;
+      }
+      const onResult = ({ output, hasErrors }: ListResult) => {
+        console.log(output);
+        // Unreadable secrets are listed in the table; signal them with the exit code.
+        process.exit(hasErrors ? 1 : 0);
+      };
 
-      const command = new ListCommand();
-      command
-        .execute()
-        .then(({ output, hasErrors }) => {
-          console.log(output);
-          // Unreadable secrets are listed in the table; signal them with the exit code.
-          process.exit(hasErrors ? 1 : 0);
-        })
-        .catch(this.handleError);
+      const all = backends.all();
+      if (all.length === 1) {
+        // One backend: the output of 4.1.0, without a heading.
+        this.runWithBackend(
+          all[0].backend,
+          "List",
+          () => new ListCommand(),
+          onResult
+        );
+        return;
+      }
+
+      // Several backends: each one checks its setup on its own (ListAllCommand).
+      console.log(`${chalk.bold("Hush! 🤫")} — List\n`);
+      new ListAllCommand(all).execute().then(onResult).catch(this.handleError);
     });
   }
 
@@ -86,16 +182,15 @@ class HushCommand extends Command {
     this.command("cat")
       .argument("<key>", "The designator of a secret you want to output.")
       .action(async (key: string) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Cat\n`);
-
-        const command = new CatCommand({ key });
-        command
-          .execute()
-          .then((result: any) => {
+        this.runCommand(
+          "Cat",
+          key,
+          () => new CatCommand({ key }),
+          (result: any) => {
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 
@@ -110,15 +205,15 @@ class HushCommand extends Command {
         "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
       )
       .action(async (key: string, userIdentifier: string) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
-        const command = new GrantCommand({ key, userIdentifier });
-        command
-          .execute()
-          .then((result) => {
+        this.runCommand(
+          "Grant",
+          key,
+          () => new GrantCommand({ key, userIdentifier }),
+          (result) => {
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 
@@ -133,15 +228,16 @@ class HushCommand extends Command {
         "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
       )
       .action(async (key: string, userIdentifier: string) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Grant\n`);
-        const command = new RevokeCommand({ key, userIdentifier });
-        command
-          .execute()
-          .then((result) => {
+        // "Grant" as in 4.1.0.
+        this.runCommand(
+          "Grant",
+          key,
+          () => new RevokeCommand({ key, userIdentifier }),
+          (result) => {
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 
@@ -156,19 +252,19 @@ class HushCommand extends Command {
         "Force the secret to be deleted without prior scheduling for deletion."
       )
       .action(async (key: string, options: DeleteCommandOptions) => {
-        console.log(`${chalk.bold("Hush! 🤫")} — Delete\n`);
         const input: DeleteCommandInput = { key };
         if (options.force) {
           input.force = options.force;
         }
-        const command = new DeleteCommand(input);
-        command
-          .execute()
-          .then((result) => {
+        this.runCommand(
+          "Delete",
+          key,
+          () => new DeleteCommand(input),
+          (result) => {
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 
@@ -198,15 +294,15 @@ class HushCommand extends Command {
           input.force = options.force;
         }
 
-        console.log(`${chalk.bold("Hush! 🤫")} — Push\n`);
-        const command = new PushCommand(input);
-        command
-          .execute()
-          .then((result) => {
+        this.runCommand(
+          "Push",
+          key,
+          () => new PushCommand(input),
+          (result) => {
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 
@@ -230,12 +326,11 @@ class HushCommand extends Command {
           input.force = options.force;
         }
 
-        console.log(`${chalk.bold("Hush! 🤫")} — Pull\n`);
-
-        const command = new PullCommand(input);
-        command
-          .execute()
-          .then((result) => {
+        this.runCommand(
+          "Pull",
+          key,
+          () => new PullCommand(input),
+          (result) => {
             if (typeof result === "object") {
               const changeset = result as EnvDiffResult;
               console.log(
@@ -262,8 +357,8 @@ class HushCommand extends Command {
 
             console.log(result);
             process.exit(0);
-          })
-          .catch(this.handleError);
+          }
+        );
       });
   }
 

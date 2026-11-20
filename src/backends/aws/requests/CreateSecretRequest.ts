@@ -4,8 +4,8 @@ import {
   CreateSecretCommandOutput,
 } from "@aws-sdk/client-secrets-manager";
 import BaseRequest from "./BaseRequest.js";
-import StringMap from "../@types/StringMap.js";
-import TypedErrorHandler from "../utils/TypedErrorHandler.js";
+import StringMap from "../../../@types/StringMap.js";
+import TypedErrorHandler from "../../../utils/TypedErrorHandler.js";
 
 class CreateSecretRequest extends BaseRequest {
   public async execute(

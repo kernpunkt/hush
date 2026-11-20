@@ -1,0 +1,594 @@
+Hush! golden output, recorded with Hush! 4.1.0 (commit 8a2a770).
+Frozen time: 2026-03-14T09:26:53.000Z (TZ=UTC). AWS_PROFILE=hush-test-profile.
+Each line shows the stream: out| stdout, err| stderr. Output after the
+first process.exit is not shown. After each call, changed secrets in the
+fake Secrets Manager and changed local files follow.
+
+=== 01 $ hush
+exit code: 1
+out|   _   _           _     _
+out|  | | | |_   _ ___| |__ | |
+out|  | |_| | | | / __| '_ \| |
+out|  |  _  | |_| \__ \ | | |_|
+out|  |_| |_|\__,_|___/_| |_(_)
+out|
+out| Hush! 🤫 — Version <package.json version>
+out|
+err| Usage: hush [options] [command] <command>
+err|
+err| Arguments:
+err|   command                          The command to run.
+err|
+err| Options:
+err|   -h, --help                       display help for command
+err|
+err| Commands:
+err|   push [options] <key> <env-file>
+err|   pull [options] <key> <env-file>
+err|   delete [options] <key>
+err|   grant <key> <user-identifier>
+err|   revoke <key> <user-identifier>
+err|   list
+err|   cat <key>
+err|   help [command]                   display help for command
+
+=== 02 $ hush --help
+exit code: 0
+out|   _   _           _     _
+out|  | | | |_   _ ___| |__ | |
+out|  | |_| | | | / __| '_ \| |
+out|  |  _  | |_| \__ \ | | |_|
+out|  |_| |_|\__,_|___/_| |_(_)
+out|
+out| Hush! 🤫 — Version <package.json version>
+out|
+out| Usage: hush [options] [command] <command>
+out|
+out| Arguments:
+out|   command                          The command to run.
+out|
+out| Options:
+out|   -h, --help                       display help for command
+out|
+out| Commands:
+out|   push [options] <key> <env-file>
+out|   pull [options] <key> <env-file>
+out|   delete [options] <key>
+out|   grant <key> <user-identifier>
+out|   revoke <key> <user-identifier>
+out|   list
+out|   cat <key>
+out|   help [command]                   display help for command
+
+### setup: write .env
+
+=== 03 $ hush push compat-app .env.does-not-exist
+exit code: 1
+out| Hush! 🤫 — Push
+out|
+err| 🙈 Error! — Could not read secrets file or no file was provided. Aborting.
+
+=== 04 $ hush push compat-app .env
+exit code: 0
+out| Hush! 🤫 — Push
+out|
+out|
+out| Done!
+out| Message: Secret version uploaded by hush-test-user.
+out| Your secret hush-compat-app was successfully created.
+--- secret hush-compat-app
+SecretString: {"message":"Secret version uploaded by hush-test-user.","version":0,"secrets":[{"key":"API_TOKEN","value":"made-up-token-123"},{"key":"GREETING","value":"Hello, World"},{"key":"DATABASE_URL","value":"postgres://app:made-up-password@db.example.test:5432/app?ssl=true"},{"key":"JSON_CONFIG","value":"{\"debug\":true}"}],"updated_at":"2026-03-14T09:26:53.000Z"}
+ResourcePolicy: <none>
+scheduled for deletion: no
+--- file .hushrc.json
+{
+  "hush-compat-app": {
+    "version": 0
+  }
+}
+
+=== 05 $ hush push compat-app .env -m 'Second version with a message'
+exit code: 0
+out| Hush! 🤫 — Push
+out|
+out|
+out| Done!
+out| Message: Second version with a message
+out| New version: 1
+out| Your secret hush-compat-app was successfully updated.
+--- secret hush-compat-app
+SecretString: {"message":"Second version with a message","version":1,"secrets":[{"key":"API_TOKEN","value":"made-up-token-123"},{"key":"GREETING","value":"Hello, World"},{"key":"DATABASE_URL","value":"postgres://app:made-up-password@db.example.test:5432/app?ssl=true"},{"key":"JSON_CONFIG","value":"{\"debug\":true}"}],"updated_at":"2026-03-14T09:26:53.000Z"}
+ResourcePolicy: <none>
+scheduled for deletion: no
+--- file .hushrc.json
+{
+  "hush-compat-app": {
+    "version": 1
+  }
+}
+
+=== 06 $ hush push compat-app .env --force
+exit code: 0
+out| Hush! 🤫 — Push
+out|
+out|
+out| Done!
+out| Message: Secret version uploaded by hush-test-user.
+out| New version: 2
+out| Your secret hush-compat-app was successfully updated.
+--- secret hush-compat-app
+SecretString: {"message":"Secret version uploaded by hush-test-user.","version":2,"secrets":[{"key":"API_TOKEN","value":"made-up-token-123"},{"key":"GREETING","value":"Hello, World"},{"key":"DATABASE_URL","value":"postgres://app:made-up-password@db.example.test:5432/app?ssl=true"},{"key":"JSON_CONFIG","value":"{\"debug\":true}"}],"updated_at":"2026-03-14T09:26:53.000Z"}
+ResourcePolicy: <none>
+scheduled for deletion: no
+--- file .hushrc.json
+{
+  "hush-compat-app": {
+    "version": 2
+  }
+}
+
+=== 07 $ hush pull compat-app .env
+exit code: 0
+out| Hush! 🤫 — Pull
+out|
+out|
+out| Done!
+out| Message: Secret version uploaded by hush-test-user.
+out| Version: 2
+out| Updated at: 2026-03-14 09:06:53
+out| Secrets successfully written to .env.
+out|
+--- file .env
+# Managed by Hush! as "hush-compat-app"
+
+API_TOKEN="made-up-token-123"
+GREETING="Hello, World"
+DATABASE_URL="postgres://app:made-up-password@db.example.test:5432/app?ssl=true"
+JSON_CONFIG='{"debug":true}'
+
+### setup: change .env locally
+
+=== 08 $ hush pull compat-app .env
+exit code: 1
+out| Hush! 🤫 — Pull
+out|
+out| ⚠️ Warning! Your .env file and the .env file stored in AWS differ:
+out|
+out| 	[ADD   ] DATABASE_URL="postgres://app:made-up-password@db.example.test:5432/app?ssl=true"
+out| 	[REMOVE] LOCAL_ONLY="only-on-this-machine"
+out| 	[CHANGE] API_TOKEN="made-up-token-123"
+out| 	[CHANGE] GREETING="Hello, World"
+out| 	[CHANGE] JSON_CONFIG="{"debug":true}"
+out|
+out| If you're sure you want to incorporate those diffs, rerun this command with the --force flag.
+
+=== 09 $ hush pull compat-app .env --force
+exit code: 0
+out| Hush! 🤫 — Pull
+out|
+out|
+out| Done!
+out| Message: Secret version uploaded by hush-test-user.
+out| Version: 2
+out| Updated at: 2026-03-14 09:06:53
+out| Secrets successfully written to .env.
+out|
+--- file .env
+# Managed by Hush! as "hush-compat-app"
+
+API_TOKEN="made-up-token-123"
+GREETING="Hello, World"
+DATABASE_URL="postgres://app:made-up-password@db.example.test:5432/app?ssl=true"
+JSON_CONFIG='{"debug":true}'
+
+### setup: a teammate pushes version 5 of hush-compat-app
+
+=== 10 $ hush push compat-app .env
+exit code: 0
+out| Hush! 🤫 — Push
+out|
+err| ⚠️ Warning: Remote version (5) is greater than your local version (2) for key "hush-compat-app"
+err| ⚠️ Use "hush pull" to pull the latest version
+out|
+
+=== 11 $ hush pull compat-app .env
+exit code: 1
+out| Hush! 🤫 — Pull
+out|
+out| ⚠️ Warning! Your .env file and the .env file stored in AWS differ:
+out|
+out| 	[REMOVE] DATABASE_URL="postgres://app:made-up-password@db.example.test:5432/app?ssl=true"
+out| 	[REMOVE] JSON_CONFIG="{"debug":true}"
+out| 	[CHANGE] API_TOKEN="made-up-token-789"
+out| 	[CHANGE] GREETING="Hello, World"
+out|
+out| If you're sure you want to incorporate those diffs, rerun this command with the --force flag.
+
+=== 12 $ hush pull compat-app .env --force
+exit code: 0
+out| Hush! 🤫 — Pull
+out|
+out|
+out| Done!
+out| Message: Pushed by a teammate.
+out| Version: 5
+out| Updated at: 2026-03-13 05:05:00
+out| Secrets successfully written to .env.
+out|
+--- file .env
+# Managed by Hush! as "hush-compat-app"
+
+API_TOKEN="made-up-token-789"
+GREETING="Hello, World"
+--- file .hushrc.json
+{
+  "hush-compat-app": {
+    "version": 5
+  }
+}
+
+=== 13 $ hush push compat-app .env -m 'After the pull'
+exit code: 0
+out| Hush! 🤫 — Push
+out|
+out|
+out| Done!
+out| Message: After the pull
+out| New version: 6
+out| Your secret hush-compat-app was successfully updated.
+--- secret hush-compat-app
+SecretString: {"message":"After the pull","version":6,"secrets":[{"key":"API_TOKEN","value":"made-up-token-789"},{"key":"GREETING","value":"Hello, World"}],"updated_at":"2026-03-14T09:26:53.000Z"}
+ResourcePolicy: <none>
+scheduled for deletion: no
+--- file .hushrc.json
+{
+  "hush-compat-app": {
+    "version": 6
+  }
+}
+
+=== 14 $ hush push compat-app .env --force
+exit code: 0
+out| Hush! 🤫 — Push
+out|
+out|
+out| Done!
+out| Message: Secret version uploaded by hush-test-user.
+out| New version: 7
+out| Your secret hush-compat-app was successfully updated.
+--- secret hush-compat-app
+SecretString: {"message":"Secret version uploaded by hush-test-user.","version":7,"secrets":[{"key":"API_TOKEN","value":"made-up-token-789"},{"key":"GREETING","value":"Hello, World"}],"updated_at":"2026-03-14T09:26:53.000Z"}
+ResourcePolicy: <none>
+scheduled for deletion: no
+--- file .hushrc.json
+{
+  "hush-compat-app": {
+    "version": 7
+  }
+}
+
+=== 15 $ hush cat compat-app
+exit code: 0
+out| Hush! 🤫 — Cat
+out|
+out| Last message: Secret version uploaded by hush-test-user.
+out| Updated: today at 9:26 AM
+out|
+out| +-----------+-------------------+
+out| | Key       | Value             |
+out| +-----------+-------------------+
+out| | API_TOKEN | made-up-token-789 |
+out| | GREETING  | Hello, World      |
+out| +-----------+-------------------+
+
+### setup: store hush-legacy-4.1.0 (4.1.0 format), hush-legacy-2.0 (1.1.0-2.0.4, no version), hush-legacy-2.1 (before 2.1.0, plain array), hush-unrelated (no Hush! secret)
+
+=== 16 $ hush pull legacy-4.1.0 .env.legacy-4.1.0
+exit code: 0
+out| Hush! 🤫 — Pull
+out|
+out|
+out| Done!
+out| Message: Stored by Hush! 4.1.0.
+out| Version: 3
+out| Updated at: 2025-11-02 08:07:30
+out| Secrets successfully written to .env.legacy-4.1.0.
+out|
+--- file .hushrc.json
+{
+  "hush-compat-app": {
+    "version": 7
+  },
+  "hush-legacy-4.1.0": {
+    "version": 3
+  }
+}
+--- file .env.legacy-4.1.0
+# Managed by Hush! as "hush-legacy-4.1.0"
+
+API_TOKEN="made-up-token-410"
+JSON_CONFIG='{"debug":false}'
+
+=== 17 $ hush pull legacy-2.0 .env.legacy-2.0
+exit code: 0
+out| Hush! 🤫 — Pull
+out|
+out|
+out| Done!
+out| Message: Stored by Hush! 2.0.
+out| Version: 0
+out| Updated at: 2024-06-30 10:07:00
+out| Secrets successfully written to .env.legacy-2.0.
+out|
+--- file .hushrc.json
+{
+  "hush-compat-app": {
+    "version": 7
+  },
+  "hush-legacy-4.1.0": {
+    "version": 3
+  },
+  "hush-legacy-2.0": {
+    "version": 0
+  }
+}
+--- file .env.legacy-2.0
+# Managed by Hush! as "hush-legacy-2.0"
+
+API_TOKEN="made-up-token-200"
+
+=== 18 $ hush pull legacy-2.1 .env.legacy-2.1
+exit code: 0
+out| Hush! 🤫 — Pull
+out|
+out|
+out| Done!
+out| Message: Legacy version of Hush! secret before messages.
+out| Version: 0
+out| Updated at: 2026-03-14 09:06:53
+out| Secrets successfully written to .env.legacy-2.1.
+out|
+--- file .hushrc.json
+{
+  "hush-compat-app": {
+    "version": 7
+  },
+  "hush-legacy-4.1.0": {
+    "version": 3
+  },
+  "hush-legacy-2.0": {
+    "version": 0
+  },
+  "hush-legacy-2.1": {
+    "version": 0
+  }
+}
+--- file .env.legacy-2.1
+# Managed by Hush! as "hush-legacy-2.1"
+
+API_TOKEN="made-up-token-100"
+GREETING="Hello, legacy"
+
+=== 19 $ hush cat legacy-2.1
+exit code: 0
+out| Hush! 🤫 — Cat
+out|
+out| Last message: Legacy version of Hush! secret before messages.
+out| Updated: today at 9:26 AM
+out|
+out| +-----------+-------------------+
+out| | Key       | Value             |
+out| +-----------+-------------------+
+out| | API_TOKEN | made-up-token-100 |
+out| | GREETING  | Hello, legacy     |
+out| +-----------+-------------------+
+
+### setup: write .env.other
+
+=== 20 $ hush push compat-other .env.other -m 'Other secret'
+exit code: 0
+out| Hush! 🤫 — Push
+out|
+out|
+out| Done!
+out| Message: Other secret
+out| Your secret hush-compat-other was successfully created.
+--- secret hush-compat-other
+SecretString: {"message":"Other secret","version":0,"secrets":[{"key":"OTHER_FLAG","value":"on"}],"updated_at":"2026-03-14T09:26:53.000Z"}
+ResourcePolicy: <none>
+scheduled for deletion: no
+--- file .hushrc.json
+{
+  "hush-compat-app": {
+    "version": 7
+  },
+  "hush-legacy-4.1.0": {
+    "version": 3
+  },
+  "hush-legacy-2.0": {
+    "version": 0
+  },
+  "hush-legacy-2.1": {
+    "version": 0
+  },
+  "hush-compat-other": {
+    "version": 0
+  }
+}
+
+=== 21 $ hush list
+exit code: 0
+out| Hush! 🤫 — List
+out|
+out| +-------------------+-------------------------------------------------+------------------+---------+
+out| | Name              | Message                                         | Updated at       | Secrets |
+out| +-------------------+-------------------------------------------------+------------------+---------+
+out| | hush-compat-app   | Secret version uploaded by hush-test-user.      | today at 9:26 AM | 2       |
+out| | hush-legacy-4.1.0 | Stored by Hush! 4.1.0.                          | 11/02/2025       | 2       |
+out| | hush-legacy-2.0   | Stored by Hush! 2.0.                            | 06/30/2024       | 1       |
+out| | hush-legacy-2.1   | Legacy version of Hush! secret before messages. | today at 9:26 AM | 2       |
+out| | hush-compat-other | Other secret                                    | today at 9:26 AM | 1       |
+out| +-------------------+-------------------------------------------------+------------------+---------+
+
+### setup: store hush-broken (not JSON)
+
+=== 22 $ hush list
+exit code: 1
+out| Hush! 🤫 — List
+out|
+out| +-------------------+-------------------------------------------------+------------------+---------+
+out| | Name              | Message                                         | Updated at       | Secrets |
+out| +-------------------+-------------------------------------------------+------------------+---------+
+out| | hush-compat-app   | Secret version uploaded by hush-test-user.      | today at 9:26 AM | 2       |
+out| | hush-legacy-4.1.0 | Stored by Hush! 4.1.0.                          | 11/02/2025       | 2       |
+out| | hush-legacy-2.0   | Stored by Hush! 2.0.                            | 06/30/2024       | 1       |
+out| | hush-legacy-2.1   | Legacy version of Hush! secret before messages. | today at 9:26 AM | 2       |
+out| | hush-compat-other | Other secret                                    | today at 9:26 AM | 1       |
+out| | hush-broken       | Can't be read: unknown or invalid format        | -                | -       |
+out| +-------------------+-------------------------------------------------+------------------+---------+
+
+### setup: remove hush-broken
+
+=== 23 $ hush grant compat-app jane.doe
+exit code: 0
+out| Hush! 🤫 — Grant
+out|
+out| Access to secret hush-compat-app successfully granted to user arn:aws:iam::123456789012:user/jane.doe.
+--- secret hush-compat-app
+SecretString: {"message":"Secret version uploaded by hush-test-user.","version":7,"secrets":[{"key":"API_TOKEN","value":"made-up-token-789"},{"key":"GREETING","value":"Hello, World"}],"updated_at":"2026-03-14T09:26:53.000Z"}
+ResourcePolicy: {"Statement":[{"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::123456789012:user/jane.doe"},"Action":["secretsmanager:*"],"Resource":["*"]}],"Version":"2012-10-17"}
+scheduled for deletion: no
+
+=== 24 $ hush grant compat-app arn:aws:iam::123456789012:user/max.mustermann
+exit code: 0
+out| Hush! 🤫 — Grant
+out|
+out| Access to secret hush-compat-app successfully granted to user arn:aws:iam::123456789012:user/max.mustermann.
+--- secret hush-compat-app
+SecretString: {"message":"Secret version uploaded by hush-test-user.","version":7,"secrets":[{"key":"API_TOKEN","value":"made-up-token-789"},{"key":"GREETING","value":"Hello, World"}],"updated_at":"2026-03-14T09:26:53.000Z"}
+ResourcePolicy: {"Statement":[{"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::123456789012:user/jane.doe"},"Action":["secretsmanager:*"],"Resource":["*"]},{"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::123456789012:user/max.mustermann"},"Action":["secretsmanager:*"],"Resource":["*"]}],"Version":"2012-10-17"}
+scheduled for deletion: no
+
+=== 25 $ hush grant compat-app jane.doe
+exit code: 0
+out| Hush! 🤫 — Grant
+out|
+out| User arn:aws:iam::123456789012:user/jane.doe already has access to secret hush-compat-app.
+
+=== 26 $ hush revoke compat-app jane.doe
+exit code: 0
+out| Hush! 🤫 — Grant
+out|
+out| Access to secret hush-compat-app successfully revoked for user arn:aws:iam::123456789012:user/jane.doe.
+--- secret hush-compat-app
+SecretString: {"message":"Secret version uploaded by hush-test-user.","version":7,"secrets":[{"key":"API_TOKEN","value":"made-up-token-789"},{"key":"GREETING","value":"Hello, World"}],"updated_at":"2026-03-14T09:26:53.000Z"}
+ResourcePolicy: {"Statement":[{"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::123456789012:user/max.mustermann"},"Action":["secretsmanager:*"],"Resource":["*"]}],"Version":"2012-10-17"}
+scheduled for deletion: no
+
+=== 27 $ hush revoke compat-app jane.doe
+exit code: 1
+out| Hush! 🤫 — Grant
+out|
+err| 🙈 Error! — User arn:aws:iam::123456789012:user/jane.doe does not have access to secret hush-compat-app. Access could not be revoked.
+
+=== 28 $ hush cat missing
+exit code: 1
+out| Hush! 🤫 — Cat
+out|
+err| 🙈 Error! — AWS SecretManager could not find hush-missing. Are you sure it exists and you have read access?
+
+=== 29 $ hush pull missing .env.missing
+exit code: 1
+out| Hush! 🤫 — Pull
+out|
+err| 🙈 Error! — AWS SecretManager could not find hush-missing. Are you sure it exists and you have read access?
+
+=== 30 $ hush grant missing jane.doe
+exit code: 1
+out| Hush! 🤫 — Grant
+out|
+err| 🙈 Error! — Could not find secret hush-missing.
+
+=== 31 $ hush delete missing
+exit code: 1
+out| Hush! 🤫 — Delete
+out|
+err| 🙈 Error! — Secret with key hush-missing could not be deleted because it was not found.
+
+=== 32 $ hush delete compat-app
+exit code: 0
+out| Hush! 🤫 — Delete
+out|
+out| Done! Your secret hush-compat-app was successfully scheduled for deletion at 2026-04-13 09:01:53
+--- secret hush-compat-app
+SecretString: {"message":"Secret version uploaded by hush-test-user.","version":7,"secrets":[{"key":"API_TOKEN","value":"made-up-token-789"},{"key":"GREETING","value":"Hello, World"}],"updated_at":"2026-03-14T09:26:53.000Z"}
+ResourcePolicy: {"Statement":[{"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::123456789012:user/max.mustermann"},"Action":["secretsmanager:*"],"Resource":["*"]}],"Version":"2012-10-17"}
+scheduled for deletion: 2026-04-13T09:26:53.000Z
+--- file .hushrc.json
+{
+  "hush-legacy-4.1.0": {
+    "version": 3
+  },
+  "hush-legacy-2.0": {
+    "version": 0
+  },
+  "hush-legacy-2.1": {
+    "version": 0
+  },
+  "hush-compat-other": {
+    "version": 0
+  }
+}
+
+=== 33 $ hush cat compat-app
+exit code: 1
+out| Hush! 🤫 — Cat
+out|
+err| 🙈 Error! — You can't perform this operation on the secret because it was marked for deletion.
+
+=== 34 $ hush list
+exit code: 0
+out| Hush! 🤫 — List
+out|
+out| +-------------------+-------------------------------------------------+------------------+---------+
+out| | Name              | Message                                         | Updated at       | Secrets |
+out| +-------------------+-------------------------------------------------+------------------+---------+
+out| | hush-legacy-4.1.0 | Stored by Hush! 4.1.0.                          | 11/02/2025       | 2       |
+out| | hush-legacy-2.0   | Stored by Hush! 2.0.                            | 06/30/2024       | 1       |
+out| | hush-legacy-2.1   | Legacy version of Hush! secret before messages. | today at 9:26 AM | 2       |
+out| | hush-compat-other | Other secret                                    | today at 9:26 AM | 1       |
+out| +-------------------+-------------------------------------------------+------------------+---------+
+
+=== 35 $ hush delete compat-other --force
+exit code: 0
+out| Hush! 🤫 — Delete
+out|
+out| Done! Your secret hush-compat-other was successfully deleted.
+--- secret hush-compat-other
+<removed>
+--- file .hushrc.json
+{
+  "hush-legacy-4.1.0": {
+    "version": 3
+  },
+  "hush-legacy-2.0": {
+    "version": 0
+  },
+  "hush-legacy-2.1": {
+    "version": 0
+  }
+}
+
+=== 36 $ hush list
+exit code: 0
+out| Hush! 🤫 — List
+out|
+out| +-------------------+-------------------------------------------------+------------------+---------+
+out| | Name              | Message                                         | Updated at       | Secrets |
+out| +-------------------+-------------------------------------------------+------------------+---------+
+out| | hush-legacy-4.1.0 | Stored by Hush! 4.1.0.                          | 11/02/2025       | 2       |
+out| | hush-legacy-2.0   | Stored by Hush! 2.0.                            | 06/30/2024       | 1       |
+out| | hush-legacy-2.1   | Legacy version of Hush! secret before messages. | today at 9:26 AM | 2       |
+out| +-------------------+-------------------------------------------------+------------------+---------+
+
+AWS regions used: eu-central-1

@@ -34,5 +34,30 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  {
+    // Commands talk to a backend only through the backend interface
+    // (src/backends/SecretBackend.ts) and know no cloud library.
+    files: ["src/commands/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@aws-sdk/*",
+                "@azure/*",
+                "@thinkinglabs/aws-iam-policy",
+                "**/requests/*",
+                "**/backends/aws/*",
+              ],
+              message:
+                "Commands must use the backend interface (src/backends/SecretBackend.ts), not a cloud library or a backend implementation.",
+            },
+          ],
+        },
+      ],
+    },
   }
 );
