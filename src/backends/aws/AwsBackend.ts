@@ -39,6 +39,10 @@ class AwsBackend implements SecretBackend {
     this.region = options.region ?? DEFAULT_AWS_REGION;
   }
 
+  public get location(): string {
+    return `AWS ${this.region}`;
+  }
+
   /**
    * As in 4.1.0, Hush! needs a selected AWS profile. Checked only when a
    * command uses this backend, so the help runs without one.

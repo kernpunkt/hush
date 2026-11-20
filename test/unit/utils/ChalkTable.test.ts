@@ -20,10 +20,10 @@ describe("chalkTable", () => {
     });
 
     it("draws the title as the first row, as wide as the table", () => {
-        const table = stripAnsi(chalkTable({ title: "Region: main", columns: structuredClone(columns) }, rows));
+        const table = stripAnsi(chalkTable({ title: "Backend: main", columns: structuredClone(columns) }, rows));
         expect(table.split("\n")).toEqual([
             "+----------------------+",
-            "| Region: main         |",
+            "| Backend: main        |",
             "+--------------+-------+",
             "| Name         | Count |",
             "+--------------+-------+",
@@ -33,10 +33,10 @@ describe("chalkTable", () => {
     });
 
     it("widens the last column for a title wider than the table", () => {
-        const title = "Region: a-rather-long-example-name";
+        const title = "Backend: a-rather-long-example-name";
         const lines = stripAnsi(chalkTable({ title, columns: structuredClone(columns) }, rows)).split("\n");
         expect(lines[1]).toBe(`| ${title} |`);
         expect(new Set(lines.map((line) => line.length))).toEqual(new Set([title.length + 4]));
-        expect(lines[2]).toBe("+--------------+---------------------+");
+        expect(lines[2]).toBe("+--------------+----------------------+");
     });
 });

@@ -205,9 +205,9 @@ describe("AC-F03-4: list with several backends", () => {
     /** The text of a line without the table border around it. */
     const unframed = (line: string): string => line.replace(/^\| (.*?) *\|$/, "$1").trimEnd();
 
-    /** The index of the line with the title "Region: <name>", in a table or not. */
+    /** The index of the line with the title "Backend: <name>[ (<location>)]", in a table or not. */
     const headingLine = (lines: string[], name: string): number =>
-        lines.findIndex((line) => unframed(line) === `Region: ${name}`);
+        lines.findIndex((line) => unframed(line).replace(/ \(.*\)$/, "") === `Backend: ${name}`);
 
     /** The lines from the heading of backend `name` up to the next blank line. */
     const section = (output: string, name: string): string => {
@@ -231,6 +231,9 @@ describe("AC-F03-4: list with several backends", () => {
         const lines = run.output.split("\n");
         expect(headingLine(lines, "frankfurt")).toBeGreaterThanOrEqual(0);
         expect(headingLine(lines, "frankfurt")).toBeLessThan(headingLine(lines, "ireland"));
+        // The title names the backend and its AWS region.
+        expect(lines[headingLine(lines, "frankfurt")]).toMatch(/^\| Backend: frankfurt \(AWS eu-central-1\) +\|$/);
+        expect(lines[headingLine(lines, "ireland")]).toMatch(/^\| Backend: ireland \(AWS eu-west-1\) +\|$/);
         // The title is the first row inside the table's border.
         const title = headingLine(lines, "frankfurt");
         expect(lines[title - 1]).toMatch(/^\+-+\+$/);
@@ -256,7 +259,7 @@ describe("AC-F03-4: list with several backends", () => {
 
         expect(withoutConfig.exitCode).toBe(0);
         expect(withConfig).toEqual(withoutConfig);
-        expect(withConfig.output).not.toContain("Region:");
+        expect(withConfig.output).not.toContain("Backend:");
     });
 
     it("shows the other table when one backend fails, names the reason and ends with 1", async () => {
@@ -309,7 +312,7 @@ describe("AC-F03-4: list with several backends", () => {
 
         // runHush strips ANSI codes, so an unescaped ESC[2J would vanish here.
         expect(run.exitCode, run.output).toBe(0);
-        expect(run.output.split("\n").map(unframed)).toContain("Region: evil\\u001b[2J");
+        expect(run.output.split("\n").map(unframed)).toContain("Backend: evil\\u001b[2J");
     });
 
     it("lists a backend that can't start as failed, without calling AWS (no AWS_PROFILE)", async () => {

@@ -36,6 +36,13 @@ interface SecretBackend {
   readonly displayName: string;
 
   /**
+   * Where this backend keeps its entries, in a few words, e.g.
+   * "AWS eu-central-1". Shown next to the backend's name in `list`.
+   * Optional: without it, only the name is shown.
+   */
+  readonly location?: string;
+
+  /**
    * Reads the current value of an entry.
    *
    * Resolves to undefined if the entry exists but holds no text value.
