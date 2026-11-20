@@ -1,7 +1,6 @@
 import SecretBackend from "./SecretBackend.js";
 import AwsBackend from "./aws/AwsBackend.js";
 import { isAwsRegion } from "./aws/awsRegion.js";
-import { DEFAULT_AWS_REGION } from "./aws/requests/BaseRequest.js";
 
 /** The settings of one backend in the project setting, by type. */
 export type AwsBackendSettings = {
@@ -44,12 +43,16 @@ export const BACKEND_TYPES: Record<BackendType, BackendTypeDefinition> = {
   "aws-secrets-manager": {
     required: [],
     optional: ["region"],
-    checkValues: (settings) =>
-      settings.region === undefined || isAwsRegion(settings.region)
+    checkValues: (settings) => {
+      const { region } = settings as AwsBackendSettings;
+      return region === undefined || isAwsRegion(region)
         ? undefined
-        : { field: "region", problem: "must be an AWS region like eu-west-1." },
-    store: (settings) => `AWS ${settings.region ?? DEFAULT_AWS_REGION}`,
-    create: (settings) => new AwsBackend({ region: settings.region }),
+        : { field: "region", problem: "must be an AWS region like eu-west-1." };
+    },
+    store: (settings) =>
+      AwsBackend.locationOf((settings as AwsBackendSettings).region),
+    create: (settings) =>
+      new AwsBackend({ region: (settings as AwsBackendSettings).region }),
   },
 };
 

@@ -39,8 +39,16 @@ class AwsBackend implements SecretBackend {
     this.region = options.region ?? DEFAULT_AWS_REGION;
   }
 
+  /**
+   * The location of an AWS backend in `region`, e.g. "AWS eu-central-1":
+   * the `list` heading and the store the project setting compares.
+   */
+  public static locationOf(region?: string): string {
+    return `AWS ${region ?? DEFAULT_AWS_REGION}`;
+  }
+
   public get location(): string {
-    return `AWS ${this.region}`;
+    return AwsBackend.locationOf(this.region);
   }
 
   /**

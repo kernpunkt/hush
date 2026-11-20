@@ -110,16 +110,20 @@ const checkBackend = (name: string, value: unknown): BackendSettings => {
   return settings;
 };
 
-/** Fails on the first backend that uses the same store as an earlier one. */
+/**
+ * Fails if two backends use the same store, naming both. Which of the two is
+ * the field depends on the order of Object.entries, which puts whole-number
+ * names first; the order in the file is lost after JSON.parse.
+ */
 const rejectSameStore = (backends: Record<string, BackendSettings>): void => {
   const names = new Map<string, string>();
   for (const [name, settings] of Object.entries(backends)) {
     const store = BACKEND_TYPES[settings.type].store(settings);
     const id = `${settings.type}\0${store}`;
-    const earlier = names.get(id);
-    if (earlier !== undefined) {
+    const other = names.get(id);
+    if (other !== undefined) {
       fail(
-        `uses the same store as backends.${earlier} (${store}). Give every store one name.`,
+        `uses the same store as backends.${other} (${store}). Give every store one name.`,
         `backends.${name}`
       );
     }
