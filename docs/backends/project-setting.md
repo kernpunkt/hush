@@ -58,7 +58,13 @@ The AWS backend uses the profile from `AWS_PROFILE`, as without a project settin
 
 ## Every key has exactly one backend
 
-A key belongs to the backend that `keys` names for it, otherwise to the `default` backend. Hush! never looks for a key in a second backend. If you move a key to another backend in `keys`, the secret doesn't move with it: push it again from your `.env` file, and delete the old one with the previous setting if you no longer need it.
+A key belongs to the backend that `keys` names for it, otherwise to the `default` backend. Hush! never looks for a key in a second backend. If you move a key to another backend in `keys`, the secret doesn't move with it. To move it, for example `shop-prod`:
+
+1. With the previous setting, run `hush pull shop-prod .env`, so your `.env` file holds the newest version.
+2. If you no longer need the old secret, delete it now, still with the previous setting: `hush delete shop-prod`.
+3. Move the key in `keys` and run `hush push shop-prod .env`. This creates the secret in the new backend.
+
+Delete the old secret **before** you push to the new backend, not afterwards. `.hushrc.json` keeps one version per key, not per backend, and `hush delete` removes it. A delete after the push removes the version of the new secret, and Hush! then refuses the next push to it.
 
 ## `list` with several backends
 

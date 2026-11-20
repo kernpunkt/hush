@@ -76,10 +76,13 @@ const checkBackend = (name: string, value: unknown): BackendSettings => {
   }
   const type = value.type;
   if (!isBackendType(type)) {
+    // Only a string is repeated: another value could be a whole object.
+    const problem =
+      typeof type === "string"
+        ? `unknown type ${JSON.stringify(type)}.`
+        : "must be a string.";
     return fail(
-      `unknown type ${JSON.stringify(type)}. Known types: ${Object.keys(
-        BACKEND_TYPES
-      ).join(", ")}.`,
+      `${problem} Known types: ${Object.keys(BACKEND_TYPES).join(", ")}.`,
       `${at}.type`
     );
   }
@@ -193,8 +196,17 @@ export function loadProjectConfig(): ProjectConfig | undefined {
   try {
     content = JSON.parse(text);
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return fail(`is not valid JSON: ${reason}`);
+    // Not the original message: JSON.parse quotes part of the file. Only its
+    // line and column, if it has them, are passed on.
+    const position =
+      error instanceof Error
+        ? /\(line (\d+) column (\d+)\)/.exec(error.message)
+        : null;
+    return fail(
+      position
+        ? `is not valid JSON at line ${position[1]}, column ${position[2]}.`
+        : "is not valid JSON."
+    );
   }
 
   return parseProjectConfig(content);

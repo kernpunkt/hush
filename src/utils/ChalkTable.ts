@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import stringWidth from "string-width";
 
 /**
  * This file is a crutch to implement the node package "chalk-table", since it's not properly importable in Typescript.
@@ -95,8 +96,9 @@ function chalkTable(options: any, data: any) {
   );
 
   // An optional title row above the column names, as wide as the table.
+  // Measured in terminal columns: an emoji or a CJK character takes two.
   const titleWidth =
-    options.title === undefined ? 0 : stripAnsi(options.title).length;
+    options.title === undefined ? 0 : stringWidth(options.title);
   const innerWidth = () =>
     columns.reduce((sum: number, e: any) => sum + e.width, 0) +
     3 * (columns.length - 1);
@@ -113,7 +115,9 @@ function chalkTable(options: any, data: any) {
 
   if (options.title !== undefined) {
     output.push(`-+${"-".repeat(innerWidth() + 2)}+-`);
-    output.push(` | ${pad(options.title, innerWidth())} | `);
+    output.push(
+      ` | ${options.title}${" ".repeat(innerWidth() - titleWidth)} | `
+    );
   }
   output.push(separator);
   output.push(

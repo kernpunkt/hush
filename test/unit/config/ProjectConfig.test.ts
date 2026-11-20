@@ -59,6 +59,11 @@ describe("parseProjectConfig", () => {
             'hush.config.json, field backends.main.type: unknown type "floppy-disk".',
         ],
         [
+            "type not a string, without repeating it",
+            { backends: { main: { type: { secretAccessKey: "example-secret-key-1" } } }, default: "main" },
+            "hush.config.json, field backends.main.type: must be a string. Known types: aws-secrets-manager.",
+        ],
+        [
             "type of the in-memory test backend",
             { backends: { main: { type: "in-memory" } }, default: "main" },
             "hush.config.json, field backends.main.type: unknown type",
@@ -198,12 +203,24 @@ describe("loadProjectConfig", () => {
 
     it("AC-F03-2: rejects a file that is not valid JSON", () => {
         writeFileSync("hush.config.json", '{"backends": {');
-        expect(errorOf(() => loadProjectConfig())).toMatch(/^hush\.config\.json: is not valid JSON: /);
+        expect(errorOf(() => loadProjectConfig())).toMatch(/^hush\.config\.json: is not valid JSON/);
     });
 
     it("AC-F03-2: rejects an empty file", () => {
         writeFileSync("hush.config.json", "");
-        expect(errorOf(() => loadProjectConfig())).toMatch(/^hush\.config\.json: is not valid JSON: /);
+        expect(errorOf(() => loadProjectConfig())).toBe("hush.config.json: is not valid JSON.");
+    });
+
+    it("names line and column of a JSON mistake where JSON.parse knows them", () => {
+        writeFileSync("hush.config.json", '{\n  "backends": {}\n  "default": "main"\n}');
+        expect(errorOf(() => loadProjectConfig())).toBe("hush.config.json: is not valid JSON at line 3, column 3.");
+    });
+
+    it("doesn't repeat the file's text for invalid JSON", () => {
+        writeFileSync("hush.config.json", '{"accessKey": EXAMPLEACCESSKEY1}');
+        const message = errorOf(() => loadProjectConfig());
+        expect(message).toBe("hush.config.json: is not valid JSON.");
+        expect(message).not.toMatch(/accessKey|EXAMPLE/);
     });
 
     it("rejects a hush.config.json that can't be read", () => {
