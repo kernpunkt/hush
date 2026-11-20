@@ -165,6 +165,50 @@ describe("parseProjectConfig", () => {
         expect(error).not.toMatch(/[\u0000-\u001f\u007f-\u009f]/);
     });
 
+    it.each(["eu-west-1", "us-east-1", "us-gov-west-1", "ap-southeast-5", "eu-isoe-west-1"])(
+        "accepts the region %s",
+        (region) => {
+            const content = { backends: { main: { type: "aws-secrets-manager", region } }, default: "main" };
+            expect(parseProjectConfig(content)).toEqual(content);
+        }
+    );
+
+    it.each(["eu-west1", "euwest-1", "eu-west-l", "EU-WEST-1", "eu-west-1 ", "Frankfurt"])(
+        "rejects the region %j without repeating it",
+        (region) => {
+            const content = { backends: { main: { type: "aws-secrets-manager", region } }, default: "main" };
+            const error = errorOf(() => parseProjectConfig(content));
+            expect(error).toBe(
+                "hush.config.json, field backends.main.region: must be an AWS region like eu-west-1."
+            );
+        }
+    );
+
+    it.each([
+        ["without a region twice", { a: aws, b: aws }, "backends.b", "backends.a (AWS eu-central-1)"],
+        [
+            "with eu-central-1 and without a region",
+            { a: aws, b: { type: "aws-secrets-manager", region: "eu-central-1" } },
+            "backends.b",
+            "backends.a (AWS eu-central-1)",
+        ],
+        [
+            "with the same region, not next to each other",
+            {
+                ireland: { type: "aws-secrets-manager", region: "eu-west-1" },
+                frankfurt: aws,
+                dublin: { type: "aws-secrets-manager", region: "eu-west-1" },
+            },
+            "backends.dublin",
+            "backends.ireland (AWS eu-west-1)",
+        ],
+    ])("rejects two AWS backends %s", (_, backends, field, earlier) => {
+        const error = errorOf(() => parseProjectConfig({ backends, default: Object.keys(backends)[0] }));
+        expect(error).toBe(
+            `hush.config.json, field ${field}: uses the same store as ${earlier}. Give every store one name.`
+        );
+    });
+
     it("keeps a backend named __proto__ an ordinary backend", () => {
         const content = JSON.parse('{"backends":{"__proto__":{"type":"aws-secrets-manager"}},"default":"__proto__"}');
         const config = parseProjectConfig(content);

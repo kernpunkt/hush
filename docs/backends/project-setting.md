@@ -50,9 +50,9 @@ Each backend type has its own fields besides `type`:
 
 **`aws-secrets-manager`**
 
-| Field    | Required | What it is                                                                                      |
-| -------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `region` | no       | The AWS region of the Secrets Manager, e.g. `eu-west-1`. Without it, Hush! uses `eu-central-1`. |
+| Field    | Required | What it is                                                                                                                                                            |
+| -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `region` | no       | The AWS region of the Secrets Manager, e.g. `eu-west-1`. Without it, Hush! uses `eu-central-1`. A value that doesn't look like a region, like `eu-west1`, is refused. |
 
 The AWS backend uses the profile from `AWS_PROFILE`, as without a project setting. Credentials never go into `hush.config.json`.
 
@@ -83,5 +83,7 @@ Hush! 🤫 — Error: hush.config.json, field backends.ireland.region: must be a
 ```
 
 - A file that isn't valid JSON, a missing `backends` or `default`, an unknown `type` and a name in `default` or `keys` that isn't in `backends` are all mistakes.
+- A `region` that doesn't have the shape of an AWS region (two letters, words and a number, like `eu-west-1` or `us-gov-west-1`) is a mistake. Hush! checks the shape, not a list of regions, so a new AWS region works right away.
+- **Every store has one name.** Two backends that point to the same store, like two AWS backends in the same region, are a mistake; a backend without `region` counts as `eu-central-1`. Otherwise `list` would show the same secrets twice.
 - **Fields Hush! doesn't know are mistakes too**, at the top level and in a backend. This keeps credentials out of the file: a field like `secretAccessKey` is refused, and Hush! doesn't repeat its value in the message.
 - `hush --help` still works with a broken file, so you can look up the commands while you fix it.
