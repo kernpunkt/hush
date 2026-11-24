@@ -24,7 +24,9 @@ class DeleteCommand extends BaseCommand {
       force: this.force,
     });
 
-    this.versionManager.removeVersionFromFile(this.getKey());
+    this.versionManager.removeVersionFromFile(
+      VersionManager.versionName(this.getKey(), this.backend)
+    );
 
     const dateObject = result.deletionDate;
 

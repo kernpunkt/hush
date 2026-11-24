@@ -61,10 +61,10 @@ The AWS backend uses the profile from `AWS_PROFILE`, as without a project settin
 A key belongs to the backend that `keys` names for it, otherwise to the `default` backend. Hush! never looks for a key in a second backend. If you move a key to another backend in `keys`, the secret doesn't move with it. To move it, for example `shop-prod`:
 
 1. With the previous setting, run `hush pull shop-prod .env`, so your `.env` file holds the newest version.
-2. If you no longer need the old secret, delete it now, still with the previous setting: `hush delete shop-prod`.
-3. Move the key in `keys` and run `hush push shop-prod .env`. This creates the secret in the new backend.
+2. Move the key in `keys` and run `hush push shop-prod .env`. This creates the secret in the new backend.
+3. If you no longer need the old secret, delete it with the previous setting: `hush delete shop-prod`.
 
-Delete the old secret **before** you push to the new backend, not afterwards. `.hushrc.json` keeps one version per key, not per backend, and `hush delete` removes it. A delete after the push removes the version of the new secret, and Hush! then refuses the next push to it.
+`.hushrc.json` keeps the version of a key **per store**, so the old and the new secret don't share a version, and deleting one doesn't touch the version of the other. Keys in the default AWS store (`eu-central-1`) keep the entry name they had in Hush! 4.1.0, like `hush-shop-dev`. Keys in any other store get the store added, like `hush-shop-prod@AWS eu-west-1`. See [Version control](/getting-started/version-control).
 
 ## `list` with several backends
 

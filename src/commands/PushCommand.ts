@@ -80,7 +80,7 @@ class PushCommand extends BaseCommand {
 
     if (!this.force) {
       const isVersionValid = this.versionManager.checkVersion(
-        this.getKey(),
+        VersionManager.versionName(this.getKey(), this.backend),
         currentVersion
       );
       if (!isVersionValid) {
@@ -95,7 +95,10 @@ class PushCommand extends BaseCommand {
     const secretString = new SecretPayloadManager().toSecretString(payload);
     const result = await this.backend.write(this.getKey(), secretString);
 
-    this.versionManager.updateVersionsFile(this.getKey(), newVersion);
+    this.versionManager.updateVersionsFile(
+      VersionManager.versionName(this.getKey(), this.backend),
+      newVersion
+    );
 
     if (result === "updated") {
       return `

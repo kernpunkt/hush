@@ -3,6 +3,7 @@ import VersionManager from "../../../src/utils/VersionManager";
 import GetSecretValueRequest from "../../../src/backends/aws/requests/GetSecretValueRequest";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
 import AwsBackend from "../../../src/backends/aws/AwsBackend";
+import SecretBackend from "../../../src/backends/SecretBackend";
 
 // Mock console methods to prevent output during tests
 const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -437,5 +438,24 @@ describe("VersionManager", () => {
       }
     });
   });
-});
 
+  describe("versionName", () => {
+    it("keeps the 4.1.0 name for the default store, AWS eu-central-1", () => {
+      expect(VersionManager.versionName("hush-shop", new AwsBackend())).toBe("hush-shop");
+      expect(
+        VersionManager.versionName("hush-shop", new AwsBackend({ region: "eu-central-1" }))
+      ).toBe("hush-shop");
+    });
+
+    it("adds the store for every other store", () => {
+      expect(
+        VersionManager.versionName("hush-shop", new AwsBackend({ region: "eu-west-1" }))
+      ).toBe("hush-shop@AWS eu-west-1");
+    });
+
+    it("uses the backend's name for a backend without a location", () => {
+      const backend = { displayName: "Example store" } as SecretBackend;
+      expect(VersionManager.versionName("hush-shop", backend)).toBe("hush-shop@Example store");
+    });
+  });
+});

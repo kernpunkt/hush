@@ -5,12 +5,30 @@ import VersionEntry from "../@types/VersionEntry.js";
 import SecretPayloadManager from "./SecretPayloadManager.js";
 import SecretBackend from "../backends/SecretBackend.js";
 import { isBackendError } from "../backends/BackendError.js";
+import defaultBackend from "../backends/defaultBackend.js";
 
 /**
  * Manages version control for secrets through the .hushrc.json file
  */
 class VersionManager {
   private static readonly VERSION_FILE = ".hushrc.json";
+
+  /**
+   * The name of an entry's version in .hushrc.json. Versions are kept per
+   * store, so a key that moves to another backend doesn't share a version
+   * with its old copy. Entries in the store of Hush! 4.1.0 (the default
+   * backend, AWS eu-central-1) keep the 4.1.0 name, e.g. "hush-shop-dev";
+   * entries elsewhere get the store, e.g. "hush-shop-prod@AWS eu-west-1".
+   * AWS secret names can't contain spaces, so the two never collide.
+   *
+   * @param {string} name - The entry name, e.g. "hush-shop-prod"
+   * @param {SecretBackend} backend - The backend that stores the entry
+   * @returns {string} - The name of the version in .hushrc.json
+   */
+  public static versionName(name: string, backend: SecretBackend): string {
+    const store = backend.location ?? backend.displayName;
+    return store === defaultBackend().location ? name : `${name}@${store}`;
+  }
 
   /**
    * Check if current version is <= stored version in .hushrc.json and warn if so.

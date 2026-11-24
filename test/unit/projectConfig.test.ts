@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
 import {
@@ -121,6 +121,61 @@ describe("AC-F03-1: the backend per key", () => {
                 args[0] === "grant" || args[0] === "revoke" ? [region] : []
             );
         }
+    });
+});
+
+describe("versions in .hushrc.json, kept per store", () => {
+    /** An in-memory backend that names its store like an AWS backend. */
+    class StoreBackend extends InMemoryBackend {
+        constructor(public readonly location: string) {
+            super();
+        }
+    }
+
+    const hushrc = () => JSON.parse(readFileSync(path.join(workDir, ".hushrc.json"), "utf8"));
+
+    it("keeps the 4.1.0 name in the default store and adds the store elsewhere", async () => {
+        const frankfurt = new StoreBackend("AWS eu-central-1");
+        const ireland = new StoreBackend("AWS eu-west-1");
+        const project = new ProjectBackends(
+            [
+                { name: "frankfurt", backend: frankfurt },
+                { name: "ireland", backend: ireland },
+            ],
+            "frankfurt",
+            { "shop-prod": "ireland" }
+        );
+
+        expect((await runHush(["push", "shop-dev", ".env"], project)).exitCode).toBe(0);
+        expect((await runHush(["push", "shop-prod", ".env"], project)).exitCode).toBe(0);
+
+        expect(hushrc()).toEqual({
+            // A first push stores version 0, as in 4.1.0.
+            "hush-shop-dev": { version: 0 },
+            "hush-shop-prod@AWS eu-west-1": { version: 0 },
+        });
+    });
+
+    it("lets a moved key be pushed again after its old copy is deleted", async () => {
+        const frankfurt = new StoreBackend("AWS eu-central-1");
+        const ireland = new StoreBackend("AWS eu-west-1");
+        const backends = [
+            { name: "frankfurt", backend: frankfurt },
+            { name: "ireland", backend: ireland },
+        ];
+        const before = new ProjectBackends(backends, "frankfurt");
+        const after = new ProjectBackends(backends, "frankfurt", { "shop-prod": "ireland" });
+
+        expect((await runHush(["push", "shop-prod", ".env"], before)).exitCode).toBe(0);
+        expect((await runHush(["push", "shop-prod", ".env"], after)).exitCode).toBe(0);
+        // The old copy is deleted after the push to the new store: the order
+        // the docs used to warn against.
+        expect((await runHush(["delete", "shop-prod"], before)).exitCode).toBe(0);
+        const push = await runHush(["push", "shop-prod", ".env"], after);
+
+        expect(push.exitCode, push.output).toBe(0);
+        expect(push.output).not.toContain("Remote version");
+        expect(hushrc()).toEqual({ "hush-shop-prod@AWS eu-west-1": { version: 1 } });
     });
 });
 

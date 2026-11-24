@@ -78,7 +78,7 @@ class PullCommand extends BaseCommand {
     writeFileSync(filename, secretLines.join("\n"));
 
     this.versionManager.updateVersionsFile(
-      this.getKey(),
+      VersionManager.versionName(this.getKey(), this.backend),
       secretPayload.version
     );
 
