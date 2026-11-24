@@ -1,3 +1,31 @@
+## [4.2.0](https://github.com/kernpunkt/hush/compare/v4.1.0...v4.2.0) (2026-11-24)
+
+### Features
+
+- check AWS regions and refuse two backends for one store ([e359d8d](https://github.com/kernpunkt/hush/commit/e359d8d2cc310cb4f5c875301e56a08348dcc15e))
+- keep .hushrc.json versions per store ([bf68236](https://github.com/kernpunkt/hush/commit/bf68236de6b0aea4910102b8b1d0bcec6121abec))
+- let commands talk to backends only through the backend interface ([bd752e7](https://github.com/kernpunkt/hush/commit/bd752e7e9c85201db0cd4c6ffdea49ebbe995941))
+- pick the backend per key from hush.config.json ([9adbfaf](https://github.com/kernpunkt/hush/commit/9adbfaff30084b174ba660cd291fa4577ca5464f))
+- run the AWS backend in a configurable region and check the profile only when it is used ([4e9dec1](https://github.com/kernpunkt/hush/commit/4e9dec162d66b5319ae628cde0579d6562750929))
+- title backend tables "Backend: <name> (<location>)" instead of "Region:" ([6735120](https://github.com/kernpunkt/hush/commit/67351208000ddd2dd41c7b126364027ce371b2f5))
+- title each backend table in list with "Region: <name>" ([ab2a7cb](https://github.com/kernpunkt/hush/commit/ab2a7cb4e9b04932e121dda57d04f5917aa0836a))
+
+### Bug Fixes
+
+- address loop-review round 1 ([f08aba0](https://github.com/kernpunkt/hush/commit/f08aba052d2a53a61f2dd61ffbbac9523cb16385))
+- address loop-review round 1 ([d23a467](https://github.com/kernpunkt/hush/commit/d23a467ae76658736f03e0a7ef776aa3631f7d1b))
+- address loop-review round 1 ([53d83f7](https://github.com/kernpunkt/hush/commit/53d83f7abb2acf23addc1a4ece8120e52a9a62de))
+- address loop-review round 1 ([8f7dd1f](https://github.com/kernpunkt/hush/commit/8f7dd1f3c459045e45397e64c27ad1328c907b81))
+- address loop-review round 1 ([6c31a8d](https://github.com/kernpunkt/hush/commit/6c31a8d058b5fb9acad425be23ab763a46617cfc))
+- address loop-review round 1 ([9d34d9e](https://github.com/kernpunkt/hush/commit/9d34d9e7162850aae77ba9044bc179f9f6a28647))
+- address loop-review round 2 ([d78aa00](https://github.com/kernpunkt/hush/commit/d78aa000f1fb9f1836a730f481fe6f0caf696054))
+- address review comments by DenFin on [#49](https://github.com/kernpunkt/hush/issues/49) ([9146bd7](https://github.com/kernpunkt/hush/commit/9146bd7679b9de28e6bd232fe8b98aa4724f985c))
+- name key and store apart in version warnings ([dfb5a21](https://github.com/kernpunkt/hush/commit/dfb5a21aff849cce82f5a1f581d1b6e78679478f))
+
+### Performance Improvements
+
+- share one AWS client per backend ([8c73294](https://github.com/kernpunkt/hush/commit/8c73294f43c439f9a98256bc77549a4e396689fe))
+
 ## [4.1.0](https://github.com/kernpunkt/hush/compare/v4.0.2...v4.1.0) (2026-10-19)
 
 ### Features
