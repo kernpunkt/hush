@@ -8,6 +8,7 @@ import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
 import { userInfo } from "os";
 import VersionManager from "../../../src/utils/VersionManager";
 import { UnknownSecretFormatError } from "../../../src/utils/SecretPayloadManager";
+import { ResourceNotFoundException } from "@aws-sdk/client-secrets-manager";
 
 // Mock the request modules
 const mockPutExecute = vi.hoisted(() => vi.fn());
@@ -116,7 +117,9 @@ describe("PushCommand", () => {
             const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: true });
             command.setLineReader(new MockLineReader());
 
-            mockPutExecute.mockRejectedValueOnce(new Error(""));
+            mockPutExecute.mockRejectedValueOnce(
+                new ResourceNotFoundException({ message: "Secrets Manager can't find the specified secret.", $metadata: {} })
+            );
             mockCreateExecute.mockResolvedValue(undefined);
 
             await command.execute();

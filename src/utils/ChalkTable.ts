@@ -114,7 +114,11 @@ function chalkTable(options: any, data: any) {
     .join("-" + options.intersectionCharacter + "-");
 
   if (options.title !== undefined) {
-    output.push(`-+${"-".repeat(innerWidth() + 2)}+-`);
+    output.push(
+      `-${options.intersectionCharacter}${"-".repeat(innerWidth() + 2)}${
+        options.intersectionCharacter
+      }-`
+    );
     output.push(
       ` | ${options.title}${" ".repeat(innerWidth() - titleWidth)} | `
     );

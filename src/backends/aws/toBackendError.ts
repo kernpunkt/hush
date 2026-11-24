@@ -28,6 +28,27 @@ function errorCode(error: unknown): string | undefined {
   return typeof name === "string" ? name : undefined;
 }
 
+/**
+ * The kind of a validation error, decided by the field AWS names, e.g.
+ * "Value at 'name' failed to satisfy constraint: Member must have length less
+ * than or equal to 512". A length limit counts as too large only for the
+ * secret's value; an empty value or a long name is something else.
+ */
+function validationKind(message: string): BackendErrorKind {
+  if (/'(name|secretId)'/i.test(message)) {
+    return "invalidName";
+  }
+  if (/SecretString/i.test(message)) {
+    return /less than or equal|too large|exceeds/i.test(message)
+      ? "tooLarge"
+      : "other";
+  }
+  if (/too large|exceeds/i.test(message)) {
+    return "tooLarge";
+  }
+  return /name/i.test(message) ? "invalidName" : "other";
+}
+
 function kindOf(error: unknown): BackendErrorKind {
   const code = errorCode(error);
   const message = error instanceof Error ? error.message : "";
@@ -42,10 +63,7 @@ function kindOf(error: unknown): BackendErrorKind {
         : "other";
     case "ValidationException":
     case "InvalidParameterException":
-      if (/SecretString|length less than|too large|exceeds/i.test(message)) {
-        return "tooLarge";
-      }
-      return /name/i.test(message) ? "invalidName" : "other";
+      return validationKind(message);
   }
   return code !== undefined && NOT_SIGNED_IN.has(code)
     ? "notSignedIn"

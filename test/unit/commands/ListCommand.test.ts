@@ -199,4 +199,20 @@ describe("ListCommand", () => {
         expect(secretsManagerMock.commandCalls(GetSecretValueCommand)).toHaveLength(0);
         expect(hasErrors).toBe(false);
     });
+
+    it("lists only names that start with hush-, not other secrets that start with hush", async () => {
+        listSecrets("hush-good", "hushed-service-token", "hush");
+        secretsManagerMock
+            .on(GetSecretValueCommand, { SecretId: "hush-good" })
+            .resolves({ SecretString: payload("good message", 1) });
+
+        const { output, hasErrors, row } = await runList();
+
+        expect(row("hush-good")).toMatchObject({ message: "good message", count: "1" });
+        expect(output).not.toContain("hushed-service-token");
+        expect(secretsManagerMock.commandCalls(GetSecretValueCommand).map((call) => call.args[0].input.SecretId)).toEqual([
+            "hush-good",
+        ]);
+        expect(hasErrors).toBe(false);
+    });
 });

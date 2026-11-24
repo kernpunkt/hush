@@ -19,6 +19,10 @@ import PutResourcePolicyRequest from "./requests/PutResourcePolicyRequest.js";
 import findStatementByArn from "../../utils/findStatementByArn.js";
 import removeStatementByArn from "../../utils/removeStatementByArn.js";
 
+/** The 4.1.0 message of grant and revoke for a missing secret. */
+const secretNotFound = (name: string): string =>
+  `Could not find secret ${chalk.bold(name)}.`;
+
 export type AwsBackendOptions = {
   /** The AWS region of the Secrets Manager; eu-central-1 if not given. */
   region?: string;
@@ -88,8 +92,14 @@ class AwsBackend implements SecretBackend {
         SecretString: value,
       });
       return "updated";
-    } catch {
-      // As in 4.1.0: any failed update is retried as a creation.
+    } catch (updateError) {
+      // Only a missing secret is created. Any other failed update (no access,
+      // throttling, ...) is reported as it is; 4.1.0 retried every failure
+      // as a creation and showed "already exists" instead of the reason.
+      const error = toBackendError(updateError);
+      if (error.kind !== "notFound") {
+        throw error;
+      }
       try {
         await new CreateSecretRequest(this.region).execute({
           Name: name,
@@ -104,8 +114,8 @@ class AwsBackend implements SecretBackend {
 
   public async listNames(prefix: string): Promise<string[]> {
     try {
-      const result = await new ListSecretsRequest(this.region).execute();
-      return (result.SecretList ?? [])
+      const secrets = await new ListSecretsRequest(this.region).execute(prefix);
+      return secrets
         .map((secret) => secret.Name)
         .filter(
           (name): name is string =>
@@ -145,9 +155,11 @@ class AwsBackend implements SecretBackend {
       const iamARN = await new GetCallerIdentityRequest(this.region).execute(
         userIdentifier
       );
-      const policy = await new GetResourcePolicyRequest(this.region).execute({
-        SecretId: name,
-      });
+      // An empty mapping keeps the original AWS error, so its kind can be told.
+      const policy = await new GetResourcePolicyRequest(this.region).execute(
+        { SecretId: name },
+        {}
+      );
 
       if (findStatementByArn(policy, iamARN)) {
         return { status: "unchanged", principal: iamARN };
@@ -171,7 +183,7 @@ class AwsBackend implements SecretBackend {
       });
       return { status: "changed", principal: iamARN };
     } catch (error) {
-      throw toBackendError(error);
+      throw toBackendError(error, { notFound: secretNotFound(name) });
     }
   }
 
@@ -183,9 +195,11 @@ class AwsBackend implements SecretBackend {
       const iamARN = await new GetCallerIdentityRequest(this.region).execute(
         userIdentifier
       );
-      const policy = await new GetResourcePolicyRequest(this.region).execute({
-        SecretId: name,
-      });
+      // An empty mapping keeps the original AWS error, so its kind can be told.
+      const policy = await new GetResourcePolicyRequest(this.region).execute(
+        { SecretId: name },
+        {}
+      );
 
       if (!findStatementByArn(policy, iamARN)) {
         return { status: "unchanged", principal: iamARN };
@@ -201,7 +215,7 @@ class AwsBackend implements SecretBackend {
       );
       return { status: "changed", principal: iamARN };
     } catch (error) {
-      throw toBackendError(error);
+      throw toBackendError(error, { notFound: secretNotFound(name) });
     }
   }
 

@@ -56,4 +56,16 @@ describe("chalkTable", () => {
         expect(lines[1]).toBe(`| ${title} |`);
         expect(new Set(lines.map((line) => stringWidth(line)))).toEqual(new Set([stringWidth(title) + 4]));
     });
+
+    it("uses the intersection character for the border above the title too", () => {
+        const table = stripAnsi(
+            chalkTable({ title: "Backend: main", intersectionCharacter: "┼", columns: structuredClone(columns) }, rows)
+        );
+        const borders = table.split("\n").filter((line) => !line.includes("|"));
+        expect(borders).not.toHaveLength(0);
+        for (const border of borders) {
+            expect(border).not.toContain("+");
+            expect(border.startsWith("┼") && border.endsWith("┼"), border).toBe(true);
+        }
+    });
 });

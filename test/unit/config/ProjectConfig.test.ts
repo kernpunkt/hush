@@ -165,7 +165,7 @@ describe("parseProjectConfig", () => {
         expect(error).not.toMatch(/[\u0000-\u001f\u007f-\u009f]/);
     });
 
-    it.each(["eu-west-1", "us-east-1", "us-gov-west-1", "ap-southeast-5", "eu-isoe-west-1"])(
+    it.each(["eu-west-1", "us-east-1", "us-gov-west-1", "ap-southeast-5", "eu-isoe-west-1", "eusc-de-east-1"])(
         "accepts the region %s",
         (region) => {
             const content = { backends: { main: { type: "aws-secrets-manager", region } }, default: "main" };

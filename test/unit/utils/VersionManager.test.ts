@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import VersionManager from "../../../src/utils/VersionManager";
 import GetSecretValueRequest from "../../../src/backends/aws/requests/GetSecretValueRequest";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
+import AwsBackend from "../../../src/backends/aws/AwsBackend";
 
 // Mock console methods to prevent output during tests
 const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -235,6 +236,8 @@ describe("VersionManager", () => {
   });
 
   describe("getSecretVersion", () => {
+    const backend = new AwsBackend();
+
     it("should return the version from AWS Secrets Manager", async () => {
       getSecretValueSpy.mockResolvedValueOnce({
         SecretString: JSON.stringify({
@@ -253,7 +256,7 @@ describe("VersionManager", () => {
         updated_at: new Date(),
       });
 
-      const result = await versionManager.getSecretVersion("test-secret");
+      const result = await versionManager.getSecretVersion("test-secret", backend);
 
       expect(result).toBe(5);
       expect(getSecretValueSpy).toHaveBeenCalledWith("test-secret", {});
@@ -269,7 +272,7 @@ describe("VersionManager", () => {
         $metadata: {},
       });
 
-      const result = await versionManager.getSecretVersion("test-secret");
+      const result = await versionManager.getSecretVersion("test-secret", backend);
 
       expect(result).toBe(0);
     });
@@ -281,7 +284,7 @@ describe("VersionManager", () => {
         })
       );
 
-      const result = await versionManager.getSecretVersion("non-existent-secret");
+      const result = await versionManager.getSecretVersion("non-existent-secret", backend);
 
       expect(result).toBe(-1);
     });
@@ -289,7 +292,7 @@ describe("VersionManager", () => {
     it("should rethrow other AWS errors instead of returning -1", async () => {
       getSecretValueSpy.mockRejectedValueOnce(new Error("Network error"));
 
-      await expect(versionManager.getSecretVersion("test-secret")).rejects.toThrow(
+      await expect(versionManager.getSecretVersion("test-secret", backend)).rejects.toThrow(
         "Network error"
       );
     });
@@ -300,7 +303,7 @@ describe("VersionManager", () => {
         $metadata: {},
       });
 
-      await expect(versionManager.getSecretVersion("test-secret")).rejects.toThrow(
+      await expect(versionManager.getSecretVersion("test-secret", backend)).rejects.toThrow(
         "The secret test-secret has an unknown format"
       );
     });
@@ -311,7 +314,7 @@ describe("VersionManager", () => {
         $metadata: {},
       });
 
-      const result = await versionManager.getSecretVersion("test-secret");
+      const result = await versionManager.getSecretVersion("test-secret", backend);
 
       expect(result).toBe(0);
       expect(fromSecretStringSpy).not.toHaveBeenCalled();

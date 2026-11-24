@@ -4,7 +4,6 @@ import chalk from "chalk";
 import VersionEntry from "../@types/VersionEntry.js";
 import SecretPayloadManager from "./SecretPayloadManager.js";
 import SecretBackend from "../backends/SecretBackend.js";
-import defaultBackend from "../backends/defaultBackend.js";
 import { isBackendError } from "../backends/BackendError.js";
 
 /**
@@ -119,7 +118,7 @@ class VersionManager {
    */
   public async getSecretVersion(
     key: string,
-    backend: SecretBackend = defaultBackend()
+    backend: SecretBackend
   ): Promise<number> {
     let secretString: string | undefined;
     try {

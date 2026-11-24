@@ -31,7 +31,9 @@ class ListCommand extends BaseCommand {
   }
 
   public async execute(): Promise<ListResult> {
-    const names = await this.backend.listNames(this.prefix);
+    // Entry names are `<prefix>-<key>` (getKey), so the hyphen belongs to the
+    // prefix: without it, a secret like `hushed-token` would be listed too.
+    const names = await this.backend.listNames(`${this.prefix}-`);
     const results = await Promise.allSettled(
       names.map((name) => this.toTableRow(name))
     );

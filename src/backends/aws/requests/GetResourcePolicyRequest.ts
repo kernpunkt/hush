@@ -6,11 +6,18 @@ import BaseRequest from "./BaseRequest.js";
 import { PolicyDocument } from "@thinkinglabs/aws-iam-policy";
 import chalk from "chalk";
 import TypedErrorHandler from "../../../utils/TypedErrorHandler.js";
+import StringMap from "../../../@types/StringMap.js";
 
 class GetResourcePolicyRequest extends BaseRequest {
   public async execute(
-    input: GetResourcePolicyCommandInput
+    input: GetResourcePolicyCommandInput,
+    providedMapping?: StringMap
   ): Promise<PolicyDocument> {
+    const mapping = providedMapping || {
+      ResourceNotFoundException: `Could not find secret ${chalk.bold(
+        input.SecretId
+      )}.`,
+    };
     const client = this.getClient();
 
     const getResourcePolicyCommand = new GetResourcePolicyCommand(input);
@@ -18,11 +25,7 @@ class GetResourcePolicyRequest extends BaseRequest {
     const policyResult = await client
       .send(getResourcePolicyCommand)
       .catch((error) => {
-        new TypedErrorHandler().handleError(error, {
-          ResourceNotFoundException: `Could not find secret ${chalk.bold(
-            input.SecretId
-          )}.`,
-        });
+        new TypedErrorHandler().handleError(error, mapping);
       });
 
     if (policyResult?.ResourcePolicy) {
