@@ -80,8 +80,9 @@ class PushCommand extends BaseCommand {
 
     if (!this.force) {
       const isVersionValid = this.versionManager.checkVersion(
-        VersionManager.versionName(this.getKey(), this.backend),
-        currentVersion
+        this.getKey(),
+        currentVersion,
+        this.backend
       );
       if (!isVersionValid) {
         return "";

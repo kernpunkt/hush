@@ -26,18 +26,42 @@ class VersionManager {
    * @returns {string} - The name of the version in .hushrc.json
    */
   public static versionName(name: string, backend: SecretBackend): string {
+    const store = VersionManager.otherStore(backend);
+    return store === undefined ? name : `${name}@${store}`;
+  }
+
+  /**
+   * How the warnings name an entry: `"hush-shop-dev"` in the default store,
+   * as in 4.1.0, and `"hush-shop-prod" (AWS eu-west-1)` elsewhere, like the
+   * table titles of `list`. Never the version name, which can't be typed
+   * into a command.
+   */
+  private static label(name: string, backend?: SecretBackend): string {
+    const store = backend && VersionManager.otherStore(backend);
+    return store === undefined ? `"${name}"` : `"${name}" (${store})`;
+  }
+
+  /** The backend's store, or undefined for the default store of 4.1.0. */
+  private static otherStore(backend: SecretBackend): string | undefined {
     const store = backend.location ?? backend.displayName;
-    return store === defaultBackend().location ? name : `${name}@${store}`;
+    return store === defaultBackend().location ? undefined : store;
   }
 
   /**
    * Check if current version is <= stored version in .hushrc.json and warn if so.
    *
-   * @param {string} key - The secret key
+   * @param {string} name - The secret key
    * @param {number} currentVersion - The current version from AWS
+   * @param {SecretBackend} [backend] - The backend that stores the secret;
+   *   with it, the version is the one of its store (see versionName)
    * @returns {boolean} - Returns true if version check passes, false otherwise
    */
-  public checkVersion(key: string, currentVersion: number): boolean {
+  public checkVersion(
+    name: string,
+    currentVersion: number,
+    backend?: SecretBackend
+  ): boolean {
+    const key = backend ? VersionManager.versionName(name, backend) : name;
     const versionsFile = path.resolve(VersionManager.VERSION_FILE);
 
     if (!existsSync(versionsFile)) {
@@ -63,7 +87,7 @@ class VersionManager {
               currentVersion
             )}) is greater than your local version (${chalk.bold.cyan(
               versions[key]?.version || 0
-            )}) for key "${key}"`
+            )}) for key ${VersionManager.label(name, backend)}`
           )
         );
         console.warn(
@@ -158,15 +182,19 @@ class VersionManager {
   /**
    * Remove version entry from .hushrc.json file for the given key.
    *
-   * @param {string} key - The secret key to remove
+   * @param {string} name - The secret key to remove
+   * @param {SecretBackend} [backend] - The backend the secret was deleted
+   *   from; with it, only the version of its store is removed
    */
-  public removeVersionFromFile(key: string): void {
+  public removeVersionFromFile(name: string, backend?: SecretBackend): void {
+    const key = backend ? VersionManager.versionName(name, backend) : name;
+    const label = VersionManager.label(name, backend);
     const versionsFile = path.resolve(VersionManager.VERSION_FILE);
 
     if (!existsSync(versionsFile)) {
       console.warn(
         chalk.yellow(
-          `⚠️  Warning: .hushrc.json file does not exist, no version to remove for key "${key}"`
+          `⚠️  Warning: .hushrc.json file does not exist, no version to remove for key ${label}`
         )
       );
       return;
@@ -179,7 +207,7 @@ class VersionManager {
       if (versions[key] === undefined) {
         console.warn(
           chalk.yellow(
-            `⚠️  Warning: No version entry found for key "${key}" in .hushrc.json`
+            `⚠️  Warning: No version entry found for key ${label} in .hushrc.json`
           )
         );
         return;

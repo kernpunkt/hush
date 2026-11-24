@@ -458,4 +458,64 @@ describe("VersionManager", () => {
       expect(VersionManager.versionName("hush-shop", backend)).toBe("hush-shop@Example store");
     });
   });
+
+  describe("with a backend: versions and warnings per store", () => {
+    const stripAnsi = (str: string) => str.replace(/\x1b\[\d+m/g, "");
+    const warnings = () => consoleWarnSpy.mock.calls.map((call) => stripAnsi(String(call[0])));
+    const ireland = new AwsBackend({ region: "eu-west-1" });
+
+    it("checks the version of the backend's store and names key and store apart", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(
+        JSON.stringify({
+          "hush-shop": { version: 5 },
+          "hush-shop@AWS eu-west-1": { version: 1 },
+        })
+      );
+
+      expect(versionManager.checkVersion("hush-shop", 2, ireland)).toBe(false);
+      expect(warnings()[0]).toBe(
+        '⚠️ Warning: Remote version (2) is greater than your local version (1) for key "hush-shop" (AWS eu-west-1)'
+      );
+    });
+
+    it("words the warning as in 4.1.0 for the default store", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(JSON.stringify({ "hush-shop": { version: 1 } }));
+
+      expect(versionManager.checkVersion("hush-shop", 2, new AwsBackend())).toBe(false);
+      expect(warnings()[0]).toBe(
+        '⚠️ Warning: Remote version (2) is greater than your local version (1) for key "hush-shop"'
+      );
+    });
+
+    it("removes only the version of the backend's store", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(
+        JSON.stringify({
+          "hush-shop": { version: 5 },
+          "hush-shop@AWS eu-west-1": { version: 1 },
+        })
+      );
+
+      versionManager.removeVersionFromFile("hush-shop", ireland);
+
+      expect(JSON.parse(writeFileSyncMock.mock.calls[0][1] as string)).toEqual({ "hush-shop": { version: 5 } });
+    });
+
+    it("names key and store apart when there is no version to remove", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(JSON.stringify({ "hush-shop": { version: 5 } }));
+      versionManager.removeVersionFromFile("hush-shop", ireland);
+
+      existsSyncMock.mockReturnValueOnce(false);
+      versionManager.removeVersionFromFile("hush-shop", ireland);
+
+      expect(warnings()).toEqual([
+        '⚠️  Warning: No version entry found for key "hush-shop" (AWS eu-west-1) in .hushrc.json',
+        '⚠️  Warning: .hushrc.json file does not exist, no version to remove for key "hush-shop" (AWS eu-west-1)',
+      ]);
+      expect(writeFileSyncMock).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -52,7 +52,7 @@ With a [project setting](/backends/project-setting) that puts keys into other ba
 }
 ```
 
-So a key that moves to another backend starts with a version of its own there, and `hush delete` only removes the version of the store it deleted from.
+So a key that moves to another backend starts with a version of its own there, and `hush delete` only removes the version of the store it deleted from. Warnings name the key and its store, not the entry name, for example `for key "hush-project-prod" (AWS eu-west-1)`.
 
 **Note:**
 
