@@ -1,6 +1,10 @@
 /**
  * The closed set of error kinds every backend translates its errors into.
  * Commands decide only by these kinds, never by a backend's own error names.
+ * Today they check only `notFound` and `accessDenied`; the other kinds are
+ * part of the interface every backend implements (see
+ * docs/backends/adding-a-backend.md and the shared contract tests), for
+ * later commands.
  */
 export const BACKEND_ERROR_KINDS = [
   "notFound",

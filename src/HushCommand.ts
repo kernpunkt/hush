@@ -23,6 +23,7 @@ import ListAllCommand from "./commands/ListAllCommand.js";
 import {
   loadProjectConfig,
   ProjectConfigError,
+  projectConfigWarnings,
 } from "./config/ProjectConfig.js";
 
 class HushCommand extends Command {
@@ -59,7 +60,8 @@ class HushCommand extends Command {
    * The project's backends: from hush.config.json, or the default backend
    * without one (BR-04). Read only when a command runs, so the help works
    * with a broken file. An invalid file stops Hush! with exit code 1 before
-   * any backend is called; then this returns undefined.
+   * any backend is called; then this returns undefined. A valid file with a
+   * likely mistake gets a warning, once per run.
    */
   private projectBackends(): ProjectBackends | undefined {
     if (!this.backends) {
@@ -68,6 +70,9 @@ class HushCommand extends Command {
         this.backends = config
           ? ProjectBackends.fromConfig(config)
           : ProjectBackends.fromDefault();
+        for (const warning of config ? projectConfigWarnings(config) : []) {
+          console.warn(chalk.yellow(`⚠️  Warning: ${warning}`));
+        }
       } catch (error) {
         if (!(error instanceof ProjectConfigError)) {
           throw error;

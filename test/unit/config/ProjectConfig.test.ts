@@ -6,6 +6,7 @@ import {
     loadProjectConfig,
     parseProjectConfig,
     ProjectConfigError,
+    projectConfigWarnings,
 } from "../../../src/config/ProjectConfig";
 import { stripAnsi } from "../../../src/utils/ChalkTable";
 
@@ -225,6 +226,36 @@ describe("parseProjectConfig", () => {
         const config = parseProjectConfig(content);
         expect(Object.keys(config.backends)).toEqual(["__proto__"]);
         expect(config.default).toBe("__proto__");
+    });
+});
+
+describe("projectConfigWarnings", () => {
+    const backends = { frankfurt: aws, ireland: { type: "aws-secrets-manager", region: "eu-west-1" } };
+    const warningsFor = (keys?: Record<string, string>) =>
+        projectConfigWarnings(parseProjectConfig({ backends, default: "frankfurt", keys })).map(stripAnsi);
+
+    it("warns about a key written with the hush- prefix and names the key without it", () => {
+        expect(warningsFor({ "hush-shop-prod": "ireland" })).toEqual([
+            'hush.config.json, field keys.hush-shop-prod: keys are given without the hush- prefix; did you mean "shop-prod"? This entry only applies to the key "hush-shop-prod".',
+        ]);
+    });
+
+    it("warns once per prefixed key and not about other keys", () => {
+        const warnings = warningsFor({ shop: "ireland", "hush-a": "ireland", "hush-b": "frankfurt", "my-hush-c": "ireland" });
+        expect(warnings).toHaveLength(2);
+        expect(warnings[0]).toContain("keys.hush-a:");
+        expect(warnings[1]).toContain("keys.hush-b:");
+    });
+
+    it("has no warnings without keys", () => {
+        expect(projectConfigWarnings({ backends, default: "frankfurt" })).toEqual([]);
+    });
+
+    it("escapes control characters in the key", () => {
+        const [warning] = warningsFor({ "hush-shop\u001b[2J\u009b": "ireland" });
+        expect(warning).not.toMatch(/[\u001b\u009b]/);
+        expect(warning).toContain("keys.hush-shop\\u001b[2J\\u009b:");
+        expect(warning).toContain('did you mean "shop\\u001b[2J\\u009b"?');
     });
 });
 

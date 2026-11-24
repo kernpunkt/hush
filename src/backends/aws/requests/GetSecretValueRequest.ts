@@ -6,18 +6,16 @@ import {
 import BaseRequest from "./BaseRequest.js";
 import StringMap from "../../../@types/StringMap.js";
 import TypedErrorHandler from "../../../utils/TypedErrorHandler.js";
-import chalk from "chalk";
 
 class GetSecretValueRequest extends BaseRequest {
+  /**
+   * Without a mapping, AWS errors stay as they are; AwsBackend gives the
+   * Hush! messages.
+   */
   public async execute(
     key: string,
-    providedMapping?: StringMap
+    mapping: StringMap = {}
   ): Promise<GetSecretValueCommandOutput> {
-    const mapping = providedMapping || {
-      ResourceNotFoundException: `AWS SecretManager could not find ${chalk.bold(
-        key
-      )}. Are you sure it exists and you have read access?`,
-    };
     const client = this.getClient();
 
     const getSecretValuePayload: GetSecretValueCommandInput = {

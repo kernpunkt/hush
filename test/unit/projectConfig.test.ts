@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
@@ -16,6 +16,7 @@ import ProjectBackends from "../../src/backends/ProjectBackends";
 import installFakeSecretsManager from "../support/fakeSecretsManager";
 import InMemoryBackend from "../support/InMemoryBackend";
 import runHush from "../support/runHush";
+import { stripAnsi } from "../../src/utils/ChalkTable";
 
 // F-03: hush.config.json in the working directory picks the backend per key
 // (AC-F03-1), is checked before any backend is called (AC-F03-2, AC-F03-5),
@@ -120,6 +121,77 @@ describe("AC-F03-1: the backend per key", () => {
                 args[0] === "grant" || args[0] === "revoke" ? [region] : []
             );
         }
+    });
+});
+
+describe("a key in keys written with the hush- prefix", () => {
+    const prefixed = { ...twoRegions, keys: { "hush-shop-prod": "ireland" } };
+    const warning =
+        '⚠️  Warning: hush.config.json, field keys.hush-shop-prod: keys are given without the hush- prefix; did you mean "shop-prod"?';
+
+    it("is accepted with a warning, printed once before the command runs", async () => {
+        writeConfig(prefixed);
+
+        const run = await runHush(["push", "shop-prod", ".env"]);
+
+        expect(run.exitCode, run.output).toBe(0);
+        expect(run.output.split(warning)).toHaveLength(2);
+        expect(run.output.indexOf(warning)).toBeLessThan(run.output.indexOf("Hush! 🤫 — Push"));
+        // The entry doesn't match the key shop-prod: it goes to the default backend.
+        expect(new Set(await regionsOf(secretsManagerMock))).toEqual(new Set(["eu-central-1"]));
+    });
+
+    it("is warned about on stderr (console.warn), like the other warnings of Hush!", async () => {
+        writeConfig(prefixed);
+        const warnings: string[] = [];
+        const spies = [
+            vi.spyOn(console, "warn").mockImplementation((text) => warnings.push(String(text))),
+            vi.spyOn(console, "log").mockImplementation(() => {}),
+            vi.spyOn(console, "info").mockImplementation(() => {}),
+            vi.spyOn(console, "error").mockImplementation(() => {}),
+        ];
+        const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as typeof process.exit);
+        try {
+            await new HushCommand().parseAsync(["node", "hush", "cat", "shop-prod"]);
+            await vi.waitFor(() => expect(exit).toHaveBeenCalled());
+        } finally {
+            [...spies, exit].forEach((spy) => spy.mockRestore());
+        }
+
+        expect(warnings).toHaveLength(1);
+        expect(stripAnsi(warnings[0])).toContain(warning);
+    });
+
+    it("is warned about by list, too", async () => {
+        writeConfig(prefixed);
+        secretsManagerMock.on(ListSecretsCommand).resolves({ SecretList: [] });
+
+        const run = await runHush(["list"]);
+
+        expect(run.output.split(warning)).toHaveLength(2);
+    });
+
+    it("is not warned about without a prefixed key", async () => {
+        writeConfig(twoRegions);
+        const run = await runHush(["push", "a", ".env"]);
+        expect(run.exitCode, run.output).toBe(0);
+        expect(run.output).not.toContain("Warning");
+    });
+
+    it("is not warned about by the help", async () => {
+        writeConfig(prefixed);
+        let output = "";
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const hush = new HushCommand()
+            .exitOverride()
+            .configureOutput({ writeOut: (text) => (output += text), writeErr: (text) => (output += text) });
+
+        await expect(hush.parseAsync(["node", "hush", "--help"])).rejects.toBeInstanceOf(CommanderError);
+
+        expect(output).toContain("Usage: hush");
+        expect(output).not.toContain("hush-shop-prod");
+        expect(warnSpy).not.toHaveBeenCalled();
+        warnSpy.mockRestore();
     });
 });
 

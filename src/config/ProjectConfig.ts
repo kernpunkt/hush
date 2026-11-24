@@ -197,6 +197,27 @@ export function parseProjectConfig(content: unknown): ProjectConfig {
 }
 
 /**
+ * Warnings about a valid project setting that likely doesn't do what was
+ * meant: a key in `keys` that starts with "hush-". Keys are given without
+ * the prefix, so `"hush-shop": …` applies only to the key `hush-shop` (the
+ * entry hush-hush-shop), and `shop` goes to the default backend. Not
+ * refused, as `hush-shop` is a key of its own.
+ */
+export function projectConfigWarnings(config: ProjectConfig): string[] {
+  return Object.keys(config.keys ?? {})
+    .filter((key) => key.startsWith("hush-"))
+    .map(
+      (key) =>
+        `${PROJECT_CONFIG_FILE}, field ${chalk.bold(printable(`keys.${key}`))}: ` +
+        printable(
+          `keys are given without the hush- prefix; did you mean ${JSON.stringify(
+            key.slice("hush-".length)
+          )}? This entry only applies to the key ${JSON.stringify(key)}.`
+        )
+    );
+}
+
+/**
  * Reads the project setting from the working directory. Resolves to
  * undefined if there is none: then the default backend applies (BR-04).
  */

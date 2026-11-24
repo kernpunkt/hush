@@ -4,20 +4,18 @@ import {
 } from "@aws-sdk/client-secrets-manager";
 import BaseRequest from "./BaseRequest.js";
 import { PolicyDocument } from "@thinkinglabs/aws-iam-policy";
-import chalk from "chalk";
 import TypedErrorHandler from "../../../utils/TypedErrorHandler.js";
 import StringMap from "../../../@types/StringMap.js";
 
 class GetResourcePolicyRequest extends BaseRequest {
+  /**
+   * Without a mapping, AWS errors stay as they are; AwsBackend gives the
+   * Hush! messages.
+   */
   public async execute(
     input: GetResourcePolicyCommandInput,
-    providedMapping?: StringMap
+    mapping: StringMap = {}
   ): Promise<PolicyDocument> {
-    const mapping = providedMapping || {
-      ResourceNotFoundException: `Could not find secret ${chalk.bold(
-        input.SecretId
-      )}.`,
-    };
     const client = this.getClient();
 
     const getResourcePolicyCommand = new GetResourcePolicyCommand(input);
