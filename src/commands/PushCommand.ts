@@ -75,6 +75,14 @@ class PushCommand extends BaseCommand {
       secrets: secretArray,
       updated_at: new Date(),
     };
+    // Stop before the backend is called if it would refuse the name or
+    // the size anyway. The version isn't known yet: checked with 0, write
+    // checks the exact value again.
+    this.backend.checkWrite?.(
+      this.getKey(),
+      new SecretPayloadManager().toSecretString(payload)
+    );
+
     // Get and log the current version before pushing
     const currentVersion = await this.getCurrentVersion();
 

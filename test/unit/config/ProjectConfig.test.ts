@@ -62,7 +62,7 @@ describe("parseProjectConfig", () => {
         [
             "type not a string, without repeating it",
             { backends: { main: { type: { secretAccessKey: "example-secret-key-1" } } }, default: "main" },
-            "hush.config.json, field backends.main.type: must be a string. Known types: aws-secrets-manager.",
+            "hush.config.json, field backends.main.type: must be a string. Known types: aws-secrets-manager, azure-key-vault.",
         ],
         [
             "type of the in-memory test backend",
@@ -312,5 +312,108 @@ describe("loadProjectConfig", () => {
     it("rejects a hush.config.json that can't be read", () => {
         mkdirSync("hush.config.json");
         expect(errorOf(() => loadProjectConfig())).toMatch(/^hush\.config\.json: can't be read: /);
+    });
+});
+
+describe("AC-F04-19: the type azure-key-vault", () => {
+    const vaultUrl = "https://example-vault-1.vault.azure.net";
+    const parse = (settings: Record<string, unknown>) =>
+        parseProjectConfig({ backends: { azure: { type: "azure-key-vault", ...settings } }, default: "azure" });
+
+    it.each([
+        [{ vaultUrl }],
+        [{ vaultUrl: "https://example-vault-1.vault.azure.net/" }],
+        [{ vaultUrl: "https://Example-Vault-1.VAULT.azure.net" }],
+        [{ vaultUrl: "https://abc.vault.azure.net" }],
+        [{ vaultUrl: `https://a${"b".repeat(22)}c.vault.azure.net` }],
+        [{ vaultUrl, tenantId: "00000000-1111-2222-3333-444444444444" }],
+        [{ vaultUrl, tenantId: "example-tenant.onmicrosoft.com" }],
+        [{ vaultUrl, tenantId: "example.com" }],
+    ])("accepts %j", (settings) => {
+        expect(parse(settings).backends.azure).toEqual({ type: "azure-key-vault", ...settings });
+    });
+
+    it.each([
+        ["http instead of https", "http://example-vault-1.vault.azure.net"],
+        ["a path", "https://example-vault-1.vault.azure.net/secrets/hush-app"],
+        ["a query", "https://example-vault-1.vault.azure.net/?x=1"],
+        ["a port", "https://example-vault-1.vault.azure.net:443"],
+        ["the China cloud", "https://example-vault-1.vault.azure.cn"],
+        ["the Government cloud", "https://example-vault-1.vault.usgovcloudapi.net"],
+        ["another host", "https://example-vault-1.example.test"],
+        ["a vault name of 2 characters", "https://ab.vault.azure.net"],
+        ["a vault name of 25 characters", `https://a${"b".repeat(23)}c.vault.azure.net`],
+        ["a vault name starting with a digit", "https://1vault.vault.azure.net"],
+        ["a vault name ending with a hyphen", "https://vault-.vault.azure.net"],
+        ["two hyphens in a row", "https://my--vault.vault.azure.net"],
+        ["an underscore", "https://my_vault.vault.azure.net"],
+        ["just the vault name", "example-vault-1"],
+    ])("rejects a vaultUrl with %s without repeating it", (_, value) => {
+        const error = errorOf(() => parse({ vaultUrl: value }));
+        expect(error).toBe(
+            "hush.config.json, field backends.azure.vaultUrl: must be the address of a Key Vault in public Azure, like https://my-vault.vault.azure.net, with a vault name of 3 to 24 letters, digits and hyphens and no path."
+        );
+    });
+
+    it.each(["not a tenant", "00000000-1111-2222-3333", "contoso", "example-secret-value-1!"])(
+        "rejects the tenantId %j without repeating it",
+        (tenantId) => {
+            const error = errorOf(() => parse({ vaultUrl, tenantId }));
+            expect(error).toBe(
+                "hush.config.json, field backends.azure.tenantId: must be a tenant ID (a GUID) or a domain like contoso.onmicrosoft.com."
+            );
+        }
+    );
+
+    it.each([
+        ["a missing vaultUrl", {}, "hush.config.json, field backends.azure.vaultUrl: is missing."],
+        ["an empty vaultUrl", { vaultUrl: "" }, "hush.config.json, field backends.azure.vaultUrl: must be a non-empty string."],
+        [
+            "a tenantId that is no string",
+            { vaultUrl, tenantId: 1 },
+            "hush.config.json, field backends.azure.tenantId: must be a non-empty string.",
+        ],
+        [
+            "a credential field",
+            { vaultUrl, clientSecret: "example-client-secret-1" },
+            "hush.config.json, field backends.azure.clientSecret: this field doesn't exist here.",
+        ],
+        [
+            "an AWS field",
+            { vaultUrl, region: "eu-west-1" },
+            "hush.config.json, field backends.azure.region: this field doesn't exist here.",
+        ],
+    ])("rejects %s", (_, settings, message) => {
+        const error = errorOf(() => parse(settings));
+        expect(error).toBe(message);
+        expect(error).not.toContain("example-client-secret-1");
+    });
+
+    it("refuses two backends for one vault, whatever its spelling", () => {
+        const error = errorOf(() =>
+            parseProjectConfig({
+                backends: {
+                    one: { type: "azure-key-vault", vaultUrl },
+                    two: { type: "azure-key-vault", vaultUrl: "https://EXAMPLE-VAULT-1.vault.azure.net/" },
+                },
+                default: "one",
+            })
+        );
+        expect(error).toBe(
+            "hush.config.json, field backends.two: uses the same store as backends.one (Azure example-vault-1). Give every store one name."
+        );
+    });
+
+    it("accepts two vaults and an AWS backend side by side", () => {
+        const content = {
+            backends: {
+                aws,
+                one: { type: "azure-key-vault", vaultUrl },
+                two: { type: "azure-key-vault", vaultUrl: "https://example-vault-2.vault.azure.net" },
+            },
+            default: "one",
+            keys: { shop: "aws" },
+        };
+        expect(parseProjectConfig(content)).toEqual(content);
     });
 });

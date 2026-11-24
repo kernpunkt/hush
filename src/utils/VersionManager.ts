@@ -19,7 +19,10 @@ class VersionManager {
    * with its old copy. Entries in the store of Hush! 4.1.0 (the default
    * backend, AWS eu-central-1) keep the 4.1.0 name, e.g. "hush-shop-dev";
    * entries elsewhere get the store, e.g. "hush-shop-prod@AWS eu-west-1".
-   * AWS secret names can't contain spaces, so the two never collide.
+   * AWS secret names can't contain spaces, so the two never collide. In a
+   * backend whose names ignore case (Azure Key Vault), the name is
+   * lowercased, e.g. "hush-shop@Azure my-vault" for "hush-Shop", so both
+   * spellings share one version.
    *
    * @param {string} name - The entry name, e.g. "hush-shop-prod"
    * @param {SecretBackend} backend - The backend that stores the entry
@@ -27,7 +30,8 @@ class VersionManager {
    */
   public static versionName(name: string, backend: SecretBackend): string {
     const store = VersionManager.otherStore(backend);
-    return store === undefined ? name : `${name}@${store}`;
+    const entry = backend.namesIgnoreCase ? name.toLowerCase() : name;
+    return store === undefined ? entry : `${entry}@${store}`;
   }
 
   /**

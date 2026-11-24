@@ -457,6 +457,17 @@ describe("VersionManager", () => {
       const backend = { displayName: "Example store" } as SecretBackend;
       expect(VersionManager.versionName("hush-shop", backend)).toBe("hush-shop@Example store");
     });
+
+    it("lowercases the name in a backend whose names ignore case, not the store", () => {
+      const backend = { displayName: "Example vault", location: "Azure Example-Vault", namesIgnoreCase: true } as SecretBackend;
+      expect(VersionManager.versionName("hush-Shop", backend)).toBe("hush-shop@Azure Example-Vault");
+    });
+
+    it("keeps the case of the name in AWS", () => {
+      expect(
+        VersionManager.versionName("hush-Shop", new AwsBackend({ region: "eu-west-1" }))
+      ).toBe("hush-Shop@AWS eu-west-1");
+    });
   });
 
   describe("with a backend: versions and warnings per store", () => {

@@ -24,6 +24,8 @@ describe("lint rule against cloud libraries in commands", () => {
         'import { PolicyDocument } from "@thinkinglabs/aws-iam-policy";',
         'import GetSecretValueRequest from "../requests/GetSecretValueRequest.js";',
         'import AwsBackend from "../backends/aws/AwsBackend.js";',
+        'import AzureBackend from "../backends/azure/AzureBackend.js";',
+        'import toBackendError from "../backends/azure/toBackendError.js";',
     ])("reports %s in src/commands", async (code) => {
         expect(await restrictedImports(`${code}\n`, "src/commands/ExampleCommand.ts")).toHaveLength(1);
     });
@@ -38,6 +40,12 @@ describe("lint rule against cloud libraries in commands", () => {
         const code = 'import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";\n';
 
         expect(await restrictedImports(code, "src/backends/aws/ExampleBackend.ts")).toHaveLength(0);
+    });
+
+    it("allows the Azure SDK in the Azure backend", async () => {
+        const code = 'import type { SecretClient } from "@azure/keyvault-secrets";\n';
+
+        expect(await restrictedImports(code, "src/backends/azure/ExampleBackend.ts")).toHaveLength(0);
     });
 
     it("is run by the test workflow", () => {

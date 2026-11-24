@@ -24,6 +24,21 @@ class DeleteCommand extends BaseCommand {
       force: this.force,
     });
 
+    if (result.purgeRefused) {
+      // The entry still exists until then, so its version entry stays.
+      throw new Error(
+        `Your secret ${chalk.bold(
+          this.getKey()
+        )} was only scheduled for deletion: ${
+          this.backend.displayName
+        } doesn't allow deleting it for good before ${chalk.bold(
+          result.deletionDate
+            ? DateFormatter.formatDate(result.deletionDate)
+            : "the end of its retention period"
+        )} (purge protection is on).`
+      );
+    }
+
     this.versionManager.removeVersionFromFile(this.getKey(), this.backend);
 
     const dateObject = result.deletionDate;

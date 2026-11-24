@@ -1,6 +1,8 @@
 import SecretBackend from "./SecretBackend.js";
 import AwsBackend from "./aws/AwsBackend.js";
 import { isAwsRegion } from "./aws/awsRegion.js";
+import AzureBackend from "./azure/AzureBackend.js";
+import { isTenantId, isVaultUrl } from "./azure/vaultSettings.js";
 
 /** The settings of one backend in the project setting, by type. */
 export type AwsBackendSettings = {
@@ -8,7 +10,13 @@ export type AwsBackendSettings = {
   region?: string;
 };
 
-export type BackendSettings = AwsBackendSettings;
+export type AzureBackendSettings = {
+  type: "azure-key-vault";
+  vaultUrl: string;
+  tenantId?: string;
+};
+
+export type BackendSettings = AwsBackendSettings | AzureBackendSettings;
 
 export type BackendType = BackendSettings["type"];
 
@@ -53,6 +61,34 @@ export const BACKEND_TYPES: Record<BackendType, BackendTypeDefinition> = {
       AwsBackend.locationOf((settings as AwsBackendSettings).region),
     create: (settings) =>
       new AwsBackend({ region: (settings as AwsBackendSettings).region }),
+  },
+  "azure-key-vault": {
+    required: ["vaultUrl"],
+    optional: ["tenantId"],
+    checkValues: (settings) => {
+      const { vaultUrl, tenantId } = settings as AzureBackendSettings;
+      if (!isVaultUrl(vaultUrl)) {
+        return {
+          field: "vaultUrl",
+          problem:
+            "must be the address of a Key Vault in public Azure, like https://my-vault.vault.azure.net, with a vault name of 3 to 24 letters, digits and hyphens and no path.",
+        };
+      }
+      return tenantId === undefined || isTenantId(tenantId)
+        ? undefined
+        : {
+            field: "tenantId",
+            problem:
+              "must be a tenant ID (a GUID) or a domain like contoso.onmicrosoft.com.",
+          };
+    },
+    // The vault name, lowercase: two spellings of one vault are one store.
+    store: (settings) =>
+      AzureBackend.locationOf((settings as AzureBackendSettings).vaultUrl),
+    create: (settings) => {
+      const { vaultUrl, tenantId } = settings as AzureBackendSettings;
+      return new AzureBackend({ vaultUrl, tenantId });
+    },
   },
 };
 
