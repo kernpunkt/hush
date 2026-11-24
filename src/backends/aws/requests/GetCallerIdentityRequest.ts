@@ -18,11 +18,13 @@ class GetCallerIdentityRequest extends BaseRequest {
   }
 
   public async execute(input: string): Promise<string> {
-    // If the string looks like an ARN, just return it
+    // If the string looks like an ARN, just return it. The partition is
+    // matched by shape (aws, aws-cn, aws-iso-e, aws-eusc, ...) rather than
+    // by a fixed list, so a partition AWS adds later is accepted as well.
     if (
       input.match(
         // eslint-disable-next-line no-useless-escape
-        /^(?:\d{12}|(arn:(aws|aws-us-gov|aws-cn):iam::\d{12}(?:|:(?:root|user\/[0-9A-Za-z\+\.@_,-]{1,64}))))$/
+        /^(?:\d{12}|(arn:aws(?:-[a-z]+)*:iam::\d{12}(?:|:(?:root|user\/[0-9A-Za-z\+\.@_,-]{1,64}))))$/
       )
     ) {
       return input;
