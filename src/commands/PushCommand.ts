@@ -50,6 +50,9 @@ class PushCommand extends BaseCommand {
         this.backend
       );
     } catch (error) {
+      // SecretPayloadManager wraps a JSON SyntaxError in an
+      // UnknownSecretFormatError, so a bare SyntaxError comes only from a
+      // reader that doesn't; it still counts as unreadable, as in 4.1.0.
       const unreadable =
         error instanceof UnknownSecretFormatError ||
         error instanceof SyntaxError;

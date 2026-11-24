@@ -3,7 +3,14 @@ import AzureBackend, { MAX_VALUE_BYTES } from "../../../src/backends/azure/Azure
 import { BackendError } from "../../../src/backends/BackendError";
 import { stripAnsi } from "../../../src/utils/ChalkTable";
 import DateFormatter from "../../../src/utils/DateFormatter";
-import { credentialError, fakeKeyVault, restError } from "../../support/fakeKeyVault";
+import ListCommand from "../../../src/commands/ListCommand";
+import {
+    credentialError,
+    fakeKeyVault,
+    firewallError,
+    restError,
+    secretDisabledError,
+} from "../../support/fakeKeyVault";
 
 vi.mock("@azure/keyvault-secrets", () => import("../../support/fakeKeyVault").then((m) => m.keyVaultSecretsModule));
 vi.mock("@azure/identity", () => import("../../support/fakeKeyVault").then((m) => m.identityModule));
@@ -16,6 +23,9 @@ const TENANT = "00000000-1111-2222-3333-444444444444";
 const DAY = 24 * 60 * 60 * 1000;
 
 const backend = (tenantId?: string) => new AzureBackend({ vaultUrl: VAULT_URL, tenantId });
+
+/** The SDK methods called so far, in order. */
+const methods = () => fakeKeyVault.calls.map(({ method }) => method);
 
 /** The BackendError the call fails with, its message without ANSI codes. */
 const failure = async (promise: Promise<unknown> | (() => unknown)) => {
@@ -38,7 +48,6 @@ describe("setup", () => {
         const azure = new AzureBackend({ vaultUrl: "https://Example-Vault-1.vault.azure.net/" });
 
         expect(azure.displayName).toBe("Azure Key Vault");
-        expect(azure.shortName).toBe("Azure Key Vault");
         expect(azure.location).toBe("Azure example-vault-1");
         expect(AzureBackend.locationOf(VAULT_URL)).toBe("Azure example-vault-1");
         expect(azure.namesIgnoreCase).toBe(true);
@@ -59,6 +68,17 @@ describe("setup", () => {
 
         expect(fakeKeyVault.credentials).toEqual([{ tenantId: TENANT }]);
         expect(fakeKeyVault.clients).toEqual([VAULT_URL]);
+    });
+
+    it("passes an upper-case tenant ID lowercased to the credential and the sign-in hint", async () => {
+        const azure = backend("ABCDEF00-1111-2222-3333-44444444AAAA");
+        fakeKeyVault.failOn("getSecret", () => credentialError("CredentialUnavailableError"));
+
+        const { message } = await failure(azure.read("hush-app"));
+
+        const tenant = "abcdef00-1111-2222-3333-44444444aaaa";
+        expect(fakeKeyVault.credentials).toEqual([{ tenantId: tenant }]);
+        expect(message).toBe(`You are not signed in to Azure. Run az login --tenant ${tenant} and try again.`);
     });
 
     it("AC-F04-14: without a tenant, the default credential gets no options and finds the sign-in itself", async () => {
@@ -182,6 +202,40 @@ describe("reading and writing", () => {
         expect(message).toContain("its name stays taken until the vault's retention period ends.");
     });
 
+    it.each([
+        ["found", () => fakeKeyVault.seed("hush-app", "{}"), "updated"],
+        ["didn't find", () => undefined, "created"],
+    ] as const)("write uses what the last read %s instead of reading the entry again", async (_, setup, result) => {
+        setup();
+        const azure = backend();
+        await azure.read("hush-app").catch(() => undefined);
+        fakeKeyVault.calls = [];
+
+        expect(await azure.write("HUSH-APP", "{}")).toBe(result);
+        expect(methods()).toEqual(["setSecret"]);
+    });
+
+    it("write asks the vault for a name no read in this run saw", async () => {
+        fakeKeyVault.seed("hush-app", "{}");
+        const azure = backend();
+        await azure.read("hush-other").catch(() => undefined);
+        fakeKeyVault.calls = [];
+
+        expect(await azure.write("hush-app", "{}")).toBe("updated");
+        expect(methods()).toEqual(["getSecret", "setSecret"]);
+    });
+
+    it("a delete in between makes write ask the vault again", async () => {
+        fakeKeyVault.seed("hush-app", "{}");
+        const azure = backend();
+        await azure.read("hush-app");
+        await azure.delete("hush-app", { force: true });
+        fakeKeyVault.calls = [];
+
+        expect(await azure.write("hush-app", "{}")).toBe("created");
+        expect(methods()).toEqual(["getSecret", "setSecret"]);
+    });
+
     it("writes the value unchanged", async () => {
         const value = JSON.stringify({ message: "m", version: 1, updated_at: "2026-11-19T10:00:00.000Z", secrets: [{ key: "EXAMPLE", value: "ä \"quoted\"\nnext" }] });
 
@@ -274,13 +328,77 @@ describe("AC-F04-7: deleting (BR-08)", () => {
     });
 
     it.each([
-        ["a missing role (its text names the purge action)", restError(403, "Forbidden", "Caller is not authorized to perform action on resource. Action: 'Microsoft.KeyVault/vaults/secrets/purge/action'"), "accessDenied"],
-        ["a conflict of another kind", restError(409, "Conflict", "The secret is currently being deleted."), "other"],
-    ])("doesn't take %s for purge protection", async (_, error, kind) => {
+        [
+            "a missing role (its text names the purge action)",
+            () => restError(403, "Forbidden", "Caller is not authorized to perform action on resource. Action: 'Microsoft.KeyVault/vaults/secrets/purge/action'"),
+            'you may not purge secrets in Azure Key Vault example-vault-1. Purging needs the role "Key Vault Secrets Officer".',
+        ],
+        [
+            "a conflict of another kind",
+            () => restError(409, "Conflict", "The secret is currently being deleted."),
+            "purging it in Azure Key Vault example-vault-1 failed (error code Conflict, HTTP 409).",
+        ],
+        [
+            "the firewall",
+            () => firewallError(),
+            "Azure Key Vault example-vault-1 blocks requests from this network address. Ask the vault's operators to allow it.",
+        ],
+    ])("after the soft delete, doesn't take %s for purge protection and says why the purge failed", async (_, error, reason) => {
         fakeKeyVault.seed("hush-app", "{}");
-        fakeKeyVault.failOn("purgeDeletedSecret", () => error);
+        fakeKeyVault.failOn("purgeDeletedSecret", error);
 
-        expect((await failure(backend().delete("hush-app", { force: true }))).kind).toBe(kind);
+        const result = await backend().delete("hush-app", { force: true });
+
+        expect(result).toEqual({
+            purgeRefused: true,
+            purgeRefusedReason: expect.any(String),
+            deletionDate: fakeKeyVault.deletedSecret("hush-app")?.scheduledPurgeDate,
+        });
+        expect(stripAnsi(result.purgeRefusedReason!)).toBe(reason);
+        expect(result.deletionDate).toBeInstanceOf(Date);
+    });
+
+    it("throws a purge failure for an entry soft-deleted before, as nothing was deleted", async () => {
+        fakeKeyVault.seedDeleted("hush-app", new Date(Date.now() + DAY));
+        fakeKeyVault.failOn("purgeDeletedSecret", () => restError(403, "Forbidden", "Caller is not authorized to perform action on resource."));
+
+        expect((await failure(backend().delete("hush-app", { force: true }))).kind).toBe("accessDenied");
+    });
+
+    describe("waiting until the purge is done", () => {
+        const waiting = () => new AzureBackend({ vaultUrl: VAULT_URL, purgeWait: { attempts: 3, delayMs: 0 } });
+        const checks = () => methods().filter((method) => method === "getDeletedSecret").length;
+
+        it("waits while the deleted entry is still there", async () => {
+            fakeKeyVault.seed("hush-app", "{}");
+            fakeKeyVault.purgeLag = 2;
+
+            expect(await waiting().delete("hush-app", { force: true })).toEqual({});
+            expect(checks()).toBe(3);
+            expect(fakeKeyVault.deletedSecret("hush-app")).toBeUndefined();
+        });
+
+        it("keeps waiting after an error that isn't not found", async () => {
+            fakeKeyVault.seed("hush-app", "{}");
+            let calls = 0;
+            fakeKeyVault.failOn("getDeletedSecret", () =>
+                calls++ === 0 ? restError(503, "ServiceUnavailable", "try again") : undefined
+            );
+
+            expect(await waiting().delete("hush-app", { force: true })).toEqual({});
+            expect(checks()).toBe(2);
+        });
+
+        it.each([
+            ["the entry stays", () => (fakeKeyVault.purgeLag = Infinity)],
+            ["every check fails", () => fakeKeyVault.failOn("getDeletedSecret", () => restError(503, "ServiceUnavailable", "try again"))],
+        ])("reports purgePending after the last attempt when %s", async (_, setup) => {
+            fakeKeyVault.seed("hush-app", "{}");
+            setup();
+
+            expect(await waiting().delete("hush-app", { force: true })).toEqual({ purgePending: true });
+            expect(checks()).toBe(3);
+        });
     });
 
     it.each([false, true])("AC-F04-15: names the entry and the vault when it doesn't exist (force: %s)", async (force) => {
@@ -310,6 +428,67 @@ describe("error kinds and messages", () => {
         const call = operations.find(([name]) => name === operation)![1];
 
         expect(await failure(call(backend()))).toEqual({ kind: "accessDenied", message });
+    });
+
+    it.each([
+        ["read", "Hush! could not read the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address. Ask the vault's operators to allow it."],
+        ["write", "Hush! could not write the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address. Ask the vault's operators to allow it."],
+        ["list", "Hush! could not list the secrets in Azure Key Vault example-vault-1: the vault blocks requests from this network address. Ask the vault's operators to allow it."],
+        ["delete", "Hush! could not delete the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address. Ask the vault's operators to allow it."],
+    ])("a firewall block on %s is no missing role and doesn't quote Azure", async (operation, message) => {
+        fakeKeyVault.seed("hush-app", "{}");
+        fakeKeyVault.failOn("*", () => firewallError("Client address: 192.0.2.10"));
+        const call = operations.find(([name]) => name === operation)![1];
+
+        const result = await failure(call(backend()));
+        expect(result).toEqual({ kind: "other", message });
+        expect(result.message).not.toContain("192.0.2.10");
+    });
+
+    it("recognises a firewall block by its text if the inner code is missing", async () => {
+        fakeKeyVault.failOn("*", () => restError(403, "Forbidden", "Client address is not authorized and caller is not a trusted service."));
+
+        expect((await failure(backend().listNames("hush-"))).message).toContain("blocks requests from this network address");
+    });
+
+    const disabled =
+        "The secret hush-app in Azure Key Vault example-vault-1 is disabled. Enable it in the Azure portal or with az keyvault secret set-attributes --vault-name example-vault-1 --name hush-app --enabled true.";
+
+    it.each([
+        ["read", (azure: AzureBackend) => azure.read("hush-app")],
+        ["write", (azure: AzureBackend) => azure.write("hush-app", "{}")],
+    ])("a disabled secret on %s is no missing role and says how to enable it", async (_, call) => {
+        fakeKeyVault.seed("hush-app", "{}").disable("hush-app");
+
+        expect(await failure(call(backend()))).toEqual({ kind: "other", message: disabled });
+    });
+
+    it.each([
+        ["the inner code SecretDisabled", () => Object.assign(restError(403, "Forbidden", "denied"), { response: { parsedBody: { error: { innererror: { code: "SecretDisabled" } } } } })],
+        ["the code SecretDisabled", () => restError(403, "SecretDisabled", "denied")],
+        ["its text", () => restError(403, "Forbidden", "Operation get is not allowed on a disabled secret.")],
+    ])("recognises a disabled secret by %s", async (_, error) => {
+        fakeKeyVault.failOn("*", error);
+
+        expect(await failure(backend().read("hush-app"))).toEqual({ kind: "other", message: disabled });
+    });
+
+    it("list shows a disabled secret as an error row, not as No access", async () => {
+        fakeKeyVault.seed("hush-app", "{}").disable("hush-app");
+        fakeKeyVault.seed("hush-locked", "{}");
+        const forbidden = restError(403, "Forbidden", "Caller is not authorized to perform action on resource.");
+        fakeKeyVault.failOn("getSecret", () =>
+            fakeKeyVault.calls.at(-1)?.name === "hush-locked" ? forbidden : undefined
+        );
+
+        const result = await new ListCommand().setBackend(backend()).execute();
+
+        const output = stripAnsi(result.output);
+        expect(result.hasErrors).toBe(true);
+        expect(output.split("\n").find((line) => line.includes("hush-app"))).toContain(
+            "Can't be read: The secret hush-app in Azure Key Vault example-vault-1 is disabled."
+        );
+        expect(output.split("\n").find((line) => line.includes("hush-locked"))).toContain("No access");
     });
 
     it.each([
@@ -358,6 +537,8 @@ describe("error kinds and messages", () => {
             ["a credential error", () => credentialError("AggregateAuthenticationError", `no token ${marker}`)],
             ["a plain error", () => new Error(`plain ${marker}`)],
             ["a code with spaces", () => restError(500, `code ${marker}`, `failed ${marker}`)],
+            ["a firewall block", () => firewallError(`Client address: ${marker}`)],
+            ["a disabled secret", () => restError(403, "Forbidden", `Operation get is not allowed on a disabled secret. ${marker}`)],
         ] as const;
 
         it.each(errors)("%s", async (_, error) => {

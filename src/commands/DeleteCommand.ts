@@ -26,6 +26,15 @@ class DeleteCommand extends BaseCommand {
 
     if (result.purgeRefused) {
       // The entry still exists until then, so its version entry stays.
+      if (result.purgeRefusedReason) {
+        throw new Error(
+          `Your secret ${chalk.bold(this.getKey())} was soft-deleted until ${chalk.bold(
+            result.deletionDate
+              ? DateFormatter.formatDate(result.deletionDate)
+              : "the end of its retention period"
+          )}, but could not be deleted for good: ${result.purgeRefusedReason}`
+        );
+      }
       throw new Error(
         `Your secret ${chalk.bold(
           this.getKey()
@@ -44,9 +53,12 @@ class DeleteCommand extends BaseCommand {
     const dateObject = result.deletionDate;
 
     if (this.force) {
-      return `${chalk.green("Done!")} Your secret ${chalk.bold(
+      const done = `${chalk.green("Done!")} Your secret ${chalk.bold(
         this.getKey()
       )} was successfully deleted.`;
+      return result.purgePending
+        ? `${done}\nIts name may still be in use for a moment before you can push it again.`
+        : done;
     } else {
       return `${chalk.green("Done!")} Your secret ${chalk.bold(
         this.getKey()

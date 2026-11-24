@@ -26,7 +26,17 @@ export function vaultNameOf(vaultUrl: string): string | undefined {
   return VAULT_URL.exec(vaultUrl)?.[1].toLowerCase();
 }
 
-/** A tenant (directory) ID: a GUID or a domain like contoso.onmicrosoft.com. */
+/**
+ * A tenant (directory) ID: a GUID, in any case. A domain like
+ * contoso.onmicrosoft.com is no tenant ID: Key Vault names its tenant as a
+ * GUID, and the developer sign-ins of @azure/identity refuse a token request
+ * whose configured tenant isn't exactly that GUID.
+ */
 export function isTenantId(value: string): boolean {
-  return GUID.test(value) || DOMAIN.test(value);
+  return GUID.test(value);
+}
+
+/** A domain, like contoso.onmicrosoft.com: told apart for its message. */
+export function isDomain(value: string): boolean {
+  return DOMAIN.test(value);
 }

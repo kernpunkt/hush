@@ -58,6 +58,52 @@ const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : "";
 
 /**
+ * The inner error code of a Key Vault error, e.g. "ForbiddenByFirewall"
+ * under the code "Forbidden". @azure/keyvault-secrets puts the error body
+ * in `details` (`details.error.innerError`); older clients keep it in
+ * `response.parsedBody.error.innererror`.
+ */
+export function innerCodeOf(error: unknown): string | undefined {
+  const inner = (body: unknown): unknown => {
+    const bodyError = field(body, "error");
+    return field(bodyError, "innerError") ?? field(bodyError, "innererror");
+  };
+  const code =
+    field(inner(field(error, "details")), "code") ??
+    field(inner(field(field(error, "response"), "parsedBody")), "code");
+  return typeof code === "string" ? code : undefined;
+}
+
+const hasCode = (error: unknown, code: string): boolean =>
+  codeOf(error) === code || innerCodeOf(error) === code;
+
+/**
+ * The vault's firewall blocks the caller's network address: 403 with the
+ * (inner) code ForbiddenByFirewall and a text like "Client address is not
+ * authorized and caller is not a trusted service".
+ */
+export function isFirewallBlocked(error: unknown): boolean {
+  return (
+    statusOf(error) === 403 &&
+    (hasCode(error, "ForbiddenByFirewall") ||
+      /client address is not authorized/i.test(messageOf(error)))
+  );
+}
+
+/**
+ * The secret is disabled in the vault: 403 with the (inner) code
+ * SecretDisabled and a text like "Operation get is not allowed on a
+ * disabled secret".
+ */
+export function isSecretDisabled(error: unknown): boolean {
+  return (
+    statusOf(error) === 403 &&
+    (hasCode(error, "SecretDisabled") ||
+      /not allowed on a disabled secret/i.test(messageOf(error)))
+  );
+}
+
+/**
  * Setting a secret whose name is soft-deleted: 409 with the inner code
  * ObjectIsDeletedButRecoverable, which the SDK may not surface as `code`,
  * so the text is checked as well.
@@ -94,6 +140,10 @@ export function kindOf(error: unknown): BackendErrorKind {
   const name = field(error, "name");
   if (typeof name === "string" && NOT_SIGNED_IN.has(name)) {
     return "notSignedIn";
+  }
+  // Neither is a missing role, and in list neither is just "No access".
+  if (isFirewallBlocked(error) || isSecretDisabled(error)) {
+    return "other";
   }
   switch (statusOf(error)) {
     case 401:
@@ -171,12 +221,56 @@ const VERBS: Record<AzureOperation, string> = {
   delete: "delete",
 };
 
+/** "list the secrets in" or "read the secret <name> in". */
+function whatText(context: AzureErrorContext): string {
+  return context.operation === "list"
+    ? VERBS.list
+    : `${VERBS[context.operation]} the secret ${entryText(context)} in`;
+}
+
 function otherMessage(context: AzureErrorContext, error: unknown): string {
-  const what =
-    context.operation === "list"
-      ? VERBS.list
-      : `${VERBS[context.operation]} the secret ${entryText(context)} in`;
-  return `Hush! could not ${what} ${vaultText(context)} (${details(error)}).`;
+  return `Hush! could not ${whatText(context)} ${vaultText(
+    context
+  )} (${details(error)}).`;
+}
+
+const FIREWALL_HINT =
+  "blocks requests from this network address. Ask the vault's operators to allow it.";
+
+function firewallMessage(context: AzureErrorContext): string {
+  return `Hush! could not ${whatText(context)} ${vaultText(
+    context
+  )}: the vault ${FIREWALL_HINT}`;
+}
+
+function disabledMessage(context: AzureErrorContext): string {
+  return `The secret ${entryText(context)} in ${vaultText(
+    context
+  )} is disabled. Enable it in the Azure portal or with ${chalk.bold(
+    `az keyvault secret set-attributes --vault-name ${
+      context.vault
+    } --name ${printable(context.name ?? "")} --enabled true`
+  )}.`;
+}
+
+/**
+ * Why purging an entry failed that this call has just soft-deleted, for
+ * the sentence "... could not be deleted for good: <reason>". Written by
+ * Hush!, like every message here.
+ */
+export function purgeFailureReason(
+  error: unknown,
+  context: AzureErrorContext
+): string {
+  if (isFirewallBlocked(error)) {
+    return `${vaultText(context)} ${FIREWALL_HINT}`;
+  }
+  if (kindOf(error) === "accessDenied") {
+    return `you may not purge secrets in ${vaultText(
+      context
+    )}. Purging needs the role ${role(WRITER_ROLE)}.`;
+  }
+  return `purging it in ${vaultText(context)} failed (${details(error)}).`;
 }
 
 /** The sign-in hint: one line naming `az login`, with the tenant if set. */
@@ -224,6 +318,16 @@ export default function toBackendError(
 ): BackendError {
   if (error instanceof BackendError) {
     return error;
+  }
+  if (isFirewallBlocked(error)) {
+    return new BackendError("other", firewallMessage(context), {
+      cause: error,
+    });
+  }
+  if (isSecretDisabled(error) && context.name !== undefined) {
+    return new BackendError("other", disabledMessage(context), {
+      cause: error,
+    });
   }
   const kind = kindOf(error);
   switch (kind) {

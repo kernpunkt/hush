@@ -2,7 +2,7 @@ import SecretBackend from "./SecretBackend.js";
 import AwsBackend from "./aws/AwsBackend.js";
 import { isAwsRegion } from "./aws/awsRegion.js";
 import AzureBackend from "./azure/AzureBackend.js";
-import { isTenantId, isVaultUrl } from "./azure/vaultSettings.js";
+import { isDomain, isTenantId, isVaultUrl } from "./azure/vaultSettings.js";
 
 /** The settings of one backend in the project setting, by type. */
 export type AwsBackendSettings = {
@@ -74,13 +74,15 @@ export const BACKEND_TYPES: Record<BackendType, BackendTypeDefinition> = {
             "must be the address of a Key Vault in public Azure, like https://my-vault.vault.azure.net, with a vault name of 3 to 24 letters, digits and hyphens and no path.",
         };
       }
-      return tenantId === undefined || isTenantId(tenantId)
-        ? undefined
-        : {
-            field: "tenantId",
-            problem:
-              "must be a tenant ID (a GUID) or a domain like contoso.onmicrosoft.com.",
-          };
+      if (tenantId === undefined || isTenantId(tenantId)) {
+        return undefined;
+      }
+      return {
+        field: "tenantId",
+        problem: isDomain(tenantId)
+          ? "must be the tenant ID, a GUID, not a domain. az account show --query tenantId shows the tenant ID."
+          : "must be a tenant ID, a GUID. az account show --query tenantId shows it.",
+      };
     },
     // The vault name, lowercase: two spellings of one vault are one store.
     store: (settings) =>

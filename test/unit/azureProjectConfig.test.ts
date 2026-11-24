@@ -6,7 +6,7 @@ import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import { STSClient } from "@aws-sdk/client-sts";
 import { mockClient } from "aws-sdk-client-mock";
 import installFakeSecretsManager from "../support/fakeSecretsManager";
-import { credentialError, fakeKeyVault, restError } from "../support/fakeKeyVault";
+import { credentialError, fakeKeyVault, firewallError, restError } from "../support/fakeKeyVault";
 import runHush, { HushRun } from "../support/runHush";
 import DateFormatter from "../../src/utils/DateFormatter";
 
@@ -209,6 +209,33 @@ describe("AC-F04-4: list", () => {
         expect(run.output).not.toContain("hushed-token");
         expect(run.output).not.toContain("example-other");
     });
+
+    it("shows a disabled entry as an error, not as No access, and exits 1", async () => {
+        writeConfig(azureOnly());
+        fakeKeyVault.seed("hush-app", payload(1)).disable("hush-app");
+        fakeKeyVault.seed("hush-other", payload(1, "Readable"));
+
+        const run = await runHush(["list"]);
+
+        expect(run.exitCode, run.output).toBe(1);
+        const row = run.output.split("\n").find((line) => line.startsWith("| hush-app "));
+        expect(row).toContain(`Can't be read: The secret hush-app in Azure Key Vault ${VAULT} is disabled.`);
+        expect(run.output).not.toContain("No access");
+        expect(run.output).toContain("Readable");
+    });
+
+    it("fails with the firewall message if the vault blocks the network address", async () => {
+        writeConfig(azureOnly());
+        fakeKeyVault.failOn("listPropertiesOfSecrets", () => firewallError("Client address: 192.0.2.10"));
+
+        const run = await runHush(["list"]);
+
+        expect(run.exitCode).toBe(1);
+        expect(errorLines(run)).toEqual([
+            `🙈 Error! — Hush! could not list the secrets in Azure Key Vault ${VAULT}: the vault blocks requests from this network address. Ask the vault's operators to allow it.`,
+        ]);
+        expect(run.output).not.toContain("192.0.2.10");
+    });
 });
 
 describe("AC-F04-5: names Key Vault can't take (BR-06)", () => {
@@ -306,6 +333,23 @@ describe("AC-F04-7: delete (BR-08)", () => {
             )}`
         );
         // The entry is still there until then, and so is its version.
+        expect(hushrc()).toEqual({ [VERSION_NAME]: { version: 1 } });
+    });
+
+    it("with --force but no right to purge, says it was soft-deleted, why it isn't gone and exits 1", async () => {
+        fakeKeyVault.failOn("purgeDeletedSecret", () =>
+            restError(403, "Forbidden", "Caller is not authorized to perform action on resource. Action: 'Microsoft.KeyVault/vaults/secrets/purge/action'")
+        );
+
+        const run = await runHush(["delete", "app", "--force"]);
+
+        expect(run.exitCode).toBe(1);
+        const purgeDate = fakeKeyVault.deletedSecret("hush-app")!.scheduledPurgeDate;
+        expect(errorLines(run)).toEqual([
+            `🙈 Error! — Your secret hush-app was soft-deleted until ${DateFormatter.formatDate(
+                purgeDate
+            )}, but could not be deleted for good: you may not purge secrets in Azure Key Vault ${VAULT}. Purging needs the role "Key Vault Secrets Officer".`,
+        ]);
         expect(hushrc()).toEqual({ [VERSION_NAME]: { version: 1 } });
     });
 });
@@ -463,6 +507,27 @@ describe("AC-F04-19: an Azure default backend next to an AWS backend", () => {
 });
 
 describe("AC-F04-12 and AC-F04-14: signing in", () => {
+    it("signs in to an upper-case tenant ID in lowercase, as Key Vault names it", async () => {
+        writeConfig(azureOnly({ tenantId: "ABCDEF00-1111-2222-3333-44444444AAAA" }));
+        fakeKeyVault.seed("hush-app", payload(1));
+
+        const run = await runHush(["pull", "app", ".env.pulled"]);
+
+        expect(run.exitCode, run.output).toBe(0);
+        expect(fakeKeyVault.credentials).toEqual([{ tenantId: "abcdef00-1111-2222-3333-44444444aaaa" }]);
+    });
+
+    it("refuses a domain as tenantId, asks for the tenant ID and calls nothing", async () => {
+        writeConfig(azureOnly({ tenantId: "example-tenant.onmicrosoft.com" }));
+
+        const run = await runHush(["pull", "app", ".env.pulled"]);
+
+        expect(run.exitCode).toBe(1);
+        expect(run.output).toContain("az account show --query tenantId");
+        expect(run.output).not.toContain("example-tenant.onmicrosoft.com");
+        expect(fakeKeyVault.credentials).toEqual([]);
+    });
+
     it("signs in to the tenant of the project setting", async () => {
         writeConfig(azureOnly({ tenantId: TENANT }));
         fakeKeyVault.seed("hush-app", payload(1));

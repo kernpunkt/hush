@@ -14,6 +14,7 @@ import toBackendError, {
   isDeletedButRecoverable,
   isPurgeProtected,
   kindOf,
+  purgeFailureReason,
   softDeletedError,
 } from "./toBackendError.js";
 import { vaultNameOf } from "./vaultSettings.js";
@@ -26,14 +27,15 @@ const NAME = /^[0-9A-Za-z-]{1,127}$/;
 export const MAX_VALUE_BYTES = 25_000;
 
 /** How long delete --force waits until a purged name is free again. */
-const PURGE_WAIT_ATTEMPTS = 30;
-const PURGE_WAIT_MS = 1_000;
+const PURGE_WAIT = { attempts: 30, delayMs: 1_000 };
 
 export type AzureBackendOptions = {
   /** The vault's address, https://<vault-name>.vault.azure.net. */
   vaultUrl: string;
-  /** The tenant to sign in to, e.g. for a guest account. */
+  /** The tenant ID (a GUID) to sign in to, e.g. for a guest account. */
   tenantId?: string;
+  /** How often and how long delete --force checks that a purge is done. */
+  purgeWait?: { attempts: number; delayMs: number };
 };
 
 const purgeDateOf = (deleted: DeletedSecret): Date | undefined =>
@@ -58,15 +60,24 @@ const sleep = (ms: number) =>
  */
 class AzureBackend implements SecretBackend {
   public readonly displayName = "Azure Key Vault";
-  public readonly shortName = "Azure Key Vault";
   public readonly namesIgnoreCase = true;
   public readonly vaultUrl: string;
   public readonly tenantId?: string;
+  private readonly purgeWait: { attempts: number; delayMs: number };
   private clientPromise?: Promise<SecretClient>;
+  /**
+   * Whether the last read in this run found the entry, by lowercase name,
+   * so a push's write needn't ask again (and download the value again) to
+   * tell created from updated.
+   */
+  private readonly seen = new Map<string, boolean>();
 
   constructor(options: AzureBackendOptions) {
     this.vaultUrl = options.vaultUrl;
-    this.tenantId = options.tenantId;
+    // Lowercase, as Key Vault names its tenant: the developer sign-ins
+    // refuse a tenant that differs from it, even in case only.
+    this.tenantId = options.tenantId?.toLowerCase();
+    this.purgeWait = options.purgeWait ?? PURGE_WAIT;
   }
 
   /**
@@ -158,7 +169,9 @@ class AzureBackend implements SecretBackend {
     try {
       const client = await this.client();
       try {
-        return (await client.getSecret(name)).value;
+        const { value } = await client.getSecret(name);
+        this.seen.set(name.toLowerCase(), true);
+        return value;
       } catch (error) {
         // A soft-deleted entry reads as missing; tell the two apart.
         if (kindOf(error) === "notFound") {
@@ -166,6 +179,7 @@ class AzureBackend implements SecretBackend {
           if (deleted) {
             throw softDeletedError(context, purgeDateOf(deleted), error);
           }
+          this.seen.set(name.toLowerCase(), false);
         }
         throw error;
       }
@@ -179,17 +193,11 @@ class AzureBackend implements SecretBackend {
     const context = this.context("write", name);
     try {
       const client = await this.client();
-      let exists = true;
-      try {
-        await client.getSecret(name);
-      } catch (error) {
-        if (kindOf(error) !== "notFound") {
-          throw error;
-        }
-        exists = false;
-      }
+      const exists =
+        this.seen.get(name.toLowerCase()) ?? (await this.exists(client, name));
       try {
         await client.setSecret(name, value);
+        this.seen.set(name.toLowerCase(), true);
       } catch (error) {
         if (isDeletedButRecoverable(error)) {
           const deleted = await this.deletedSecret(client, name);
@@ -204,6 +212,19 @@ class AzureBackend implements SecretBackend {
       return exists ? "updated" : "created";
     } catch (error) {
       throw toBackendError(error, context);
+    }
+  }
+
+  /** Whether the entry exists, asked only if no read in this run told. */
+  private async exists(client: SecretClient, name: string): Promise<boolean> {
+    try {
+      await client.getSecret(name);
+      return true;
+    } catch (error) {
+      if (kindOf(error) !== "notFound") {
+        throw error;
+      }
+      return false;
     }
   }
 
@@ -232,8 +253,9 @@ class AzureBackend implements SecretBackend {
   /**
    * Soft-deletes the entry and reports when Key Vault purges it. With
    * `force`, purges it right away, also if it was soft-deleted before. If
-   * purge protection is on, the entry stays soft-deleted: the result says
-   * `purgeRefused`.
+   * purge protection is on, or purging fails after the soft delete, the
+   * entry stays soft-deleted: the result says `purgeRefused`, with a reason
+   * unless it was purge protection.
    */
   public async delete(
     name: string,
@@ -241,6 +263,7 @@ class AzureBackend implements SecretBackend {
   ): Promise<DeleteResult> {
     this.checkName(name);
     const context = this.context("delete", name);
+    this.seen.delete(name.toLowerCase());
     try {
       const client = await this.client();
       let deleted: DeletedSecret;
@@ -263,7 +286,16 @@ class AzureBackend implements SecretBackend {
       }
       const deletionDate = purgeDateOf(deleted);
       if (options.force) {
-        return await this.purge(client, name, undefined, deletionDate);
+        try {
+          return await this.purge(client, name, undefined, deletionDate);
+        } catch (error) {
+          // Soft-deleted all the same: say so, and why it isn't gone.
+          return {
+            ...(deletionDate ? { deletionDate } : {}),
+            purgeRefused: true,
+            purgeRefusedReason: purgeFailureReason(error, context),
+          };
+        }
       }
       return deletionDate ? { deletionDate } : {};
     } catch (error) {
@@ -298,28 +330,33 @@ class AzureBackend implements SecretBackend {
         ? notFound
         : error;
     }
-    await this.waitUntilPurged(client, name);
-    return {};
+    return (await this.waitUntilPurged(client, name))
+      ? {}
+      : { purgePending: true };
   }
 
   /**
    * Key Vault purges in the background; the name is free once the deleted
    * entry is gone. Waits for that, for a while, so a push right after
-   * `delete --force` works (AC-F04-7).
+   * `delete --force` works (AC-F04-7). Only "not found" means gone; on
+   * other errors it keeps checking. False if the wait timed out.
    */
   private async waitUntilPurged(
     client: SecretClient,
     name: string
-  ): Promise<void> {
-    for (let attempt = 0; attempt < PURGE_WAIT_ATTEMPTS; attempt++) {
+  ): Promise<boolean> {
+    const { attempts, delayMs } = this.purgeWait;
+    for (let attempt = 0; attempt < attempts; attempt++) {
       try {
         await client.getDeletedSecret(name);
-      } catch {
-        // Gone, or it can't be checked: either way, stop waiting.
-        return;
+      } catch (error) {
+        if (kindOf(error) === "notFound") {
+          return true;
+        }
       }
-      await sleep(PURGE_WAIT_MS);
+      await sleep(delayMs);
     }
+    return false;
   }
 
   public accessHint(): string {

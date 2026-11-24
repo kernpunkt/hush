@@ -18,6 +18,17 @@ export type DeleteResult = {
    * entry then is deleted for good at `deletionDate`.
    */
   purgeRefused?: true;
+  /**
+   * Why deleting for good failed, if it wasn't a refusal like purge
+   * protection (e.g. a missing role). One sentence written by the backend,
+   * starting in lowercase; set only with `purgeRefused`.
+   */
+  purgeRefusedReason?: string;
+  /**
+   * Set when the entry was deleted for good, but the backend may need a
+   * moment until its name can be used again.
+   */
+  purgePending?: true;
 };
 
 export type AccessResult = {

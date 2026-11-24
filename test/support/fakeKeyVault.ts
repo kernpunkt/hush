@@ -32,6 +32,28 @@ const DAY = 24 * 60 * 60 * 1000;
 export const restError = (statusCode: number, code: string, message: string): Error =>
     Object.assign(new Error(message), { name: "RestError", statusCode, code });
 
+/**
+ * An error shaped like the RestError of @azure/keyvault-secrets 4.12: the
+ * body's code as `code`, the body in `details`, with its inner error.
+ */
+export const keyVaultError = (statusCode: number, code: string, message: string, innerCode: string): Error =>
+    Object.assign(restError(statusCode, code, message), {
+        details: { error: { code, message, innerError: { code: innerCode } } },
+    });
+
+/** The vault's firewall blocks the caller (403 ForbiddenByFirewall). */
+export const firewallError = (detail = "Client address: 192.0.2.10"): Error =>
+    keyVaultError(
+        403,
+        "Forbidden",
+        `Client address is not authorized and caller is not a trusted service.\r\n${detail}`,
+        "ForbiddenByFirewall"
+    );
+
+/** The secret is disabled (403 SecretDisabled). */
+export const secretDisabledError = (operation = "get"): Error =>
+    keyVaultError(403, "Forbidden", `Operation ${operation} is not allowed on a disabled secret.`, "SecretDisabled");
+
 /** An error shaped like a credential error of @azure/identity. */
 export const credentialError = (
     name = "CredentialUnavailableError",
@@ -67,10 +89,17 @@ class FakeKeyVault {
     public retentionDays = 90;
     /** Whether purge protection refuses purging, and with which status. */
     public purgeProtection: false | 403 | 409 = false;
+    /**
+     * How many getDeletedSecret calls after a purge still find the entry:
+     * Key Vault purges in the background.
+     */
+    public purgeLag = 0;
 
     private secrets = new Map<string, StoredSecret>();
     private deleted = new Map<string, DeletedEntry>();
-    private failures = new Map<string, () => Error>();
+    private failures = new Map<string, () => Error | undefined>();
+    private disabled = new Set<string>();
+    private purging = new Map<string, number>();
 
     public reset(): void {
         this.calls = [];
@@ -80,9 +109,12 @@ class FakeKeyVault {
         this.pagesListed = 0;
         this.retentionDays = 90;
         this.purgeProtection = false;
+        this.purgeLag = 0;
         this.secrets.clear();
         this.deleted.clear();
         this.failures.clear();
+        this.disabled.clear();
+        this.purging.clear();
     }
 
     /** Stores a secret directly. */
@@ -107,23 +139,33 @@ class FakeKeyVault {
         return this.deleted.get(name.toLowerCase());
     }
 
-    /** Makes a method fail with the given error, or every method with "*". */
-    public failOn(method: FakeKeyVaultMethod | "*", error: () => Error): this {
+    /** Disables a secret: reading it fails with 403 SecretDisabled. */
+    public disable(name: string): this {
+        this.disabled.add(name.toLowerCase());
+        return this;
+    }
+
+    /**
+     * Makes a method fail with the given error, or every method with "*".
+     * A call for which the function returns undefined doesn't fail.
+     */
+    public failOn(method: FakeKeyVaultMethod | "*", error: () => Error | undefined): this {
         this.failures.set(method, error);
         return this;
     }
 
     public record(method: FakeKeyVaultMethod, vaultUrl: string, name?: string): void {
         this.calls.push({ method, name, vaultUrl });
-        const failure = this.failures.get(method) ?? this.failures.get("*");
+        const failure = (this.failures.get(method) ?? this.failures.get("*"))?.();
         if (failure) {
-            throw failure();
+            throw failure;
         }
     }
 
     public getSecret(name: string) {
         const secret = this.secret(name);
         if (!secret) throw secretNotFound(name);
+        if (this.disabled.has(name.toLowerCase())) throw secretDisabledError();
         return { name: secret.name, value: secret.value, properties: { name: secret.name } };
     }
 
@@ -148,6 +190,15 @@ class FakeKeyVault {
     }
 
     public getDeleted(name: string) {
+        const left = this.purging.get(name.toLowerCase());
+        if (left !== undefined) {
+            if (left <= 0) {
+                this.purging.delete(name.toLowerCase());
+                this.deleted.delete(name.toLowerCase());
+            } else {
+                this.purging.set(name.toLowerCase(), left - 1);
+            }
+        }
         const entry = this.deletedSecret(name);
         if (!entry) throw secretNotFound(name);
         return FakeKeyVault.toDeletedSecret(entry);
@@ -158,7 +209,11 @@ class FakeKeyVault {
         if (this.purgeProtection) {
             throw restError(this.purgeProtection, "Forbidden", 'Operation "purge" is not enabled for this vault.');
         }
-        this.deleted.delete(name.toLowerCase());
+        if (this.purgeLag > 0) {
+            this.purging.set(name.toLowerCase(), this.purgeLag);
+        } else {
+            this.deleted.delete(name.toLowerCase());
+        }
     }
 
     public names(): string[] {

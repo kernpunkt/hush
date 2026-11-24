@@ -327,8 +327,7 @@ describe("AC-F04-19: the type azure-key-vault", () => {
         [{ vaultUrl: "https://abc.vault.azure.net" }],
         [{ vaultUrl: `https://a${"b".repeat(22)}c.vault.azure.net` }],
         [{ vaultUrl, tenantId: "00000000-1111-2222-3333-444444444444" }],
-        [{ vaultUrl, tenantId: "example-tenant.onmicrosoft.com" }],
-        [{ vaultUrl, tenantId: "example.com" }],
+        [{ vaultUrl, tenantId: "ABCDEF00-1111-2222-3333-44444444AAAA" }],
     ])("accepts %j", (settings) => {
         expect(parse(settings).backends.azure).toEqual({ type: "azure-key-vault", ...settings });
     });
@@ -360,7 +359,17 @@ describe("AC-F04-19: the type azure-key-vault", () => {
         (tenantId) => {
             const error = errorOf(() => parse({ vaultUrl, tenantId }));
             expect(error).toBe(
-                "hush.config.json, field backends.azure.tenantId: must be a tenant ID (a GUID) or a domain like contoso.onmicrosoft.com."
+                "hush.config.json, field backends.azure.tenantId: must be a tenant ID, a GUID. az account show --query tenantId shows it."
+            );
+        }
+    );
+
+    it.each(["example-tenant.onmicrosoft.com", "example.com"])(
+        "rejects the domain %j as tenantId, asks for the tenant ID and doesn't repeat it",
+        (tenantId) => {
+            const error = errorOf(() => parse({ vaultUrl, tenantId }));
+            expect(error).toBe(
+                "hush.config.json, field backends.azure.tenantId: must be the tenant ID, a GUID, not a domain. az account show --query tenantId shows the tenant ID."
             );
         }
     );
