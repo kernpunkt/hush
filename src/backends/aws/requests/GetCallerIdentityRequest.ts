@@ -1,7 +1,22 @@
-import BaseRequest from "./BaseRequest.js";
+import BaseRequest, { DEFAULT_AWS_REGION } from "./BaseRequest.js";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 
 class GetCallerIdentityRequest extends BaseRequest {
+  /**
+   * AwsBackend passes the STS client it shares between all its requests.
+   * Without one, as in 4.1.0, every call builds a client for `region`.
+   */
+  constructor(
+    region: string = DEFAULT_AWS_REGION,
+    private readonly stsClient?: STSClient
+  ) {
+    super(region);
+  }
+
+  public getStsClient(): STSClient {
+    return this.stsClient ?? new STSClient({ region: this.region });
+  }
+
   public async execute(input: string): Promise<string> {
     // If the string looks like an ARN, just return it
     if (
@@ -13,8 +28,9 @@ class GetCallerIdentityRequest extends BaseRequest {
       return input;
     }
 
-    const client = new STSClient({ region: this.region });
-    const result = await client.send(new GetCallerIdentityCommand({}));
+    const result = await this.getStsClient().send(
+      new GetCallerIdentityCommand({})
+    );
 
     if (!result.Arn) {
       throw new Error("No caller identity found");

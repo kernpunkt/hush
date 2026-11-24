@@ -4,10 +4,17 @@ import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 export const DEFAULT_AWS_REGION = "eu-central-1";
 
 abstract class BaseRequest {
-  constructor(protected readonly region: string = DEFAULT_AWS_REGION) {}
+  /**
+   * AwsBackend passes the client it shares between all its requests.
+   * Without one, as in 4.1.0, every call builds a client for `region`.
+   */
+  constructor(
+    protected readonly region: string = DEFAULT_AWS_REGION,
+    private readonly client?: SecretsManagerClient
+  ) {}
 
   public getClient(): SecretsManagerClient {
-    return new SecretsManagerClient({ region: this.region });
+    return this.client ?? new SecretsManagerClient({ region: this.region });
   }
 }
 

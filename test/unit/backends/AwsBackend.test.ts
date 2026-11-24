@@ -110,3 +110,68 @@ describe.each(["grantAccess", "revokeAccess"] as const)("AwsBackend.%s", (method
         expect(secretsManagerMock.commandCalls(PutResourcePolicyCommand)).toHaveLength(0);
     });
 });
+
+describe("AwsBackend clients", () => {
+    /** The client each recorded call was sent with. */
+    const clientsOf = (mock: { calls(): { thisValue: unknown }[] }): Set<unknown> =>
+        new Set(mock.calls().map((call) => call.thisValue));
+
+    beforeEach(() => {
+        // Access management is not part of the stateful fake: keep one policy.
+        let resourcePolicy: string | undefined;
+        secretsManagerMock.on(GetResourcePolicyCommand).callsFake(async () => ({ ResourcePolicy: resourcePolicy }));
+        secretsManagerMock.on(PutResourcePolicyCommand).callsFake(async ({ ResourcePolicy }) => {
+            resourcePolicy = ResourcePolicy;
+            return {};
+        });
+    });
+
+    it("builds no client before the first call", () => {
+        const backend = new AwsBackend({ region: "eu-west-1" });
+        backend.setupProblem();
+
+        // The clients are private; checked here because they cost a credential lookup each.
+        const clients = backend as unknown as { secretsManagerClient?: unknown; stsClient?: unknown };
+        expect(clients.secretsManagerClient).toBeUndefined();
+        expect(clients.stsClient).toBeUndefined();
+    });
+
+    it("sends every Secrets Manager call of one backend through one client", async () => {
+        const backend = new AwsBackend({ region: "eu-west-1" });
+        for (const name of ["hush-one", "hush-two", "hush-three"]) {
+            await backend.write(name, `value of ${name}`);
+        }
+
+        const names = await backend.listNames("hush-");
+        const values = await Promise.all(names.map((name) => backend.read(name)));
+
+        expect(values).toEqual(["value of hush-one", "value of hush-two", "value of hush-three"]);
+        expect(secretsManagerMock.calls().length).toBeGreaterThan(names.length + 1);
+        expect(clientsOf(secretsManagerMock).size).toBe(1);
+    });
+
+    it("sends the STS calls of grant and revoke through one client", async () => {
+        const backend = new AwsBackend({ region: "eu-west-1" });
+
+        await backend.grantAccess("hush-app", "jane.doe");
+        await backend.revokeAccess("hush-app", "jane.doe");
+        await backend.grantAccess("hush-app", "john.doe");
+
+        expect(stsMock.commandCalls(GetCallerIdentityCommand)).toHaveLength(3);
+        expect(clientsOf(stsMock).size).toBe(1);
+        expect(clientsOf(secretsManagerMock).size).toBe(1);
+    });
+
+    it("gives each backend its own clients", async () => {
+        const first = new AwsBackend({ region: "eu-west-1" });
+        const second = new AwsBackend({ region: "eu-west-1" });
+
+        await first.listNames("hush-");
+        await second.listNames("hush-");
+        await first.grantAccess("hush-app", "jane.doe");
+        await second.grantAccess("hush-app", "jane.doe");
+
+        expect(clientsOf(secretsManagerMock).size).toBe(2);
+        expect(clientsOf(stsMock).size).toBe(2);
+    });
+});

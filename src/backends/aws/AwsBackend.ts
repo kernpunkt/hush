@@ -1,4 +1,6 @@
 import chalk from "chalk";
+import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
+import { STSClient } from "@aws-sdk/client-sts";
 import { ArnPrincipal, Statement } from "@thinkinglabs/aws-iam-policy";
 import SecretBackend, {
   AccessResult,
@@ -33,14 +35,34 @@ export type AwsBackendOptions = {
  *
  * It uses the request classes of Hush! 4.1.0 and keeps their messages, so
  * the output of every command stays the same. Secrets Manager and STS are
- * called in the backend's region.
+ * called in the backend's region, each through one client per backend.
  */
 class AwsBackend implements SecretBackend {
   public readonly displayName = "AWS Secrets Manager";
   public readonly region: string;
+  private secretsManagerClient?: SecretsManagerClient;
+  private stsClient?: STSClient;
 
   constructor(options: AwsBackendOptions = {}) {
     this.region = options.region ?? DEFAULT_AWS_REGION;
+  }
+
+  /**
+   * The Secrets Manager client all requests of this backend share, so the
+   * credentials are resolved once. Built on first use: the help and the
+   * setup check run without one.
+   */
+  private get secretsManager(): SecretsManagerClient {
+    this.secretsManagerClient ??= new SecretsManagerClient({
+      region: this.region,
+    });
+    return this.secretsManagerClient;
+  }
+
+  /** The STS client of this backend, built on first use like the other. */
+  private get sts(): STSClient {
+    this.stsClient ??= new STSClient({ region: this.region });
+    return this.stsClient;
   }
 
   /**
@@ -71,10 +93,10 @@ class AwsBackend implements SecretBackend {
   public async read(name: string): Promise<string | undefined> {
     try {
       // An empty mapping keeps the original AWS error, so its kind can be told.
-      const response = await new GetSecretValueRequest(this.region).execute(
-        name,
-        {}
-      );
+      const response = await new GetSecretValueRequest(
+        this.region,
+        this.secretsManager
+      ).execute(name, {});
       return response?.SecretString;
     } catch (error) {
       throw toBackendError(error, {
@@ -87,10 +109,12 @@ class AwsBackend implements SecretBackend {
 
   public async write(name: string, value: string): Promise<WriteResult> {
     try {
-      await new PutSecretValueRequest(this.region).execute({
-        SecretId: name,
-        SecretString: value,
-      });
+      await new PutSecretValueRequest(this.region, this.secretsManager).execute(
+        {
+          SecretId: name,
+          SecretString: value,
+        }
+      );
       return "updated";
     } catch (updateError) {
       // Only a missing secret is created. Any other failed update (no access,
@@ -101,10 +125,12 @@ class AwsBackend implements SecretBackend {
         throw error;
       }
       try {
-        await new CreateSecretRequest(this.region).execute({
-          Name: name,
-          SecretString: value,
-        });
+        await new CreateSecretRequest(this.region, this.secretsManager).execute(
+          {
+            Name: name,
+            SecretString: value,
+          }
+        );
         return "created";
       } catch (error) {
         throw toBackendError(error);
@@ -114,7 +140,10 @@ class AwsBackend implements SecretBackend {
 
   public async listNames(prefix: string): Promise<string[]> {
     try {
-      const secrets = await new ListSecretsRequest(this.region).execute(prefix);
+      const secrets = await new ListSecretsRequest(
+        this.region,
+        this.secretsManager
+      ).execute(prefix);
       return secrets
         .map((secret) => secret.Name)
         .filter(
@@ -131,11 +160,10 @@ class AwsBackend implements SecretBackend {
     options: DeleteOptions = {}
   ): Promise<DeleteResult> {
     try {
-      const result = await new DeleteRequest(this.region).execute(
-        name,
-        options.force ?? false,
-        {}
-      );
+      const result = await new DeleteRequest(
+        this.region,
+        this.secretsManager
+      ).execute(name, options.force ?? false, {});
       const deletionDate = result?.DeletionDate;
       return deletionDate ? { deletionDate: new Date(deletionDate) } : {};
     } catch (error) {
@@ -152,14 +180,15 @@ class AwsBackend implements SecretBackend {
     userIdentifier: string
   ): Promise<AccessResult> {
     try {
-      const iamARN = await new GetCallerIdentityRequest(this.region).execute(
-        userIdentifier
-      );
+      const iamARN = await new GetCallerIdentityRequest(
+        this.region,
+        this.sts
+      ).execute(userIdentifier);
       // An empty mapping keeps the original AWS error, so its kind can be told.
-      const policy = await new GetResourcePolicyRequest(this.region).execute(
-        { SecretId: name },
-        {}
-      );
+      const policy = await new GetResourcePolicyRequest(
+        this.region,
+        this.secretsManager
+      ).execute({ SecretId: name }, {});
 
       if (findStatementByArn(policy, iamARN)) {
         return { status: "unchanged", principal: iamARN };
@@ -174,7 +203,10 @@ class AwsBackend implements SecretBackend {
         })
       );
 
-      await new PutResourcePolicyRequest(this.region).execute(name, policy, {
+      await new PutResourcePolicyRequest(
+        this.region,
+        this.secretsManager
+      ).execute(name, policy, {
         MalformedPolicyDocumentException: `Could not grant access to secret ${chalk.bold(
           name
         )} because the user with the ARN ${chalk.bold(
@@ -192,14 +224,15 @@ class AwsBackend implements SecretBackend {
     userIdentifier: string
   ): Promise<AccessResult> {
     try {
-      const iamARN = await new GetCallerIdentityRequest(this.region).execute(
-        userIdentifier
-      );
+      const iamARN = await new GetCallerIdentityRequest(
+        this.region,
+        this.sts
+      ).execute(userIdentifier);
       // An empty mapping keeps the original AWS error, so its kind can be told.
-      const policy = await new GetResourcePolicyRequest(this.region).execute(
-        { SecretId: name },
-        {}
-      );
+      const policy = await new GetResourcePolicyRequest(
+        this.region,
+        this.secretsManager
+      ).execute({ SecretId: name }, {});
 
       if (!findStatementByArn(policy, iamARN)) {
         return { status: "unchanged", principal: iamARN };
@@ -208,11 +241,10 @@ class AwsBackend implements SecretBackend {
       const updatedPolicy = removeStatementByArn(policy, iamARN);
       // 4.1.0 passed a mapping here whose key never matched an AWS error
       // (a typo), so AWS errors were always shown as they are. Kept that way.
-      await new PutResourcePolicyRequest(this.region).execute(
-        name,
-        updatedPolicy,
-        {}
-      );
+      await new PutResourcePolicyRequest(
+        this.region,
+        this.secretsManager
+      ).execute(name, updatedPolicy, {});
       return { status: "changed", principal: iamARN };
     } catch (error) {
       throw toBackendError(error, { notFound: secretNotFound(name) });
