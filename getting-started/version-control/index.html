@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="4.6.0.845732459367">
+    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="4.6.0.848847455630">
 
     <!-- See retype.com -->
     <meta name="generator" content="Retype 4.6.0">
@@ -37,12 +37,12 @@
 
     <script data-cfasync="false">(function(){var cl=document.documentElement.classList,ls=localStorage.getItem("retype_scheme"),hd=cl.contains("dark"),hl=cl.contains("light"),wm=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;if(ls==="dark"||(!ls&&wm&&!hd&&!hl)){cl.remove("light");cl.add("dark")}else if(ls==="light"||(!ls&&!wm&&!hd&&!hl)){cl.remove("dark");cl.add("light")}})();</script>
 
-    <link href="../../resources/css/retype.css?v=4.6.0.845732459367" rel="stylesheet">
+    <link href="../../resources/css/retype.css?v=4.6.0.848847455630" rel="stylesheet">
 
-    <script data-cfasync="false" src="../../resources/js/config.js?v=4.6.0.845732459367" data-turbo-eval="false" defer></script>
+    <script data-cfasync="false" src="../../resources/js/config.js?v=4.6.0.848847455630" data-turbo-eval="false" defer></script>
     <script data-cfasync="false" src="../../resources/js/retype.js?v=4.6.0" data-turbo-eval="false" defer></script>
-    <script id="lunr-js" data-cfasync="false" src="../../resources/js/lunr.js?v=4.6.0.845732459367" data-turbo-eval="false" defer></script>
-    <script id="prism-js" data-cfasync="false" src="../../resources/js/prism.js?v=4.6.0.845732459367" defer></script>
+    <script id="lunr-js" data-cfasync="false" src="../../resources/js/lunr.js?v=4.6.0.848847455630" data-turbo-eval="false" defer></script>
+    <script id="prism-js" data-cfasync="false" src="../../resources/js/prism.js?v=4.6.0.848847455630" defer></script>
 </head>
 <body>
     <div id="retype-app" class="relative text-base antialiased text-base-text bg-base-bg font-body">
@@ -191,6 +191,18 @@
   }
 }</code></pre>
 </doc-codeblock></div>
+<p>With a <a href="../../backends/project-setting/">project setting</a> that puts keys into other backends, a version is kept <strong>per store</strong>. A key in the default store (the AWS Secrets Manager in <code translate="no" v-pre>eu-central-1</code>) has the entry name shown above, as in Hush! 4.1.0. A key in any other store gets the store added after an <code translate="no" v-pre>@</code>:</p>
+<div id="hushrcjson-file-code-2" class="codeblock-wrapper"><doc-codeblock>
+<pre translate="no" class="language-json"><code v-pre class="language-json">{
+  &quot;hush-project-dev&quot;: {
+    &quot;version&quot;: 5
+  },
+  &quot;hush-project-prod@AWS eu-west-1&quot;: {
+    &quot;version&quot;: 12
+  }
+}</code></pre>
+</doc-codeblock></div>
+<p>So a key that moves to another backend starts with a version of its own there, and <code translate="no" v-pre>hush delete</code> only removes the version of the store it deleted from. Warnings name the key and its store, not the entry name, for example <code translate="no" v-pre>for key &quot;hush-project-prod&quot; (AWS eu-west-1)</code>.</p>
 <p><strong>Note:</strong></p>
 <ul>
 <li>The <code translate="no" v-pre>.hushrc.json</code> file is automatically updated during <code translate="no" v-pre>pull</code> operations</li>

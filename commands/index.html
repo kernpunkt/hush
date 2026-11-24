@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="4.6.0.845732459367">
+    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="4.6.0.848847455630">
 
     <!-- See retype.com -->
     <meta name="generator" content="Retype 4.6.0">
@@ -37,11 +37,11 @@
 
     <script data-cfasync="false">(function(){var cl=document.documentElement.classList,ls=localStorage.getItem("retype_scheme"),hd=cl.contains("dark"),hl=cl.contains("light"),wm=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;if(ls==="dark"||(!ls&&wm&&!hd&&!hl)){cl.remove("light");cl.add("dark")}else if(ls==="light"||(!ls&&!wm&&!hd&&!hl)){cl.remove("dark");cl.add("light")}})();</script>
 
-    <link href="../resources/css/retype.css?v=4.6.0.845732459367" rel="stylesheet">
+    <link href="../resources/css/retype.css?v=4.6.0.848847455630" rel="stylesheet">
 
-    <script data-cfasync="false" src="../resources/js/config.js?v=4.6.0.845732459367" data-turbo-eval="false" defer></script>
+    <script data-cfasync="false" src="../resources/js/config.js?v=4.6.0.848847455630" data-turbo-eval="false" defer></script>
     <script data-cfasync="false" src="../resources/js/retype.js?v=4.6.0" data-turbo-eval="false" defer></script>
-    <script id="lunr-js" data-cfasync="false" src="../resources/js/lunr.js?v=4.6.0.845732459367" data-turbo-eval="false" defer></script>
+    <script id="lunr-js" data-cfasync="false" src="../resources/js/lunr.js?v=4.6.0.848847455630" data-turbo-eval="false" defer></script>
 </head>
 <body>
     <div id="retype-app" class="relative text-base antialiased text-base-text bg-base-bg font-body">
@@ -166,15 +166,15 @@
     </div>
 </div>
 
-<retype-table copy-text="| Command                           | Description                                                         |
-| --------------------------------- | ------------------------------------------------------------------- |
-| [`hush push`](/commands/push)     | Push your local version of the `.env` file to AWS.                  |
-| [`hush pull`](/commands/pull)     | Pull the newest version of the `.env` file from AWS.                |
-| [`hush cat`](/commands/cat)       | Outputs the secrets contained in a Hush!-managed secret.            |
-| [`hush list`](/commands/list)     | List all Hush! secrets that your current AWS profile has access to. |
-| [`hush grant`](/commands/grant)   | Grant access to a secret to another user.                           |
-| [`hush revoke`](/commands/revoke) | Revoke access to a secret from another user.                        |
-| [`hush delete`](/commands/delete) | Delete the given Hush! secret in AWS.                               |">
+<retype-table copy-text="| Command                           | Description                                                  |
+| --------------------------------- | ------------------------------------------------------------ |
+| [`hush push`](/commands/push)     | Push your local version of the `.env` file to the backend.   |
+| [`hush pull`](/commands/pull)     | Pull the newest version of the `.env` file from the backend. |
+| [`hush cat`](/commands/cat)       | Outputs the secrets contained in a Hush!-managed secret.     |
+| [`hush list`](/commands/list)     | List all Hush! secrets in the backends of your project.      |
+| [`hush grant`](/commands/grant)   | Grant access to a secret to another user.                    |
+| [`hush revoke`](/commands/revoke) | Revoke access to a secret from another user.                 |
+| [`hush delete`](/commands/delete) | Delete the given Hush! secret in its backend.                |">
 <div class="table-wrapper scrollbar overflow-hidden">
 <table class="comfortable">
 <thead>
@@ -186,11 +186,11 @@
 <tbody>
 <tr>
 <td><a href="push/"><code translate="no" v-pre>hush push</code></a></td>
-<td>Push your local version of the <code translate="no" v-pre>.env</code> file to AWS.</td>
+<td>Push your local version of the <code translate="no" v-pre>.env</code> file to the backend.</td>
 </tr>
 <tr>
 <td><a href="pull/"><code translate="no" v-pre>hush pull</code></a></td>
-<td>Pull the newest version of the <code translate="no" v-pre>.env</code> file from AWS.</td>
+<td>Pull the newest version of the <code translate="no" v-pre>.env</code> file from the backend.</td>
 </tr>
 <tr>
 <td><a href="cat/"><code translate="no" v-pre>hush cat</code></a></td>
@@ -198,7 +198,7 @@
 </tr>
 <tr>
 <td><a href="list/"><code translate="no" v-pre>hush list</code></a></td>
-<td>List all Hush! secrets that your current AWS profile has access to.</td>
+<td>List all Hush! secrets in the backends of your project.</td>
 </tr>
 <tr>
 <td><a href="grant/"><code translate="no" v-pre>hush grant</code></a></td>
@@ -210,7 +210,7 @@
 </tr>
 <tr>
 <td><a href="delete/"><code translate="no" v-pre>hush delete</code></a></td>
-<td>Delete the given Hush! secret in AWS.</td>
+<td>Delete the given Hush! secret in its backend.</td>
 </tr>
 </tbody>
 </table>

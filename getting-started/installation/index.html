@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="4.6.0.845732459367">
+    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="4.6.0.848847455630">
 
     <!-- See retype.com -->
     <meta name="generator" content="Retype 4.6.0">
@@ -37,11 +37,11 @@
 
     <script data-cfasync="false">(function(){var cl=document.documentElement.classList,ls=localStorage.getItem("retype_scheme"),hd=cl.contains("dark"),hl=cl.contains("light"),wm=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;if(ls==="dark"||(!ls&&wm&&!hd&&!hl)){cl.remove("light");cl.add("dark")}else if(ls==="light"||(!ls&&!wm&&!hd&&!hl)){cl.remove("dark");cl.add("light")}})();</script>
 
-    <link href="../../resources/css/retype.css?v=4.6.0.845732459367" rel="stylesheet">
+    <link href="../../resources/css/retype.css?v=4.6.0.848847455630" rel="stylesheet">
 
-    <script data-cfasync="false" src="../../resources/js/config.js?v=4.6.0.845732459367" data-turbo-eval="false" defer></script>
+    <script data-cfasync="false" src="../../resources/js/config.js?v=4.6.0.848847455630" data-turbo-eval="false" defer></script>
     <script data-cfasync="false" src="../../resources/js/retype.js?v=4.6.0" data-turbo-eval="false" defer></script>
-    <script id="lunr-js" data-cfasync="false" src="../../resources/js/lunr.js?v=4.6.0.845732459367" data-turbo-eval="false" defer></script>
+    <script id="lunr-js" data-cfasync="false" src="../../resources/js/lunr.js?v=4.6.0.848847455630" data-turbo-eval="false" defer></script>
 </head>
 <body>
     <div id="retype-app" class="relative text-base antialiased text-base-text bg-base-bg font-body">
@@ -177,6 +177,8 @@
 <p><code translate="no" v-pre>npm install --dev hush-cli</code></p>
 </doc-tab>
 </doc-tabs>
+<h2 id="choosing-a-backend">Choosing a backend</h2>
+<p>Hush! keeps your secrets in a <strong>backend</strong>. <strong>Without a project setting, Hush! uses the AWS Secrets Manager in <code translate="no" v-pre>eu-central-1</code></strong>, so you can start right away. If your project needs another region, or keys spread over several backends, add a <a href="../../backends/project-setting/"><code translate="no" v-pre>hush.config.json</code></a>.</p>
 <div class="flex mb-6">
     <div class="shrink-0 w-1.5 rounded-tl-lg rounded-bl-lg bg-callout-primary"></div>
     <div class="flex w-full py-4 border border-l-0 rounded-tr-lg rounded-br-lg doc-callout bg-callout-base-bg border-callout-base-border" role="alert">
@@ -190,11 +192,11 @@
             </svg>
         </div>
         <div class="pr-5 ml-3 w-full">
-<p>Before using Hush! make sure to select your AWS profile!</p>
+<p>Commands that use the AWS backend need your AWS profile!</p>
         </div>
     </div>
 </div>
-<p>Before running either of the <a href="../../commands/">commands Hush! provides</a>, it&#x27;s important to <strong>select your AWS profile</strong> by running <strong><code translate="no" v-pre>export AWS_PROFILE=your-profile-name</code></strong> in the shell. If you don&#x27;t have an AWS profile for your command line yet, <a href="https://gist.github.com/joerncodes/6d96114dbbd84f3acd70a2ddb9f056b1">create one first using this guide</a>.</p>
+<p>Hush! asks for an AWS profile <strong>only for commands that use the AWS backend</strong>. Without a project setting, that&#x27;s every <a href="../../commands/">command Hush! provides</a>. Before running one, <strong>select your AWS profile</strong> by running <strong><code translate="no" v-pre>export AWS_PROFILE=your-profile-name</code></strong> in the shell. If you don&#x27;t have an AWS profile for your command line yet, <a href="https://gist.github.com/joerncodes/6d96114dbbd84f3acd70a2ddb9f056b1">create one first using this guide</a>. <code translate="no" v-pre>hush --help</code> works without one.</p>
 
                 
                 <!-- Required only on API pages -->

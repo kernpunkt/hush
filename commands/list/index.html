@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="4.6.0.845732459367">
+    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="4.6.0.848847455630">
 
     <!-- See retype.com -->
     <meta name="generator" content="Retype 4.6.0">
@@ -12,7 +12,7 @@
     <!-- Primary Meta Tags -->
     <title>list</title>
     <meta name="title" content="list">
-    <meta name="description" content="This command lists all Hush! secrets that the current AWS profile has access to.">
+    <meta name="description" content="This command lists all Hush! secrets in the backend, without a project setting the AWS Secrets Manager in eu-central-1 with your current AWS profile. Secrets your profile can't read are listed as \"No access\".">
 
     <!-- Canonical -->
     <link rel="canonical" href="https://hush.kernpunkt.de/commands/list/">
@@ -22,7 +22,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://hush.kernpunkt.de/commands/list/">
     <meta property="og:title" content="list">
-    <meta property="og:description" content="This command lists all Hush! secrets that the current AWS profile has access to.">
+    <meta property="og:description" content="This command lists all Hush! secrets in the backend, without a project setting the AWS Secrets Manager in eu-central-1 with your current AWS profile. Secrets your profile can't read are listed as \"No access\".">
     <meta property="og:image" content="https://hush.kernpunkt.de/assets/hush-list.gif">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -34,7 +34,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://hush.kernpunkt.de/commands/list/">
     <meta name="twitter:title" content="list">
-    <meta name="twitter:description" content="This command lists all Hush! secrets that the current AWS profile has access to.">
+    <meta name="twitter:description" content="This command lists all Hush! secrets in the backend, without a project setting the AWS Secrets Manager in eu-central-1 with your current AWS profile. Secrets your profile can't read are listed as \"No access\".">
     <meta name="twitter:image" content="https://hush.kernpunkt.de/assets/hush-list.gif">
     <meta name="twitter:image:alt" content="list">
 
@@ -43,11 +43,11 @@
 
     <script data-cfasync="false">(function(){var cl=document.documentElement.classList,ls=localStorage.getItem("retype_scheme"),hd=cl.contains("dark"),hl=cl.contains("light"),wm=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;if(ls==="dark"||(!ls&&wm&&!hd&&!hl)){cl.remove("light");cl.add("dark")}else if(ls==="light"||(!ls&&!wm&&!hd&&!hl)){cl.remove("dark");cl.add("light")}})();</script>
 
-    <link href="../../resources/css/retype.css?v=4.6.0.845732459367" rel="stylesheet">
+    <link href="../../resources/css/retype.css?v=4.6.0.848847455630" rel="stylesheet">
 
-    <script data-cfasync="false" src="../../resources/js/config.js?v=4.6.0.845732459367" data-turbo-eval="false" defer></script>
+    <script data-cfasync="false" src="../../resources/js/config.js?v=4.6.0.848847455630" data-turbo-eval="false" defer></script>
     <script data-cfasync="false" src="../../resources/js/retype.js?v=4.6.0" data-turbo-eval="false" defer></script>
-    <script id="lunr-js" data-cfasync="false" src="../../resources/js/lunr.js?v=4.6.0.845732459367" data-turbo-eval="false" defer></script>
+    <script id="lunr-js" data-cfasync="false" src="../../resources/js/lunr.js?v=4.6.0.848847455630" data-turbo-eval="false" defer></script>
 </head>
 <body>
     <div id="retype-app" class="relative text-base antialiased text-base-text bg-base-bg font-body">
@@ -176,7 +176,8 @@
     <img src="../../assets/hush-list.gif" alt="" class="max-w-full h-auto rounded-image-rounded border-image-border border-image-border-width" width="935" height="605" />
     <figcaption class="caption"></figcaption>
 </figure>
-<p>This command lists <strong>all Hush! secrets that the current AWS profile has access to</strong>.</p>
+<p>This command lists <strong>all Hush! secrets in the backend</strong>, without a project setting the AWS Secrets Manager in <code translate="no" v-pre>eu-central-1</code> with your current AWS profile. Secrets your profile can&#x27;t read are listed as &quot;No access&quot;.</p>
+<p>If your project has a <a href="../../backends/project-setting/">project setting</a> with <strong>several backends</strong>, <code translate="no" v-pre>list</code> shows <strong>one table per backend</strong>. Each table starts with a title row that names the backend and where it keeps its secrets, for example <code translate="no" v-pre>Backend: ireland (AWS eu-west-1)</code>. A backend that can&#x27;t be listed shows the reason instead of a table; the other backends are still listed.</p>
 <p>It displays the following fields for each secret:</p>
 <ul>
 <li>Name</li>
