@@ -1,13 +1,7 @@
 import path from "path";
-import {
-  CreateSecretCommandInput,
-  PutSecretValueCommandInput,
-} from "@aws-sdk/client-secrets-manager";
 import chalk from "chalk";
 import BaseCommand from "./BaseCommand.js";
 import LineReader from "../utils/LineReader.js";
-import PutSecretValueRequest from "../requests/PutSecretValueRequest.js";
-import CreateSecretRequest from "../requests/CreateSecretRequest.js";
 import PushCommandInput from "../@types/PushCommandInput.js";
 import SecretPayloadManager, {
   UnknownSecretFormatError,
@@ -51,7 +45,10 @@ class PushCommand extends BaseCommand {
    */
   private async getCurrentVersion(): Promise<number> {
     try {
-      return await this.versionManager.getSecretVersion(this.getKey());
+      return await this.versionManager.getSecretVersion(
+        this.getKey(),
+        this.backend
+      );
     } catch (error) {
       const unreadable =
         error instanceof UnknownSecretFormatError ||
@@ -78,20 +75,14 @@ class PushCommand extends BaseCommand {
       secrets: secretArray,
       updated_at: new Date(),
     };
-    const secretString = new SecretPayloadManager().toSecretString(payload);
-
-    const body: PutSecretValueCommandInput = {
-      SecretId: this.getKey(),
-      SecretString: secretString,
-    };
-
     // Get and log the current version before pushing
     const currentVersion = await this.getCurrentVersion();
 
     if (!this.force) {
       const isVersionValid = this.versionManager.checkVersion(
         this.getKey(),
-        currentVersion
+        currentVersion,
+        this.backend
       );
       if (!isVersionValid) {
         return "";
@@ -102,36 +93,26 @@ class PushCommand extends BaseCommand {
     const newVersion = currentVersion + 1;
     payload.version = newVersion;
 
-    // Update the secret string with new version
-    const updatedSecretString = new SecretPayloadManager().toSecretString(
-      payload
+    const secretString = new SecretPayloadManager().toSecretString(payload);
+    const result = await this.backend.write(this.getKey(), secretString);
+
+    this.versionManager.updateVersionsFile(
+      VersionManager.versionName(this.getKey(), this.backend),
+      newVersion
     );
-    body.SecretString = updatedSecretString;
 
-    try {
-      await new PutSecretValueRequest().execute(body);
-
-      this.versionManager.updateVersionsFile(this.getKey(), newVersion);
-
+    if (result === "updated") {
       return `
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${payload.message}
 ${chalk.bold("New version: ")}${chalk.bold.cyan(newVersion)}
 Your secret ${chalk.bold(this.getKey())} was successfully updated.`;
-    } catch {
-      const createPayload: CreateSecretCommandInput = {
-        Name: this.getKey(),
-        SecretString: secretString,
-      };
-      await new CreateSecretRequest().execute(createPayload);
+    }
 
-      this.versionManager.updateVersionsFile(this.getKey(), newVersion);
-
-      return `
+    return `
 ${chalk.green("Done!")}
 ${chalk.bold("Message: ")}${payload.message}
 Your secret ${this.getKey()} was successfully created.`;
-    }
   }
 
   /**

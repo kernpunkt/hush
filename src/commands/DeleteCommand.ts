@@ -1,6 +1,5 @@
 import BaseCommand from "./BaseCommand.js";
 import chalk from "chalk";
-import DeleteRequest from "../requests/DeleteRequest.js";
 import DeleteCommandInput from "../@types/DeleteCommandInput.js";
 import DateFormatter from "../utils/DateFormatter.js";
 import VersionManager from "../utils/VersionManager.js";
@@ -21,11 +20,13 @@ class DeleteCommand extends BaseCommand {
   }
 
   public async execute(): Promise<string> {
-    const result = await new DeleteRequest().execute(this.getKey(), this.force);
+    const result = await this.backend.delete(this.getKey(), {
+      force: this.force,
+    });
 
-    this.versionManager.removeVersionFromFile(this.getKey());
+    this.versionManager.removeVersionFromFile(this.getKey(), this.backend);
 
-    const dateObject = result?.DeletionDate;
+    const dateObject = result.deletionDate;
 
     if (this.force) {
       return `${chalk.green("Done!")} Your secret ${chalk.bold(

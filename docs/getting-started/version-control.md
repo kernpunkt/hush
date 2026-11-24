@@ -39,6 +39,21 @@ Hush automatically creates a `.hushrc.json` file in your project directory:
 }
 ```
 
+With a [project setting](/backends/project-setting) that puts keys into other backends, a version is kept **per store**. A key in the default store (the AWS Secrets Manager in `eu-central-1`) has the entry name shown above, as in Hush! 4.1.0. A key in any other store gets the store added after an `@`:
+
+```json
+{
+  "hush-project-dev": {
+    "version": 5
+  },
+  "hush-project-prod@AWS eu-west-1": {
+    "version": 12
+  }
+}
+```
+
+So a key that moves to another backend starts with a version of its own there, and `hush delete` only removes the version of the store it deleted from. Warnings name the key and its store, not the entry name, for example `for key "hush-project-prod" (AWS eu-west-1)`.
+
 **Note:**
 
 - The `.hushrc.json` file is automatically updated during `pull` operations

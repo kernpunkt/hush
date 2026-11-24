@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import VersionManager from "../../../src/utils/VersionManager";
-import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
+import GetSecretValueRequest from "../../../src/backends/aws/requests/GetSecretValueRequest";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
+import AwsBackend from "../../../src/backends/aws/AwsBackend";
+import SecretBackend from "../../../src/backends/SecretBackend";
 
 // Mock console methods to prevent output during tests
 const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -235,6 +237,8 @@ describe("VersionManager", () => {
   });
 
   describe("getSecretVersion", () => {
+    const backend = new AwsBackend();
+
     it("should return the version from AWS Secrets Manager", async () => {
       getSecretValueSpy.mockResolvedValueOnce({
         SecretString: JSON.stringify({
@@ -253,7 +257,7 @@ describe("VersionManager", () => {
         updated_at: new Date(),
       });
 
-      const result = await versionManager.getSecretVersion("test-secret");
+      const result = await versionManager.getSecretVersion("test-secret", backend);
 
       expect(result).toBe(5);
       expect(getSecretValueSpy).toHaveBeenCalledWith("test-secret", {});
@@ -269,7 +273,7 @@ describe("VersionManager", () => {
         $metadata: {},
       });
 
-      const result = await versionManager.getSecretVersion("test-secret");
+      const result = await versionManager.getSecretVersion("test-secret", backend);
 
       expect(result).toBe(0);
     });
@@ -281,7 +285,7 @@ describe("VersionManager", () => {
         })
       );
 
-      const result = await versionManager.getSecretVersion("non-existent-secret");
+      const result = await versionManager.getSecretVersion("non-existent-secret", backend);
 
       expect(result).toBe(-1);
     });
@@ -289,7 +293,7 @@ describe("VersionManager", () => {
     it("should rethrow other AWS errors instead of returning -1", async () => {
       getSecretValueSpy.mockRejectedValueOnce(new Error("Network error"));
 
-      await expect(versionManager.getSecretVersion("test-secret")).rejects.toThrow(
+      await expect(versionManager.getSecretVersion("test-secret", backend)).rejects.toThrow(
         "Network error"
       );
     });
@@ -300,7 +304,7 @@ describe("VersionManager", () => {
         $metadata: {},
       });
 
-      await expect(versionManager.getSecretVersion("test-secret")).rejects.toThrow(
+      await expect(versionManager.getSecretVersion("test-secret", backend)).rejects.toThrow(
         "The secret test-secret has an unknown format"
       );
     });
@@ -311,7 +315,7 @@ describe("VersionManager", () => {
         $metadata: {},
       });
 
-      const result = await versionManager.getSecretVersion("test-secret");
+      const result = await versionManager.getSecretVersion("test-secret", backend);
 
       expect(result).toBe(0);
       expect(fromSecretStringSpy).not.toHaveBeenCalled();
@@ -434,5 +438,84 @@ describe("VersionManager", () => {
       }
     });
   });
-});
 
+  describe("versionName", () => {
+    it("keeps the 4.1.0 name for the default store, AWS eu-central-1", () => {
+      expect(VersionManager.versionName("hush-shop", new AwsBackend())).toBe("hush-shop");
+      expect(
+        VersionManager.versionName("hush-shop", new AwsBackend({ region: "eu-central-1" }))
+      ).toBe("hush-shop");
+    });
+
+    it("adds the store for every other store", () => {
+      expect(
+        VersionManager.versionName("hush-shop", new AwsBackend({ region: "eu-west-1" }))
+      ).toBe("hush-shop@AWS eu-west-1");
+    });
+
+    it("uses the backend's name for a backend without a location", () => {
+      const backend = { displayName: "Example store" } as SecretBackend;
+      expect(VersionManager.versionName("hush-shop", backend)).toBe("hush-shop@Example store");
+    });
+  });
+
+  describe("with a backend: versions and warnings per store", () => {
+    const stripAnsi = (str: string) => str.replace(/\x1b\[\d+m/g, "");
+    const warnings = () => consoleWarnSpy.mock.calls.map((call) => stripAnsi(String(call[0])));
+    const ireland = new AwsBackend({ region: "eu-west-1" });
+
+    it("checks the version of the backend's store and names key and store apart", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(
+        JSON.stringify({
+          "hush-shop": { version: 5 },
+          "hush-shop@AWS eu-west-1": { version: 1 },
+        })
+      );
+
+      expect(versionManager.checkVersion("hush-shop", 2, ireland)).toBe(false);
+      expect(warnings()[0]).toBe(
+        '⚠️ Warning: Remote version (2) is greater than your local version (1) for key "hush-shop" (AWS eu-west-1)'
+      );
+    });
+
+    it("words the warning as in 4.1.0 for the default store", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(JSON.stringify({ "hush-shop": { version: 1 } }));
+
+      expect(versionManager.checkVersion("hush-shop", 2, new AwsBackend())).toBe(false);
+      expect(warnings()[0]).toBe(
+        '⚠️ Warning: Remote version (2) is greater than your local version (1) for key "hush-shop"'
+      );
+    });
+
+    it("removes only the version of the backend's store", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(
+        JSON.stringify({
+          "hush-shop": { version: 5 },
+          "hush-shop@AWS eu-west-1": { version: 1 },
+        })
+      );
+
+      versionManager.removeVersionFromFile("hush-shop", ireland);
+
+      expect(JSON.parse(writeFileSyncMock.mock.calls[0][1] as string)).toEqual({ "hush-shop": { version: 5 } });
+    });
+
+    it("names key and store apart when there is no version to remove", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(JSON.stringify({ "hush-shop": { version: 5 } }));
+      versionManager.removeVersionFromFile("hush-shop", ireland);
+
+      existsSyncMock.mockReturnValueOnce(false);
+      versionManager.removeVersionFromFile("hush-shop", ireland);
+
+      expect(warnings()).toEqual([
+        '⚠️  Warning: No version entry found for key "hush-shop" (AWS eu-west-1) in .hushrc.json',
+        '⚠️  Warning: .hushrc.json file does not exist, no version to remove for key "hush-shop" (AWS eu-west-1)',
+      ]);
+      expect(writeFileSyncMock).not.toHaveBeenCalled();
+    });
+  });
+});

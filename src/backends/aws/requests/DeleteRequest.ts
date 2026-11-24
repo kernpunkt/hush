@@ -4,21 +4,19 @@ import {
   DeleteSecretCommandOutput,
 } from "@aws-sdk/client-secrets-manager";
 import BaseRequest from "./BaseRequest.js";
-import TypedErrorHandler from "../utils/TypedErrorHandler.js";
-import StringMap from "../@types/StringMap.js";
-import chalk from "chalk";
+import TypedErrorHandler from "../../../utils/TypedErrorHandler.js";
+import StringMap from "../../../@types/StringMap.js";
 
 class DeleteRequest extends BaseRequest {
+  /**
+   * Without a mapping, AWS errors stay as they are; AwsBackend gives the
+   * Hush! messages.
+   */
   public async execute(
     key: string,
     force: boolean,
-    providedMapping?: StringMap
+    mapping: StringMap = {}
   ): Promise<DeleteSecretCommandOutput | void> {
-    const mapping = providedMapping || {
-      ResourceNotFoundException: `Secret with key ${chalk.bold(
-        key
-      )} could not be deleted because it was not found.`,
-    };
     const payload: DeleteSecretCommandInput = {
       SecretId: key,
     };

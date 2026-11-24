@@ -1,20 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import PushCommand from "../../../src/commands/PushCommand";
 import MockLineReader from "../../support/MockLineReader";
-import PutSecretValueRequest from "../../../src/requests/PutSecretValueRequest";
-import CreateSecretRequest from "../../../src/requests/CreateSecretRequest";
-import GetSecretValueRequest from "../../../src/requests/GetSecretValueRequest";
+import PutSecretValueRequest from "../../../src/backends/aws/requests/PutSecretValueRequest";
+import CreateSecretRequest from "../../../src/backends/aws/requests/CreateSecretRequest";
+import GetSecretValueRequest from "../../../src/backends/aws/requests/GetSecretValueRequest";
 import SecretPayloadManager from "../../../src/utils/SecretPayloadManager";
 import { userInfo } from "os";
 import VersionManager from "../../../src/utils/VersionManager";
 import { UnknownSecretFormatError } from "../../../src/utils/SecretPayloadManager";
+import { ResourceNotFoundException } from "@aws-sdk/client-secrets-manager";
 
 // Mock the request modules
 const mockPutExecute = vi.hoisted(() => vi.fn());
 const mockCreateExecute = vi.hoisted(() => vi.fn());
 const mockToSecretString = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../src/requests/PutSecretValueRequest", () => {
+vi.mock("../../../src/backends/aws/requests/PutSecretValueRequest", () => {
     return {
         default: vi.fn().mockImplementation(function () {
             return { execute: mockPutExecute };
@@ -22,7 +23,7 @@ vi.mock("../../../src/requests/PutSecretValueRequest", () => {
     };
 });
 
-vi.mock("../../../src/requests/CreateSecretRequest", () => {
+vi.mock("../../../src/backends/aws/requests/CreateSecretRequest", () => {
     return {
         default: vi.fn().mockImplementation(function () {
             return { execute: mockCreateExecute };
@@ -70,31 +71,31 @@ describe("PushCommand", () => {
             expect(mockToSecretString).toHaveBeenCalled();
             mockToSecretString.mockReset();
         });
-        it("creates a fallback commit message if none is provided", () => {
+        it("creates a fallback commit message if none is provided", async () => {
             const command = new PushCommand({key: "hello-world", envFile: ".env.test", force: true});
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
             
-            command.execute();
+            await command.execute();
 
             const secretPayload = mockToSecretString.mock.calls[0][0];
             const username = userInfo().username;
             expect(secretPayload.message).toContain("Secret version uploaded by");
             expect(secretPayload.message).toContain(username);
         });
-        it("uses the commit message it it IS provided", () => {
+        it("uses the commit message it it IS provided", async () => {
             const message = "Hello world";
             const command = new PushCommand({key: "hello-world", envFile: ".env.test", message, force: true });
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
             mockPutExecute.mockResolvedValue(undefined);
-            command.execute();
+            await command.execute();
 
             const secretPayload = mockToSecretString.mock.calls[0][0];
             expect(secretPayload.message).toBe(message);
         });
-        it("updates a date in the payload", () => {
+        it("updates a date in the payload", async () => {
             const command = new PushCommand({key: "hello-world", envFile: ".env.test", force: true });
             command.setLineReader(new MockLineReader(['HELLO="WORLD"']));
-            command.execute();
+            await command.execute();
 
             const secretPayload = mockToSecretString.mock.calls[0][0];
             const year = new Date().getFullYear();
@@ -116,7 +117,9 @@ describe("PushCommand", () => {
             const command = new PushCommand({ key: "hello-world", envFile: ".env.test", force: true });
             command.setLineReader(new MockLineReader());
 
-            mockPutExecute.mockRejectedValueOnce(new Error(""));
+            mockPutExecute.mockRejectedValueOnce(
+                new ResourceNotFoundException({ message: "Secrets Manager can't find the specified secret.", $metadata: {} })
+            );
             mockCreateExecute.mockResolvedValue(undefined);
 
             await command.execute();

@@ -1,4 +1,3 @@
-import GetSecretValueRequest from "../requests/GetSecretValueRequest.js";
 import BaseCommand from "./BaseCommand.js";
 import CatCommandInput from "../@types/CatCommandInput.js";
 import SecretPayloadManager from "../utils/SecretPayloadManager.js";
@@ -13,10 +12,7 @@ class CatCommand extends BaseCommand {
   }
 
   public async execute() {
-    const secretResponse = await new GetSecretValueRequest().execute(
-      this.getKey()
-    );
-    const secretString = secretResponse?.SecretString;
+    const secretString = await this.backend.read(this.getKey());
     if (!secretString) {
       throw new Error(
         `Secret ${chalk.bold(

@@ -10,7 +10,7 @@ author:
 
 # Hush! 🤫</h1>
 
-**Hush!** is a small tool to facilitate the **sharing of `.env`** files between developers without having to send them over Teams messages. It uses the **AWS SecretsManager** to store a new secret for each of your `.env` files.
+**Hush!** is a small tool to facilitate the **sharing of `.env`** files between developers without having to send them over Teams messages. It stores a secret for each of your `.env` files in a **backend** of your choice. Today that's the **AWS Secrets Manager**, and a project can spread its keys over several backends, for example over AWS regions, with a [project setting](/backends/project-setting).
 
 With Hush!, you can _finally_ store secrets like API tokens or passwords securely.
 

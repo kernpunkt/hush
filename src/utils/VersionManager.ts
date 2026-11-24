@@ -2,8 +2,10 @@ import path from "path";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import chalk from "chalk";
 import VersionEntry from "../@types/VersionEntry.js";
-import GetSecretValueRequest from "../requests/GetSecretValueRequest.js";
 import SecretPayloadManager from "./SecretPayloadManager.js";
+import SecretBackend from "../backends/SecretBackend.js";
+import { isBackendError } from "../backends/BackendError.js";
+import defaultBackend from "../backends/defaultBackend.js";
 
 /**
  * Manages version control for secrets through the .hushrc.json file
@@ -12,13 +14,54 @@ class VersionManager {
   private static readonly VERSION_FILE = ".hushrc.json";
 
   /**
+   * The name of an entry's version in .hushrc.json. Versions are kept per
+   * store, so a key that moves to another backend doesn't share a version
+   * with its old copy. Entries in the store of Hush! 4.1.0 (the default
+   * backend, AWS eu-central-1) keep the 4.1.0 name, e.g. "hush-shop-dev";
+   * entries elsewhere get the store, e.g. "hush-shop-prod@AWS eu-west-1".
+   * AWS secret names can't contain spaces, so the two never collide.
+   *
+   * @param {string} name - The entry name, e.g. "hush-shop-prod"
+   * @param {SecretBackend} backend - The backend that stores the entry
+   * @returns {string} - The name of the version in .hushrc.json
+   */
+  public static versionName(name: string, backend: SecretBackend): string {
+    const store = VersionManager.otherStore(backend);
+    return store === undefined ? name : `${name}@${store}`;
+  }
+
+  /**
+   * How the warnings name an entry: `"hush-shop-dev"` in the default store,
+   * as in 4.1.0, and `"hush-shop-prod" (AWS eu-west-1)` elsewhere, like the
+   * table titles of `list`. Never the version name, which can't be typed
+   * into a command.
+   */
+  private static label(name: string, backend?: SecretBackend): string {
+    const store = backend && VersionManager.otherStore(backend);
+    return store === undefined ? `"${name}"` : `"${name}" (${store})`;
+  }
+
+  /** The backend's store, or undefined for the default store of 4.1.0. */
+  private static otherStore(backend: SecretBackend): string | undefined {
+    const store = backend.location ?? backend.displayName;
+    return store === defaultBackend().location ? undefined : store;
+  }
+
+  /**
    * Check if current version is <= stored version in .hushrc.json and warn if so.
    *
-   * @param {string} key - The secret key
+   * @param {string} name - The secret key
    * @param {number} currentVersion - The current version from AWS
+   * @param {SecretBackend} [backend] - The backend that stores the secret;
+   *   with it, the version is the one of its store (see versionName)
    * @returns {boolean} - Returns true if version check passes, false otherwise
    */
-  public checkVersion(key: string, currentVersion: number): boolean {
+  public checkVersion(
+    name: string,
+    currentVersion: number,
+    backend?: SecretBackend
+  ): boolean {
+    const key = backend ? VersionManager.versionName(name, backend) : name;
     const versionsFile = path.resolve(VersionManager.VERSION_FILE);
 
     if (!existsSync(versionsFile)) {
@@ -44,7 +87,7 @@ class VersionManager {
               currentVersion
             )}) is greater than your local version (${chalk.bold.cyan(
               versions[key]?.version || 0
-            )}) for key "${key}"`
+            )}) for key ${VersionManager.label(name, backend)}`
           )
         );
         console.warn(
@@ -108,43 +151,50 @@ class VersionManager {
   }
 
   /**
-   * Get the version from the current secret in AWS Secrets Manager.
+   * Get the version from the current secret in the backend.
    *
    * @param {string} key - The secret key
+   * @param {SecretBackend} backend - The backend that stores the secret
    * @returns {Promise<number>} - The current version or -1 if secret doesn't exist
    * @throws {Error} If the secret can't be retrieved or read for any other reason
    */
-  public async getSecretVersion(key: string): Promise<number> {
-    let data;
+  public async getSecretVersion(
+    key: string,
+    backend: SecretBackend
+  ): Promise<number> {
+    let secretString: string | undefined;
     try {
-      // An empty mapping keeps the original AWS error, so its name can be checked.
-      data = await new GetSecretValueRequest().execute(key, {});
+      secretString = await backend.read(key);
     } catch (error) {
-      if ((error as Error)?.name === "ResourceNotFoundException") {
+      if (isBackendError(error, "notFound")) {
         return -1;
       }
       throw error;
     }
 
-    if (!data?.SecretString) {
+    if (!secretString) {
       return 0;
     }
-    return new SecretPayloadManager().fromSecretString(data.SecretString, key)
+    return new SecretPayloadManager().fromSecretString(secretString, key)
       .version;
   }
 
   /**
    * Remove version entry from .hushrc.json file for the given key.
    *
-   * @param {string} key - The secret key to remove
+   * @param {string} name - The secret key to remove
+   * @param {SecretBackend} [backend] - The backend the secret was deleted
+   *   from; with it, only the version of its store is removed
    */
-  public removeVersionFromFile(key: string): void {
+  public removeVersionFromFile(name: string, backend?: SecretBackend): void {
+    const key = backend ? VersionManager.versionName(name, backend) : name;
+    const label = VersionManager.label(name, backend);
     const versionsFile = path.resolve(VersionManager.VERSION_FILE);
 
     if (!existsSync(versionsFile)) {
       console.warn(
         chalk.yellow(
-          `⚠️  Warning: .hushrc.json file does not exist, no version to remove for key "${key}"`
+          `⚠️  Warning: .hushrc.json file does not exist, no version to remove for key ${label}`
         )
       );
       return;
@@ -157,7 +207,7 @@ class VersionManager {
       if (versions[key] === undefined) {
         console.warn(
           chalk.yellow(
-            `⚠️  Warning: No version entry found for key "${key}" in .hushrc.json`
+            `⚠️  Warning: No version entry found for key ${label} in .hushrc.json`
           )
         );
         return;

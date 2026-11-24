@@ -1,11 +1,10 @@
-import GetSecretValueRequest from "../requests/GetSecretValueRequest.js";
-import ListSecretsRequest from "../requests/ListSecretsRequest.js";
 import BaseCommand from "./BaseCommand.js";
 import SecretPayloadManager from "../utils/SecretPayloadManager.js";
 import SecretPayload from "../@types/SecretPayload.js";
 import chalk from "chalk";
 import chalkTable, { stripAnsi } from "../utils/ChalkTable.js";
 import DateFormatter from "../utils/DateFormatter.js";
+import { isBackendError } from "../backends/BackendError.js";
 
 type ListTableRow = {
   name: string;
@@ -23,15 +22,18 @@ export type ListResult = {
 
 class ListCommand extends BaseCommand {
   private static readonly MAX_REASON_LENGTH = 80;
+  private title?: string;
+
+  /** A title row at the top of the table, e.g. the backend's name. */
+  public setTitle(title: string): this {
+    this.title = title;
+    return this;
+  }
 
   public async execute(): Promise<ListResult> {
-    const allSecrets = await new ListSecretsRequest().execute();
-    const hushSecrets =
-      allSecrets.SecretList?.filter((secret) =>
-        secret.Name?.startsWith(this.prefix)
-      ) || [];
-
-    const names = hushSecrets.map((secret) => secret.Name as string);
+    // Entry names are `<prefix>-<key>` (getKey), so the hyphen belongs to the
+    // prefix: without it, a secret like `hushed-token` would be listed too.
+    const names = await this.backend.listNames(`${this.prefix}-`);
     const results = await Promise.allSettled(
       names.map((name) => this.toTableRow(name))
     );
@@ -42,7 +44,7 @@ class ListCommand extends BaseCommand {
         return result.value;
       }
       // Hush grants access per secret, so secrets the user can't read are expected.
-      if (ListCommand.isAccessDenied(result.reason)) {
+      if (isBackendError(result.reason, "accessDenied")) {
         return ListCommand.noAccessRow(names[index]);
       }
       hasErrors = true;
@@ -53,6 +55,7 @@ class ListCommand extends BaseCommand {
     });
 
     const options = {
+      title: this.title,
       columns: [
         { field: "name", name: chalk.green("Name") },
         { field: "message", name: chalk.green("Message") },
@@ -67,8 +70,7 @@ class ListCommand extends BaseCommand {
   }
 
   private async toTableRow(name: string): Promise<ListTableRow> {
-    const result = await new GetSecretValueRequest().execute(name);
-    const secretString = result?.SecretString;
+    const secretString = await this.backend.read(name);
     if (secretString === undefined) {
       throw new Error("the secret has no string value");
     }
@@ -94,10 +96,6 @@ class ListCommand extends BaseCommand {
       updated_at: updatedAt,
       secret_count: String(payload.secrets.length),
     };
-  }
-
-  private static isAccessDenied(error: unknown): boolean {
-    return error instanceof Error && error.name === "AccessDeniedException";
   }
 
   private static noAccessRow(name: string): ListTableRow {
