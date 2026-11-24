@@ -26,9 +26,3 @@ jobs:
         run: yarn
       - name: Create release
         run: yarn semantic-release
-      - name: push main to release
-        run: |
-          git fetch
-          git checkout release
-          git pull origin main
-          git push --set-upstream origin release
