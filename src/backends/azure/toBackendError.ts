@@ -186,7 +186,7 @@ function accessDeniedMessage(context: AzureErrorContext): string {
         `You may not write the secret ${entryText(context)} in ${vaultText(
           context
         )}.`,
-        `Pushing needs the role ${role(WRITER_ROLE)}.`
+        `Writing needs the role ${role(WRITER_ROLE)}.`
       );
     case "delete":
       return withHints(

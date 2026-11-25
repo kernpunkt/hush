@@ -67,6 +67,16 @@ class ProjectBackends {
     return this.byName.get(name)!;
   }
 
+  /** The name of the backend for every key the setting doesn't list. */
+  public get defaultBackendName(): string {
+    return this.defaultName;
+  }
+
+  /** The backend with this name in the project setting, if there is one. */
+  public named(name: string): SecretBackend | undefined {
+    return this.byName.get(name);
+  }
+
   /**
    * All backends with their names, in the order of the project setting.
    * Names that are whole numbers (like "2024") come first, in ascending

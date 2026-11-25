@@ -51,7 +51,10 @@ vi.mock("os", osWithTestUser);
  * The snapshot (__snapshots__/v4_1_0.txt) was recorded by running this very
  * file against Hush! 4.1.0 (commit 8a2a770). Never regenerate it on another
  * version (no `vitest -u` for this file): a difference is a compatibility
- * break, not an outdated snapshot.
+ * break, not an outdated snapshot. The one edit by hand: the line
+ * `copy [options] <keys...>` in the two help listings, the new command of
+ * stage 2 that NFR-03-AC3 allows ("bis auf den neuen Befehl copy in der
+ * Hilfe"). Remove those two lines before re-recording on 4.1.0.
  *
  * The golden transcript test runs unchanged on 4.1.0, so this file imports
  * nothing from src/ except HushCommand and nothing from test/support/. The

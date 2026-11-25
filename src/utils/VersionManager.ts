@@ -111,6 +111,34 @@ class VersionManager {
   }
 
   /**
+   * The version of an entry in this folder's .hushrc.json for the store of
+   * the backend, or undefined if the file has none (or can't be read).
+   *
+   * @param {string} name - The entry name, e.g. "hush-shop-prod"
+   * @param {SecretBackend} backend - The backend that stores the entry
+   * @returns {number | undefined}
+   */
+  public localVersion(
+    name: string,
+    backend: SecretBackend
+  ): number | undefined {
+    const versionsFile = path.resolve(VersionManager.VERSION_FILE);
+    if (!existsSync(versionsFile)) {
+      return undefined;
+    }
+    try {
+      const versions: Record<string, VersionEntry> = JSON.parse(
+        readFileSync(versionsFile, "utf8")
+      );
+      const version =
+        versions[VersionManager.versionName(name, backend)]?.version;
+      return typeof version === "number" ? version : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * Update .hushrc.json file with new version.
    *
    * @param {string} key - The secret key
