@@ -105,13 +105,13 @@ export function isSecretDisabled(error: unknown): boolean {
 
 /**
  * Setting a secret whose name is soft-deleted: 409 with the inner code
- * ObjectIsDeletedButRecoverable, which the SDK may not surface as `code`,
- * so the text is checked as well.
+ * ObjectIsDeletedButRecoverable (the SDK's `code` is the outer "Conflict"),
+ * or a text saying so.
  */
 export function isDeletedButRecoverable(error: unknown): boolean {
   return (
     statusOf(error) === 409 &&
-    (codeOf(error) === "ObjectIsDeletedButRecoverable" ||
+    (hasCode(error, "ObjectIsDeletedButRecoverable") ||
       /deleted but recoverable/i.test(messageOf(error)))
   );
 }

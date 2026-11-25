@@ -8,6 +8,7 @@ import {
     credentialError,
     fakeKeyVault,
     firewallError,
+    keyVaultError,
     restError,
     secretDisabledError,
 } from "../../support/fakeKeyVault";
@@ -410,6 +411,14 @@ describe("AC-F04-7: deleting (BR-08)", () => {
 });
 
 describe("error kinds and messages", () => {
+    it("knows a soft-deleted name by the inner code alone, whatever the text says", async () => {
+        fakeKeyVault.failOn("setSecret", () =>
+            keyVaultError(409, "Conflict", "Some reworded text.", "ObjectIsDeletedButRecoverable")
+        );
+
+        expect((await failure(backend().write("hush-app", "{}"))).kind).toBe("softDeleted");
+    });
+
     const operations = [
         ["read", (azure: AzureBackend) => azure.read("hush-app")],
         ["write", (azure: AzureBackend) => azure.write("hush-app", "{}")],

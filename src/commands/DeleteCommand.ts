@@ -26,13 +26,14 @@ class DeleteCommand extends BaseCommand {
 
     if (result.purgeRefused) {
       // The entry still exists until then, so its version entry stays.
+      const until = chalk.bold(
+        result.deletionDate
+          ? DateFormatter.formatDate(result.deletionDate)
+          : "the end of its retention period"
+      );
       if (result.purgeRefusedReason) {
         throw new Error(
-          `Your secret ${chalk.bold(this.getKey())} was soft-deleted until ${chalk.bold(
-            result.deletionDate
-              ? DateFormatter.formatDate(result.deletionDate)
-              : "the end of its retention period"
-          )}, but could not be deleted for good: ${result.purgeRefusedReason}`
+          `Your secret ${chalk.bold(this.getKey())} was soft-deleted until ${until}, but could not be deleted for good: ${result.purgeRefusedReason}`
         );
       }
       throw new Error(
@@ -40,11 +41,7 @@ class DeleteCommand extends BaseCommand {
           this.getKey()
         )} was only scheduled for deletion: ${
           this.backend.displayName
-        } doesn't allow deleting it for good before ${chalk.bold(
-          result.deletionDate
-            ? DateFormatter.formatDate(result.deletionDate)
-            : "the end of its retention period"
-        )} (purge protection is on).`
+        } doesn't allow deleting it for good before ${until} (purge protection is on).`
       );
     }
 
