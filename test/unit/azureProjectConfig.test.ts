@@ -227,7 +227,7 @@ describe("AC-F04-4: list", () => {
 
         expect(run.exitCode, run.output).toBe(1);
         const row = run.output.split("\n").find((line) => line.startsWith("| hush-app "));
-        expect(row).toContain(`Can't be read: The secret hush-app in Azure Key Vault ${VAULT} is disabled.`);
+        expect(row).toContain(`Can't be read: The secret hush-app is disabled in Azure Key Vault ${VAULT}.`);
         expect(run.output).not.toContain("No access");
         expect(run.output).toContain("Readable");
     });
@@ -240,7 +240,7 @@ describe("AC-F04-4: list", () => {
 
         expect(run.exitCode).toBe(1);
         expect(errorMessages(run)).toEqual([
-            `🙈 Error! — Hush! could not list the secrets in Azure Key Vault ${VAULT}: the vault blocks requests from this network address.\n   Ask the vault's operators to allow it.`,
+            `🙈 Error! — The vault blocks requests from this network address, so Hush! could not list the secrets in Azure Key Vault ${VAULT}.\n   Ask the vault's operators to allow it.`,
         ]);
         expect(run.output).not.toContain("192.0.2.10");
     });
@@ -353,7 +353,7 @@ describe("AC-F04-7: delete (BR-08)", () => {
         expect(errorMessages(run)).toEqual([
             `🙈 Error! — Your secret hush-app was only scheduled for deletion, until ${DateFormatter.formatDate(
                 purgeDate
-            )}.\n   It could not be deleted for good: you may not purge secrets in Azure Key Vault ${VAULT}. Purging needs the role "Key Vault Secrets Officer".`,
+            )}.\n   It could not be deleted for good: you may not purge secrets in Azure Key Vault ${VAULT} without the role "Key Vault Secrets Officer".`,
         ]);
         expect(hushrc()).toEqual({ [VERSION_NAME]: { version: 1 } });
     });

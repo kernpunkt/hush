@@ -221,6 +221,25 @@ function details(error: unknown): string {
   return parts.length > 0 ? parts.join(", ") : "no answer from the vault";
 }
 
+/**
+ * What Azure answered, as the start of a headline: "Azure Key Vault
+ * answered with X (HTTP 500)", "... answered with HTTP 503", or that it
+ * didn't answer. It comes first, so the list table, which cuts a reason
+ * after 80 characters, still shows it.
+ */
+function answerText(error: unknown): string {
+  const code = codeOf(error);
+  const status = statusOf(error);
+  if (status === undefined) {
+    return code === undefined
+      ? "Azure Key Vault didn't answer"
+      : `Azure Key Vault didn't answer (error code ${code})`;
+  }
+  return code === undefined
+    ? `Azure Key Vault answered with HTTP ${status}`
+    : `Azure Key Vault answered with ${code} (HTTP ${status})`;
+}
+
 const VERBS: Record<AzureOperation, string> = {
   read: "read",
   write: "write",
@@ -236,26 +255,25 @@ function whatText(context: AzureErrorContext): string {
 }
 
 function otherMessage(context: AzureErrorContext, error: unknown): string {
-  return `Hush! could not ${whatText(context)} ${vaultText(
+  return `${answerText(error)} when Hush! tried to ${whatText(
     context
-  )} (${details(error)}).`;
+  )} vault ${chalk.bold(context.vault)}.`;
 }
 
-const FIREWALL_BLOCKS = "blocks requests from this network address.";
-const FIREWALL_ASK = "Ask the vault's operators to allow it.";
+const FIREWALL_BLOCKS = "blocks requests from this network address";
 
 function firewallMessage(context: AzureErrorContext): string {
   return withHints(
-    `Hush! could not ${whatText(context)} ${vaultText(
+    `The vault ${FIREWALL_BLOCKS}, so Hush! could not ${whatText(
       context
-    )}: the vault ${FIREWALL_BLOCKS}`,
-    FIREWALL_ASK
+    )} ${vaultText(context)}.`,
+    "Ask the vault's operators to allow it."
   );
 }
 
 function disabledMessage(context: AzureErrorContext): string {
   return withHints(
-    `The secret ${entryText(context)} in ${vaultText(context)} is disabled.`,
+    `The secret ${entryText(context)} is disabled in ${vaultText(context)}.`,
     `Enable it in the Azure portal or with ${chalk.bold(
       `az keyvault secret set-attributes --vault-name ${
         context.vault
@@ -266,20 +284,23 @@ function disabledMessage(context: AzureErrorContext): string {
 
 /**
  * Why purging an entry failed that this call has just soft-deleted, for
- * the sentence "... could not be deleted for good: <reason>". Written by
- * Hush!, like every message here.
+ * the sentence "... could not be deleted for good: <reason>". One sentence
+ * starting in lowercase (see DeleteResult), written by Hush!, like every
+ * message here.
  */
 export function purgeFailureReason(
   error: unknown,
   context: AzureErrorContext
 ): string {
   if (isFirewallBlocked(error)) {
-    return `${vaultText(context)} ${FIREWALL_BLOCKS} ${FIREWALL_ASK}`;
+    return `the firewall of ${vaultText(
+      context
+    )} ${FIREWALL_BLOCKS}; ask its operators to allow it.`;
   }
   if (kindOf(error) === "accessDenied") {
     return `you may not purge secrets in ${vaultText(
       context
-    )}. Purging needs the role ${role(WRITER_ROLE)}.`;
+    )} without the role ${role(WRITER_ROLE)}.`;
   }
   return `purging it in ${vaultText(context)} failed (${details(error)}).`;
 }

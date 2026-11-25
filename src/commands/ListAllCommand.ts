@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import ListCommand, { ListResult } from "./ListCommand.js";
 import type { NamedBackend } from "../backends/ProjectBackends.js";
-import { stripAnsi } from "../utils/ChalkTable.js";
 import printable from "../utils/printable.js";
+import withHints, { splitHints } from "../utils/withHints.js";
 
 /**
  * `list` for a project with several backends: one table per backend, with
@@ -50,16 +50,17 @@ class ListAllCommand {
 
   /**
    * The reason's headline after "Can't be listed:", and its hint lines
-   * (like the role that is missing) below it.
+   * (like the role that is missing) below it. Further lines of an error
+   * text Hush! didn't write are left out.
    */
   private static failed(heading: string, reason: string): ListResult {
-    const [line = "unknown error", ...hints] = stripAnsi(reason)
-      .split("\n")
-      .map((part) => part.trim())
-      .filter((part) => part !== "");
-    const hintLines = hints.map((hint) => `\n   ${hint}`).join("");
+    const { headline, hints } = splitHints(reason);
+    const line = printable(headline || "unknown error");
     return {
-      output: `${heading}\n${chalk.red(`Can't be listed: ${line}`)}${hintLines}`,
+      output: `${heading}\n${withHints(
+        chalk.red(`Can't be listed: ${line}`),
+        ...hints.map(printable)
+      )}`,
       hasErrors: true,
     };
   }

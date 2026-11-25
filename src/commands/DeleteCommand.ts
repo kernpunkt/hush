@@ -35,20 +35,10 @@ class DeleteCommand extends BaseCommand {
       const headline = `Your secret ${chalk.bold(
         this.getKey()
       )} was only scheduled for deletion, until ${until}.`;
-      if (result.purgeRefusedReason) {
-        throw new Error(
-          withHints(
-            headline,
-            `It could not be deleted for good: ${result.purgeRefusedReason}`
-          )
-        );
-      }
-      throw new Error(
-        withHints(
-          headline,
-          `${this.backend.displayName} doesn't allow deleting it for good before then (purge protection is on).`
-        )
-      );
+      const why = result.purgeRefusedReason
+        ? `It could not be deleted for good: ${result.purgeRefusedReason}`
+        : `${this.backend.displayName} doesn't allow deleting it for good before then (purge protection is on).`;
+      throw new Error(withHints(headline, why));
     }
 
     this.versionManager.removeVersionFromFile(this.getKey(), this.backend);

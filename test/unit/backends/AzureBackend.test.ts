@@ -334,7 +334,7 @@ describe("AC-F04-7: deleting (BR-08)", () => {
         [
             "a missing role (its text names the purge action)",
             () => restError(403, "Forbidden", "Caller is not authorized to perform action on resource. Action: 'Microsoft.KeyVault/vaults/secrets/purge/action'"),
-            'you may not purge secrets in Azure Key Vault example-vault-1. Purging needs the role "Key Vault Secrets Officer".',
+            'you may not purge secrets in Azure Key Vault example-vault-1 without the role "Key Vault Secrets Officer".',
         ],
         [
             "a conflict of another kind",
@@ -344,7 +344,7 @@ describe("AC-F04-7: deleting (BR-08)", () => {
         [
             "the firewall",
             () => firewallError(),
-            "Azure Key Vault example-vault-1 blocks requests from this network address. Ask the vault's operators to allow it.",
+            "the firewall of Azure Key Vault example-vault-1 blocks requests from this network address; ask its operators to allow it.",
         ],
     ])("after the soft delete, doesn't take %s for purge protection and says why the purge failed", async (_, error, reason) => {
         fakeKeyVault.seed("hush-app", "{}");
@@ -442,10 +442,10 @@ describe("error kinds and messages", () => {
     });
 
     it.each([
-        ["read", "Hush! could not read the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address.\n   Ask the vault's operators to allow it."],
-        ["write", "Hush! could not write the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address.\n   Ask the vault's operators to allow it."],
-        ["list", "Hush! could not list the secrets in Azure Key Vault example-vault-1: the vault blocks requests from this network address.\n   Ask the vault's operators to allow it."],
-        ["delete", "Hush! could not delete the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address.\n   Ask the vault's operators to allow it."],
+        ["read", "The vault blocks requests from this network address, so Hush! could not read the secret hush-app in Azure Key Vault example-vault-1.\n   Ask the vault's operators to allow it."],
+        ["write", "The vault blocks requests from this network address, so Hush! could not write the secret hush-app in Azure Key Vault example-vault-1.\n   Ask the vault's operators to allow it."],
+        ["list", "The vault blocks requests from this network address, so Hush! could not list the secrets in Azure Key Vault example-vault-1.\n   Ask the vault's operators to allow it."],
+        ["delete", "The vault blocks requests from this network address, so Hush! could not delete the secret hush-app in Azure Key Vault example-vault-1.\n   Ask the vault's operators to allow it."],
     ])("a firewall block on %s is no missing role and doesn't quote Azure", async (operation, message) => {
         fakeKeyVault.seed("hush-app", "{}");
         fakeKeyVault.failOn("*", () => firewallError("Client address: 192.0.2.10"));
@@ -463,7 +463,7 @@ describe("error kinds and messages", () => {
     });
 
     const disabled =
-        "The secret hush-app in Azure Key Vault example-vault-1 is disabled.\n   Enable it in the Azure portal or with az keyvault secret set-attributes --vault-name example-vault-1 --name hush-app --enabled true.";
+        "The secret hush-app is disabled in Azure Key Vault example-vault-1.\n   Enable it in the Azure portal or with az keyvault secret set-attributes --vault-name example-vault-1 --name hush-app --enabled true.";
 
     it.each([
         ["read", (azure: AzureBackend) => azure.read("hush-app")],
@@ -497,7 +497,7 @@ describe("error kinds and messages", () => {
         const output = stripAnsi(result.output);
         expect(result.hasErrors).toBe(true);
         expect(output.split("\n").find((line) => line.includes("hush-app"))).toContain(
-            "Can't be read: The secret hush-app in Azure Key Vault example-vault-1 is disabled."
+            "Can't be read: The secret hush-app is disabled in Azure Key Vault example-vault-1."
         );
         expect(output.split("\n").find((line) => line.includes("hush-locked"))).toContain("No access");
     });
@@ -524,17 +524,42 @@ describe("error kinds and messages", () => {
     });
 
     it.each([
-        ["a status and a code", () => restError(500, "InternalServerError", "boom"), "(error code InternalServerError, HTTP 500)"],
-        ["a status only", () => Object.assign(new Error("boom"), { statusCode: 503 }), "(HTTP 503)"],
-        ["a network error", () => Object.assign(new Error("getaddrinfo ENOTFOUND"), { code: "ENOTFOUND" }), "(error code ENOTFOUND)"],
-        ["no details", () => new Error("boom"), "(no answer from the vault)"],
-        ["a code that isn't one", () => restError(500, "two words", "boom"), "(HTTP 500)"],
-    ])("reports other errors with %s, written by Hush!", async (_, error, details) => {
+        ["a status and a code", () => restError(500, "InternalServerError", "boom"), "Azure Key Vault answered with InternalServerError (HTTP 500)"],
+        ["a status only", () => Object.assign(new Error("boom"), { statusCode: 503 }), "Azure Key Vault answered with HTTP 503"],
+        ["a network error", () => Object.assign(new Error("getaddrinfo ENOTFOUND"), { code: "ENOTFOUND" }), "Azure Key Vault didn't answer (error code ENOTFOUND)"],
+        ["no details", () => new Error("boom"), "Azure Key Vault didn't answer"],
+        ["a code that isn't one", () => restError(500, "two words", "boom"), "Azure Key Vault answered with HTTP 500"],
+    ])("reports other errors with %s first, written by Hush!", async (_, error, answer) => {
         fakeKeyVault.failOn("*", error);
 
         const { kind, message } = await failure(backend().read("hush-app"));
         expect(kind).toBe("other");
-        expect(message).toBe(`Hush! could not read the secret hush-app in Azure Key Vault example-vault-1 ${details}.`);
+        expect(message).toBe(`${answer} when Hush! tried to read the secret hush-app in vault example-vault-1.`);
+    });
+
+    it("names the vault and what Hush! tried in other errors on list", async () => {
+        fakeKeyVault.failOn("*", () => restError(500, "InternalServerError", "boom"));
+
+        expect((await failure(backend().listNames("hush-"))).message).toBe(
+            "Azure Key Vault answered with InternalServerError (HTTP 500) when Hush! tried to list the secrets in vault example-vault-1."
+        );
+    });
+
+    it("list keeps the error code and HTTP status of an other error in a row of a long name", async () => {
+        const name = "hush-shop-production-database-url";
+        const vault = "kp-hush-vault-prod-weu01";
+        fakeKeyVault.seed(name, "{}");
+        fakeKeyVault.failOn("getSecret", () => restError(500, "InternalServerError", "boom"));
+
+        const azure = new AzureBackend({ vaultUrl: `https://${vault}.vault.azure.net` });
+
+        const result = await new ListCommand().setBackend(azure).execute();
+
+        const row = stripAnsi(result.output)
+            .split("\n")
+            .find((line) => line.includes(name));
+        expect(result.hasErrors).toBe(true);
+        expect(row).toContain("Can't be read: Azure Key Vault answered with InternalServerError (HTTP 500) when");
     });
 
     describe("NFR-01-AC2: an Azure error text with a value marker is never shown", () => {
