@@ -17,6 +17,7 @@ import installFakeSecretsManager from "../support/fakeSecretsManager";
 import InMemoryBackend from "../support/InMemoryBackend";
 import runHush from "../support/runHush";
 import { stripAnsi } from "../../src/utils/ChalkTable";
+import withHints from "../../src/utils/withHints";
 
 // F-03: hush.config.json in the working directory picks the backend per key
 // (AC-F03-1), is checked before any backend is called (AC-F03-2, AC-F03-5),
@@ -407,6 +408,46 @@ describe("AC-F03-4: list with several backends", () => {
         expect(run.exitCode).toBe(1);
         expect(section(run.output, "working")).toContain("hush-blog");
         expect(section(run.output, "broken")).toContain("Can't be listed: The test backend is offline.");
+    });
+
+    /** `list` for a working backend and one whose listNames fails with `message`. */
+    const listWithFailure = (message: string) =>
+        runHush(
+            ["list"],
+            new ProjectBackends(
+                [
+                    { name: "working", backend: new InMemoryBackend().seed("hush-blog", payload("Example message")) },
+                    { name: "broken", backend: new InMemoryBackend().failOn("listNames", "other", { message }) },
+                ],
+                "working"
+            )
+        );
+
+    it("keeps the hint lines of a message written with withHints below the reason", async () => {
+        const run = await listWithFailure(
+            withHints("The test backend is offline.", "Ask its operators to start it.", "Then try again.")
+        );
+
+        expect(run.exitCode).toBe(1);
+        expect(section(run.output, "broken")).toContain(
+            "Can't be listed: The test backend is offline.\n   Ask its operators to start it.\n   Then try again."
+        );
+    });
+
+    it("shows only the first line of an error text with several lines Hush! didn't write", async () => {
+        const run = await listWithFailure("The test backend is offline.\nfirst reason\n   second reason");
+
+        expect(run.exitCode).toBe(1);
+        const broken = section(run.output, "broken");
+        expect(broken).toContain("Can't be listed: The test backend is offline.");
+        expect(broken).not.toContain("first reason");
+        expect(broken).not.toContain("second reason");
+    });
+
+    it("escapes control characters in the reason and its hint lines", async () => {
+        const run = await listWithFailure(withHints("Offline \u0007now.", "Hint \u0007here."));
+
+        expect(section(run.output, "broken")).toContain("Can't be listed: Offline \\u0007now.\n   Hint \\u0007here.");
     });
 
     it("ends with 1 when a table of one backend has an unreadable entry", async () => {

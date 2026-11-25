@@ -89,16 +89,22 @@ class HushCommand extends Command {
     console.log(`${chalk.bold("Hush! 🤫 — Error")}: ${message}`);
   }
 
-  /** Runs a command for one key, with the backend that holds the key. */
+  /**
+   * Runs a command for one key, with the backend that holds the key. That
+   * backend is handed to onResult too.
+   */
   private runCommand<R>(
     title: string,
     key: string,
     build: () => Omit<BaseCommand, "execute"> & { execute(): Promise<R> },
-    onResult: (result: R) => void
+    onResult: (result: R, backend: SecretBackend) => void
   ): void {
     const backends = this.projectBackends();
     if (backends) {
-      this.runWithBackend(backends.forKey(key), title, build, onResult);
+      const backend = backends.forKey(key);
+      this.runWithBackend(backend, title, build, (result) =>
+        onResult(result, backend)
+      );
     }
   }
 
@@ -335,13 +341,15 @@ class HushCommand extends Command {
           "Pull",
           key,
           () => new PullCommand(input),
-          (result) => {
+          (result, backend) => {
             if (typeof result === "object") {
               const changeset = result as EnvDiffResult;
+              // "AWS" for the AWS backend, as in 4.1.0.
+              const storedIn = backend.shortName ?? backend.displayName;
               console.log(
                 `${chalk.bold.yellow(
                   "⚠️ Warning!"
-                )} Your .env file and the .env file stored in AWS differ:\n`
+                )} Your .env file and the .env file stored in ${storedIn} differ:\n`
               );
               changeset.added.map((item) =>
                 console.log(chalk.green(`\t[ADD   ] ${item}`))

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import { mockClient } from "aws-sdk-client-mock";
 import SecretBackend from "../../../src/backends/SecretBackend";
@@ -6,6 +6,11 @@ import AwsBackend from "../../../src/backends/aws/AwsBackend";
 import { BackendError } from "../../../src/backends/BackendError";
 import InMemoryBackend from "../../support/InMemoryBackend";
 import installFakeSecretsManager from "../../support/fakeSecretsManager";
+import AzureBackend from "../../../src/backends/azure/AzureBackend";
+import { fakeKeyVault } from "../../support/fakeKeyVault";
+
+vi.mock("@azure/keyvault-secrets", () => import("../../support/fakeKeyVault").then((m) => m.keyVaultSecretsModule));
+vi.mock("@azure/identity", () => import("../../support/fakeKeyVault").then((m) => m.identityModule));
 
 // The tests every backend has to pass (NFR-02-AC2).
 
@@ -18,6 +23,13 @@ const backends: { label: string; create: () => SecretBackend }[] = [
         create: () => {
             installFakeSecretsManager(secretsManagerMock);
             return new AwsBackend();
+        },
+    },
+    {
+        label: "Azure backend with a fake Key Vault",
+        create: () => {
+            fakeKeyVault.reset();
+            return new AzureBackend({ vaultUrl: "https://example-vault-1.vault.azure.net" });
         },
     },
 ];

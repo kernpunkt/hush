@@ -12,6 +12,23 @@ export type DeleteOptions = {
 export type DeleteResult = {
   /** When a scheduled deletion takes effect, if the backend reports it. */
   deletionDate?: Date;
+  /**
+   * Set when `force` was asked for but the backend could only schedule the
+   * deletion, e.g. because purge protection is on in an Azure Key Vault. The
+   * entry then is deleted for good at `deletionDate`.
+   */
+  purgeRefused?: true;
+  /**
+   * Why deleting for good failed, if it wasn't a refusal like purge
+   * protection (e.g. a missing role). One sentence written by the backend,
+   * starting in lowercase; set only with `purgeRefused`.
+   */
+  purgeRefusedReason?: string;
+  /**
+   * Set when the entry was deleted for good, but the backend may need a
+   * moment until its name can be used again.
+   */
+  purgePending?: true;
 };
 
 export type AccessResult = {
@@ -43,6 +60,20 @@ interface SecretBackend {
   readonly location?: string;
 
   /**
+   * The backend's name in running text, e.g. "AWS" in "the .env file stored
+   * in AWS". Optional: without it, the displayName is used.
+   */
+  readonly shortName?: string;
+
+  /**
+   * True if the backend doesn't tell names apart by case, like Azure Key
+   * Vault: then "hush-Shop" and "hush-shop" are the same entry, and
+   * .hushrc.json keeps one version for both. Optional: without it, names
+   * are case-sensitive.
+   */
+  readonly namesIgnoreCase?: boolean;
+
+  /**
    * Reads the current value of an entry.
    *
    * Resolves to undefined if the entry exists but holds no text value.
@@ -51,6 +82,14 @@ interface SecretBackend {
 
   /** Creates the entry, or adds a new version if it already exists. */
   write(name: string, value: string): Promise<WriteResult>;
+
+  /**
+   * Throws a BackendError (e.g. `invalidName` or `tooLarge`) if the backend
+   * would refuse to write this value under this name, without calling the
+   * service. Lets push stop before it reads the current version. Optional:
+   * without it, write is the first check. write checks again either way.
+   */
+  checkWrite?(name: string, value: string): void;
 
   /** Names of all entries that start with the given prefix. */
   listNames(prefix: string): Promise<string[]>;

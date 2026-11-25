@@ -66,6 +66,20 @@ describe("UnknownSecretFormatError", () => {
         expect(() => new SecretPayloadManager().fromSecretString("{}"))
             .toThrow(UnknownSecretFormatError);
     });
+    it.each([
+        ["plain text", "EXAMPLE_PASSWORD=MARKER-9d2e"],
+        ["truncated JSON", '{"message":"m","secrets":[{"key":"A","value":"MARKER-9d2e"'],
+    ])("is thrown for %s, without the JSON error that quotes the value", (_, value) => {
+        let thrown: unknown;
+        try {
+            new SecretPayloadManager().fromSecretString(value, "hush-foo");
+        } catch (error) {
+            thrown = error;
+        }
+        expect(thrown).toBeInstanceOf(UnknownSecretFormatError);
+        expect((thrown as Error).message).toBe("The secret hush-foo has an unknown format and can't be read by Hush.");
+        expect((thrown as Error).cause).toBeInstanceOf(SyntaxError);
+    });
 });
 
 describe("isSecretPayload", () => {
