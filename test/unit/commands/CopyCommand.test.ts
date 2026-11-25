@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
 import CopyCommand, { CopyCommandInput } from "../../../src/commands/CopyCommand";
@@ -537,6 +537,87 @@ describe("Decision 1: the local version is carried to the target store", () => {
         }
     });
 
+    const NOT_CARRIED = "✔ app: copied to vault (version 3).\n   Its version in .hushrc.json was not carried over: the file can't be read or written.";
+
+    it("says so if .hushrc.json isn't valid JSON, and leaves the file as it is", async () => {
+        source.seed("hush-app", payload(3));
+        writeFileSync(versionsFile(), "{ not json");
+
+        const result = await copy(["app"]);
+
+        expect(stored(target, "hush-app")).toBe(payload(3));
+        expect(result.hasErrors).toBe(false);
+        expect(result.output).toContain(NOT_CARRIED);
+        expect(result.output).toContain('"keys": { "app": "vault" }');
+        expect(readFileSync(versionsFile(), "utf8")).toBe("{ not json");
+    });
+
+    it("says so if .hushrc.json can't be read", async () => {
+        source.seed("hush-app", payload(3));
+        const read = vi.spyOn(VersionManager.prototype, "localVersion").mockImplementation(() => {
+            throw new Error("EACCES: permission denied");
+        });
+
+        try {
+            const result = await copy(["app"]);
+
+            expect(stored(target, "hush-app")).toBe(payload(3));
+            expect(result.hasErrors).toBe(false);
+            expect(result.output).toContain(NOT_CARRIED);
+        } finally {
+            read.mockRestore();
+        }
+    });
+
+    // root can write a read-only file, so the write wouldn't fail.
+    it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+        "says so if .hushrc.json can't be written",
+        async () => {
+            source.seed("hush-app", payload(3));
+            writeVersions({ [VersionManager.versionName("hush-app", source)]: { version: 3 } });
+            const before = readFileSync(versionsFile(), "utf8");
+            chmodSync(versionsFile(), 0o444);
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+            try {
+                const result = await copy(["app"]);
+
+                expect(stored(target, "hush-app")).toBe(payload(3));
+                expect(result.hasErrors).toBe(false);
+                expect(result.output).toContain(NOT_CARRIED);
+                expect(readFileSync(versionsFile(), "utf8")).toBe(before);
+            } finally {
+                warn.mockRestore();
+                chmodSync(versionsFile(), 0o644);
+            }
+        }
+    );
+
+    it("says so if writing .hushrc.json fails", async () => {
+        source.seed("hush-app", payload(3));
+        writeVersions({ [VersionManager.versionName("hush-app", source)]: { version: 3 } });
+        const update = vi.spyOn(VersionManager.prototype, "updateVersionsFile").mockReturnValue(false);
+
+        try {
+            const result = await copy(["app"]);
+
+            expect(result.hasErrors).toBe(false);
+            expect(result.output).toContain(NOT_CARRIED);
+        } finally {
+            update.mockRestore();
+        }
+    });
+
+    it("adds no note when there is no local version to carry", async () => {
+        source.seed("hush-app", payload(3));
+        writeVersions({ "hush-other@Test store one": { version: 2 } });
+
+        const result = await copy(["app"]);
+
+        expect(result.output).not.toContain(".hushrc.json");
+        expect(lineOf(result.output, "app")).toBe("✔ app: copied to vault (version 3).");
+    });
+
     it("writes nothing for the target without a local entry", async () => {
         source.seed("hush-app", payload(3));
         writeVersions({ "hush-other@Test store one": { version: 2 } });
@@ -562,6 +643,109 @@ describe("Decision 1: the local version is carried to the target store", () => {
         await copy(["app"], { dryRun: true });
 
         expect(readFileSync(versionsFile(), "utf8")).toBe(before);
+    });
+});
+
+describe("a key named twice is copied once", () => {
+    it("copies it once, with one line and one entry in the hint", async () => {
+        source.seed("hush-app", payload(3));
+        source.seed("hush-other", payload(1));
+
+        const result = await copy(["app", "other", "app"]);
+
+        expect(writes(target).map(({ name }) => name)).toEqual(["hush-app", "hush-other"]);
+        expect(result.hasErrors).toBe(false);
+        expect(result.output.split("\n").filter((line) => line.includes(" app: "))).toEqual([
+            "✔ app: copied to vault (version 3).",
+        ]);
+        expect(result.output).toContain('"keys": { "app": "vault", "other": "vault" }');
+    });
+
+    it("writes it once with --force", async () => {
+        source.seed("hush-app", payload(3));
+        target.seed("hush-app", payload(1));
+
+        const result = await copy(["app", "app"], { force: true });
+
+        expect(writes(target)).toEqual([{ operation: "write", name: "hush-app" }]);
+        expect(result.hasErrors).toBe(false);
+    });
+
+    it("checks it once in a dry run", async () => {
+        source.seed("hush-app", payload(3));
+
+        const result = await copy(["app", "app"], { dryRun: true });
+
+        expect(result.output.split("\n").filter((line) => line.includes(" app: "))).toHaveLength(1);
+        expect(result.hasErrors).toBe(false);
+    });
+
+    it("keeps keys that differ in case apart in a target that tells them apart", async () => {
+        source.seed("hush-app", payload(1));
+        source.seed("hush-App", payload(2));
+
+        const result = await copy(["app", "App"]);
+
+        expect(stored(target, "hush-app")).toBe(payload(1));
+        expect(stored(target, "hush-App")).toBe(payload(2));
+        expect(result.hasErrors).toBe(false);
+    });
+});
+
+describe("keys that are one entry in a target whose names ignore case", () => {
+    const CLASH = "and this key are the same entry in vault, which doesn't tell names apart by case.";
+
+    beforeEach(() => {
+        target = new StoreBackend("Azure my-vault", true).withAzureLimits();
+    });
+
+    it.each([false, true])("copies none of them, but the other keys (--force: %s)", async (force) => {
+        source.seed("hush-app", payload(1));
+        source.seed("hush-App", payload(2));
+        source.seed("hush-other", payload(3));
+
+        const result = await copy(["app", "other", "App"], { force });
+
+        expect(writes(target).map(({ name }) => name)).toEqual(["hush-other"]);
+        expect(target.calls.filter(({ name }) => name.toLowerCase() === "hush-app")).toEqual([]);
+        expect(result.hasErrors).toBe(true);
+        expect(lineOf(result.output, "app")).toBe(`✖ app: Not copied: App ${CLASH}`);
+        expect(lineOf(result.output, "App")).toBe(`✖ App: Not copied: app ${CLASH}`);
+        expect(result.output).toContain(`✖ app: Not copied: App ${CLASH}\n   Copy them one at a time.`);
+        expect(lineOf(result.output, "other")).toBe("✔ other: copied to vault (version 3).");
+        expect(result.output).toContain('"keys": { "other": "vault" }');
+    });
+
+    it("names every other key of the entry", async () => {
+        const result = await copy(["app", "App", "APP"]);
+
+        expect(lineOf(result.output, "App")).toBe(`✖ App: Not copied: app, APP ${CLASH}`);
+        expect(writes(target)).toEqual([]);
+        expect(source.calls).toEqual([]);
+        expect(result.output).not.toContain("hush.config.json");
+    });
+
+    it("says they don't fit in a dry run", async () => {
+        source.seed("hush-app", payload(1));
+        source.seed("hush-App", payload(2));
+        source.seed("hush-other", payload(3));
+
+        const result = await copy(["app", "App", "other"], { dryRun: true, force: true });
+
+        expect(writes(target)).toEqual([]);
+        expect(result.hasErrors).toBe(true);
+        expect(lineOf(result.output, "app")).toBe(`✖ app: doesn't fit: App ${CLASH}`);
+        expect(lineOf(result.output, "App")).toBe(`✖ App: doesn't fit: app ${CLASH}`);
+        expect(lineOf(result.output, "other")).toMatch(/^✔ other: fits: /);
+    });
+
+    it("copies a key named twice in the same case", async () => {
+        source.seed("hush-app", payload(1));
+
+        const result = await copy(["app", "app"]);
+
+        expect(stored(target, "hush-app")).toBe(payload(1));
+        expect(result.hasErrors).toBe(false);
     });
 });
 

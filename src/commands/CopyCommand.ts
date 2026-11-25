@@ -64,10 +64,18 @@ class CopyCommand {
 
   public async execute(): Promise<CopyResult> {
     const outcomes: Outcome[] = [];
-    for (const key of this.input.keys) {
-      outcomes.push(
-        this.input.dryRun ? await this.checkKey(key) : await this.copyKey(key)
-      );
+    // A key named twice is copied once.
+    const keys = [...new Set(this.input.keys)];
+    const clashes = this.caseClashes(keys);
+    for (const key of keys) {
+      const others = clashes.get(key);
+      if (others !== undefined) {
+        outcomes.push(this.clashOutcome(key, others));
+      } else {
+        outcomes.push(
+          this.input.dryRun ? await this.checkKey(key) : await this.copyKey(key)
+        );
+      }
     }
     const sections = outcomes.map(({ key, ok, lines }) => {
       const mark = ok ? chalk.green("✔") : chalk.red("✖");
@@ -97,6 +105,50 @@ class CopyCommand {
 
   private toName(): string {
     return chalk.bold(printable(this.to.name));
+  }
+
+  /**
+   * In a target whose names ignore case (Azure Key Vault), keys that differ
+   * only in case are one entry: copying both would write one over the other.
+   * Maps each such key to the other keys of its entry.
+   */
+  private caseClashes(keys: string[]): Map<string, string[]> {
+    const clashes = new Map<string, string[]>();
+    if (!this.to.backend.namesIgnoreCase) {
+      return clashes;
+    }
+    const groups = new Map<string, string[]>();
+    for (const key of keys) {
+      const entry = `hush-${key}`.toLowerCase();
+      groups.set(entry, [...(groups.get(entry) ?? []), key]);
+    }
+    for (const group of groups.values()) {
+      if (group.length > 1) {
+        for (const key of group) {
+          clashes.set(
+            key,
+            group.filter((other) => other !== key)
+          );
+        }
+      }
+    }
+    return clashes;
+  }
+
+  /** A key that is the same entry in the target as other keys: not copied. */
+  private clashOutcome(key: string, others: string[]): Outcome {
+    const names = others
+      .map((other) => chalk.bold(printable(other)))
+      .join(", ");
+    const verdict = this.input.dryRun ? "doesn't fit" : "Not copied";
+    return {
+      key,
+      ok: false,
+      lines: [
+        `${verdict}: ${names} and this key are the same entry in ${this.toName()}, which doesn't tell names apart by case.`,
+        "Copy them one at a time.",
+      ],
+    };
   }
 
   /**
@@ -191,9 +243,13 @@ class CopyCommand {
     const lines = [
       `copied to ${this.toName()} (version ${chalk.bold(source.version)}).`,
     ];
+    let carried: boolean;
     try {
-      this.carryLocalVersion(name);
+      carried = this.carryLocalVersion(name);
     } catch {
+      carried = false;
+    }
+    if (!carried) {
       // The entry is copied; only the local version stays behind.
       lines.push(
         "Its version in .hushrc.json was not carried over: the file can't be read or written."
@@ -207,15 +263,19 @@ class CopyCommand {
    * the target store, so `push` goes on without --force once the project
    * setting points to the target. Without a local version, nothing is
    * written: then `pull` comes first, as for any new folder.
+   *
+   * @returns {boolean} - False if .hushrc.json couldn't be written
+   * @throws {Error} If .hushrc.json can't be read
    */
-  private carryLocalVersion(name: string): void {
+  private carryLocalVersion(name: string): boolean {
     const local = this.versionManager.localVersion(name, this.from.backend);
-    if (local !== undefined) {
-      this.versionManager.updateVersionsFile(
-        VersionManager.versionName(name, this.to.backend),
-        local
-      );
+    if (local === undefined) {
+      return true;
     }
+    return this.versionManager.updateVersionsFile(
+      VersionManager.versionName(name, this.to.backend),
+      local
+    );
   }
 
   /**
