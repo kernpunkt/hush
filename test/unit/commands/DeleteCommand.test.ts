@@ -116,7 +116,7 @@ describe("DeleteCommand with a backend that reports how the deletion went", () =
         }).execute();
 
         await expect(result).rejects.toThrow(
-            `Your secret hush-hello-world was soft-deleted until ${dateString}, but could not be deleted for good: you may not purge it.`
+            `Your secret hush-hello-world was only scheduled for deletion, until ${dateString}.\n   It could not be deleted for good: you may not purge it.`
         );
         expect(removeVersionSpy).not.toHaveBeenCalled();
     });
@@ -125,7 +125,7 @@ describe("DeleteCommand with a backend that reports how the deletion went", () =
         const result = command({ purgeRefused: true, deletionDate: now }).execute();
 
         await expect(result).rejects.toThrow(
-            `Your secret hush-hello-world was only scheduled for deletion: Example Backend doesn't allow deleting it for good before ${dateString} (purge protection is on).`
+            `Your secret hush-hello-world was only scheduled for deletion, until ${dateString}.\n   Example Backend doesn't allow deleting it for good before then (purge protection is on).`
         );
         expect(removeVersionSpy).not.toHaveBeenCalled();
     });

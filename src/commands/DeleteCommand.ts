@@ -3,6 +3,7 @@ import chalk from "chalk";
 import DeleteCommandInput from "../@types/DeleteCommandInput.js";
 import DateFormatter from "../utils/DateFormatter.js";
 import VersionManager from "../utils/VersionManager.js";
+import withHints from "../utils/withHints.js";
 
 export type DeleteCommandOptions = {
   force?: boolean;
@@ -31,17 +32,22 @@ class DeleteCommand extends BaseCommand {
           ? DateFormatter.formatDate(result.deletionDate)
           : "the end of its retention period"
       );
+      const headline = `Your secret ${chalk.bold(
+        this.getKey()
+      )} was only scheduled for deletion, until ${until}.`;
       if (result.purgeRefusedReason) {
         throw new Error(
-          `Your secret ${chalk.bold(this.getKey())} was soft-deleted until ${until}, but could not be deleted for good: ${result.purgeRefusedReason}`
+          withHints(
+            headline,
+            `It could not be deleted for good: ${result.purgeRefusedReason}`
+          )
         );
       }
       throw new Error(
-        `Your secret ${chalk.bold(
-          this.getKey()
-        )} was only scheduled for deletion: ${
-          this.backend.displayName
-        } doesn't allow deleting it for good before ${until} (purge protection is on).`
+        withHints(
+          headline,
+          `${this.backend.displayName} doesn't allow deleting it for good before then (purge protection is on).`
+        )
       );
     }
 

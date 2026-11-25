@@ -2,6 +2,7 @@ import chalk from "chalk";
 import { BackendError, BackendErrorKind } from "../BackendError.js";
 import DateFormatter from "../../utils/DateFormatter.js";
 import printable from "../../utils/printable.js";
+import withHints from "../../utils/withHints.js";
 
 /** What Hush! was doing when Azure answered with an error. */
 export type AzureOperation = "read" | "write" | "list" | "delete";
@@ -167,27 +168,33 @@ const role = (name: string): string => chalk.bold(`"${name}"`);
 function accessDeniedMessage(context: AzureErrorContext): string {
   switch (context.operation) {
     case "list":
-      return `You may not list the secrets in ${vaultText(
-        context
-      )}. Listing needs the role ${role(READER_ROLE)}.`;
+      return withHints(
+        `You may not list the secrets in ${vaultText(context)}.`,
+        `Listing needs the role ${role(READER_ROLE)}.`
+      );
     case "read":
-      return `You may not read the secret ${entryText(
-        context
-      )} in ${vaultText(context)}. Reading needs the role ${role(
-        READER_ROLE
-      )}; push and delete need ${role(WRITER_ROLE)}.`;
+      return withHints(
+        `You may not read the secret ${entryText(context)} in ${vaultText(
+          context
+        )}.`,
+        `Reading needs the role ${role(READER_ROLE)}; push and delete need ${role(
+          WRITER_ROLE
+        )}.`
+      );
     case "write":
-      return `You may not write the secret ${entryText(
-        context
-      )} in ${vaultText(context)}. Pushing needs the role ${role(
-        WRITER_ROLE
-      )}.`;
+      return withHints(
+        `You may not write the secret ${entryText(context)} in ${vaultText(
+          context
+        )}.`,
+        `Pushing needs the role ${role(WRITER_ROLE)}.`
+      );
     case "delete":
-      return `You may not delete the secret ${entryText(
-        context
-      )} in ${vaultText(context)}. Deleting needs the role ${role(
-        WRITER_ROLE
-      )}.`;
+      return withHints(
+        `You may not delete the secret ${entryText(context)} in ${vaultText(
+          context
+        )}.`,
+        `Deleting needs the role ${role(WRITER_ROLE)}.`
+      );
   }
 }
 
@@ -234,23 +241,27 @@ function otherMessage(context: AzureErrorContext, error: unknown): string {
   )} (${details(error)}).`;
 }
 
-const FIREWALL_HINT =
-  "blocks requests from this network address. Ask the vault's operators to allow it.";
+const FIREWALL_BLOCKS = "blocks requests from this network address.";
+const FIREWALL_ASK = "Ask the vault's operators to allow it.";
 
 function firewallMessage(context: AzureErrorContext): string {
-  return `Hush! could not ${whatText(context)} ${vaultText(
-    context
-  )}: the vault ${FIREWALL_HINT}`;
+  return withHints(
+    `Hush! could not ${whatText(context)} ${vaultText(
+      context
+    )}: the vault ${FIREWALL_BLOCKS}`,
+    FIREWALL_ASK
+  );
 }
 
 function disabledMessage(context: AzureErrorContext): string {
-  return `The secret ${entryText(context)} in ${vaultText(
-    context
-  )} is disabled. Enable it in the Azure portal or with ${chalk.bold(
-    `az keyvault secret set-attributes --vault-name ${
-      context.vault
-    } --name ${printable(context.name ?? "")} --enabled true`
-  )}.`;
+  return withHints(
+    `The secret ${entryText(context)} in ${vaultText(context)} is disabled.`,
+    `Enable it in the Azure portal or with ${chalk.bold(
+      `az keyvault secret set-attributes --vault-name ${
+        context.vault
+      } --name ${printable(context.name ?? "")} --enabled true`
+    )}.`
+  );
 }
 
 /**
@@ -263,7 +274,7 @@ export function purgeFailureReason(
   context: AzureErrorContext
 ): string {
   if (isFirewallBlocked(error)) {
-    return `${vaultText(context)} ${FIREWALL_HINT}`;
+    return `${vaultText(context)} ${FIREWALL_BLOCKS} ${FIREWALL_ASK}`;
   }
   if (kindOf(error) === "accessDenied") {
     return `you may not purge secrets in ${vaultText(
@@ -296,13 +307,17 @@ export function softDeletedError(
   const name = printable(context.name ?? "");
   return new BackendError(
     "softDeleted",
-    `The secret ${entryText(context)} in ${vaultText(
-      context
-    )} is deleted, and its name stays taken ${until}. Recover it in the Azure portal or with ${chalk.bold(
-      `az keyvault secret recover --vault-name ${context.vault} --name ${name}`
-    )}, or, if purge protection is off, delete it for good with ${chalk.bold(
-      "hush delete <key> --force"
-    )}.`,
+    withHints(
+      `The secret ${entryText(context)} in ${vaultText(
+        context
+      )} is deleted, and its name stays taken ${until}.`,
+      `To recover it: ${chalk.bold(
+        `az keyvault secret recover --vault-name ${context.vault} --name ${name}`
+      )} (or in the Azure portal)`,
+      `To delete it for good, if purge protection is off: ${chalk.bold(
+        "hush delete <key> --force"
+      )}`
+    ),
     { cause }
   );
 }

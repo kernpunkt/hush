@@ -133,16 +133,18 @@ describe("AC-F01-1: push, pull, cat, list and delete behave the same with the in
 });
 
 describe("AC-F01-2: grant and revoke with a backend that can't manage access", () => {
-    it.each(["grant", "revoke"])("%s reports it in one line with the backend's name and hint, exits 1 and doesn't call the backend", async (command) => {
+    it.each(["grant", "revoke"])("%s names the backend, then its hint on the next line, exits 1 and doesn't call the backend", async (command) => {
         const backend = new InMemoryBackend();
 
         const run = await runHush([command, "app", "someone"], backend);
 
         expect(run.exitCode).toBe(1);
-        const lines = errorLines(run);
-        expect(lines).toHaveLength(1);
-        expect(lines[0]).toContain(backend.displayName);
-        expect(lines[0]).toContain(backend.accessHint());
+        expect(errorLines(run)).toEqual([
+            `🙈 Error! — ${backend.displayName} doesn't support granting or revoking access through Hush!.`,
+        ]);
+        expect(run.output).toContain(
+            `🙈 Error! — ${backend.displayName} doesn't support granting or revoking access through Hush!.\n   ${backend.accessHint()}`
+        );
         expect(backend.calls).toEqual([]);
     });
 });

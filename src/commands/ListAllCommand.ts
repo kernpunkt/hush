@@ -48,14 +48,18 @@ class ListAllCommand {
     }
   }
 
+  /**
+   * The reason's headline after "Can't be listed:", and its hint lines
+   * (like the role that is missing) below it.
+   */
   private static failed(heading: string, reason: string): ListResult {
-    const line =
-      stripAnsi(reason)
-        .split("\n")
-        .map((part) => part.trim())
-        .find((part) => part !== "") ?? "unknown error";
+    const [line = "unknown error", ...hints] = stripAnsi(reason)
+      .split("\n")
+      .map((part) => part.trim())
+      .filter((part) => part !== "");
+    const hintLines = hints.map((hint) => `\n   ${hint}`).join("");
     return {
-      output: `${heading}\n${chalk.red(`Can't be listed: ${line}`)}`,
+      output: `${heading}\n${chalk.red(`Can't be listed: ${line}`)}${hintLines}`,
       hasErrors: true,
     };
   }

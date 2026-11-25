@@ -100,14 +100,14 @@ describe("setup", () => {
 
 describe("AC-F04-5: names (BR-06)", () => {
     const invalid = [
-        ["an underscore", "hush-decix_website"],
-        ["128 characters", `hush-${"a".repeat(123)}`],
-        ["a dot", "hush-shop.prod"],
-        ["an umlaut", "hush-müller"],
-        ["a control character", "hush-shop\u001b[2J"],
+        ["an underscore", "hush-decix_website", "hush-decix_website"],
+        ["128 characters", `hush-${"a".repeat(123)}`, `hush-${"a".repeat(123)}`],
+        ["a dot", "hush-shop.prod", "hush-shop.prod"],
+        ["an umlaut", "hush-müller", "hush-müller"],
+        ["a control character", "hush-shop\u001b[2J", "hush-shop\\u001b[2J"],
     ];
 
-    it.each(invalid)("refuses a name with %s in read, write and delete without calling Azure", async (_, name) => {
+    it.each(invalid)("refuses a name with %s in read, write and delete without calling Azure", async (_, name, shown) => {
         const azure = backend();
 
         for (const call of [
@@ -119,9 +119,11 @@ describe("AC-F04-5: names (BR-06)", () => {
         ]) {
             const { kind, message } = await failure(call);
             expect(kind).toBe("invalidName");
-            expect(message).toContain("1 to 127 characters, the hush- prefix included");
-            expect(message).toContain("letters (A-Z, a-z), digits (0-9) and hyphens");
-            expect(message).not.toMatch(/[\u0000-\u001f]/);
+            expect(message).toBe(
+                `The name ${shown} can't be used in Azure Key Vault.\n   A name has 1 to 127 characters, the hush- prefix included, and only letters (A-Z, a-z), digits (0-9) and hyphens.`
+            );
+            // The hint's line break is the only control character.
+            expect(message.replace("\n   ", " ")).not.toMatch(/[\u0000-\u001f]/);
         }
         expect(fakeKeyVault.calls).toEqual([]);
         expect(fakeKeyVault.clients).toEqual([]);
@@ -182,7 +184,7 @@ describe("reading and writing", () => {
             expect(message).toBe(
                 `The secret hush-app in Azure Key Vault example-vault-1 is deleted, and its name stays taken until ${DateFormatter.formatDate(
                     purgeDate
-                )}. Recover it in the Azure portal or with az keyvault secret recover --vault-name example-vault-1 --name hush-app, or, if purge protection is off, delete it for good with hush delete <key> --force.`
+                )}.\n   To recover it: az keyvault secret recover --vault-name example-vault-1 --name hush-app (or in the Azure portal)\n   To delete it for good, if purge protection is off: hush delete <key> --force`
             );
         }
     });
@@ -427,10 +429,10 @@ describe("error kinds and messages", () => {
     ] as const;
 
     it.each([
-        ["read", 'You may not read the secret hush-app in Azure Key Vault example-vault-1. Reading needs the role "Key Vault Secrets User"; push and delete need "Key Vault Secrets Officer".'],
-        ["write", 'You may not write the secret hush-app in Azure Key Vault example-vault-1. Pushing needs the role "Key Vault Secrets Officer".'],
-        ["list", 'You may not list the secrets in Azure Key Vault example-vault-1. Listing needs the role "Key Vault Secrets User".'],
-        ["delete", 'You may not delete the secret hush-app in Azure Key Vault example-vault-1. Deleting needs the role "Key Vault Secrets Officer".'],
+        ["read", 'You may not read the secret hush-app in Azure Key Vault example-vault-1.\n   Reading needs the role "Key Vault Secrets User"; push and delete need "Key Vault Secrets Officer".'],
+        ["write", 'You may not write the secret hush-app in Azure Key Vault example-vault-1.\n   Pushing needs the role "Key Vault Secrets Officer".'],
+        ["list", 'You may not list the secrets in Azure Key Vault example-vault-1.\n   Listing needs the role "Key Vault Secrets User".'],
+        ["delete", 'You may not delete the secret hush-app in Azure Key Vault example-vault-1.\n   Deleting needs the role "Key Vault Secrets Officer".'],
     ])("AC-F04-10, AC-F04-18: a 403 on %s names the vault and the role", async (operation, message) => {
         fakeKeyVault.seed("hush-app", "{}");
         fakeKeyVault.failOn("*", () => restError(403, "Forbidden", "Caller is not authorized to perform action on resource."));
@@ -440,10 +442,10 @@ describe("error kinds and messages", () => {
     });
 
     it.each([
-        ["read", "Hush! could not read the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address. Ask the vault's operators to allow it."],
-        ["write", "Hush! could not write the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address. Ask the vault's operators to allow it."],
-        ["list", "Hush! could not list the secrets in Azure Key Vault example-vault-1: the vault blocks requests from this network address. Ask the vault's operators to allow it."],
-        ["delete", "Hush! could not delete the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address. Ask the vault's operators to allow it."],
+        ["read", "Hush! could not read the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address.\n   Ask the vault's operators to allow it."],
+        ["write", "Hush! could not write the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address.\n   Ask the vault's operators to allow it."],
+        ["list", "Hush! could not list the secrets in Azure Key Vault example-vault-1: the vault blocks requests from this network address.\n   Ask the vault's operators to allow it."],
+        ["delete", "Hush! could not delete the secret hush-app in Azure Key Vault example-vault-1: the vault blocks requests from this network address.\n   Ask the vault's operators to allow it."],
     ])("a firewall block on %s is no missing role and doesn't quote Azure", async (operation, message) => {
         fakeKeyVault.seed("hush-app", "{}");
         fakeKeyVault.failOn("*", () => firewallError("Client address: 192.0.2.10"));
@@ -461,7 +463,7 @@ describe("error kinds and messages", () => {
     });
 
     const disabled =
-        "The secret hush-app in Azure Key Vault example-vault-1 is disabled. Enable it in the Azure portal or with az keyvault secret set-attributes --vault-name example-vault-1 --name hush-app --enabled true.";
+        "The secret hush-app in Azure Key Vault example-vault-1 is disabled.\n   Enable it in the Azure portal or with az keyvault secret set-attributes --vault-name example-vault-1 --name hush-app --enabled true.";
 
     it.each([
         ["read", (azure: AzureBackend) => azure.read("hush-app")],

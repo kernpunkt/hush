@@ -62,8 +62,16 @@ const payload = (version: number, message = "Made-up message") =>
         secrets: [{ key: "EXAMPLE_TOKEN", value: "example-token-1" }],
     });
 
-/** The lines Hush! printed as an error. */
-const errorLines = (run: HushRun) => run.output.split("\n").filter((line) => line.startsWith("🙈 Error!"));
+/** The errors Hush! printed, each with its indented hint lines. */
+const errorMessages = (run: HushRun) =>
+    run.output.split("\n").reduce<string[]>((errors, line) => {
+        if (line.startsWith("🙈 Error!")) {
+            errors.push(line);
+        } else if (errors.length > 0 && line.startsWith("   ")) {
+            errors[errors.length - 1] += `\n${line}`;
+        }
+        return errors;
+    }, []);
 
 /** Runs Hush! in another working directory. */
 const runIn = async (dir: string, args: string[]) => {
@@ -231,8 +239,8 @@ describe("AC-F04-4: list", () => {
         const run = await runHush(["list"]);
 
         expect(run.exitCode).toBe(1);
-        expect(errorLines(run)).toEqual([
-            `🙈 Error! — Hush! could not list the secrets in Azure Key Vault ${VAULT}: the vault blocks requests from this network address. Ask the vault's operators to allow it.`,
+        expect(errorMessages(run)).toEqual([
+            `🙈 Error! — Hush! could not list the secrets in Azure Key Vault ${VAULT}: the vault blocks requests from this network address.\n   Ask the vault's operators to allow it.`,
         ]);
         expect(run.output).not.toContain("192.0.2.10");
     });
@@ -254,10 +262,9 @@ describe("AC-F04-5: names Key Vault can't take (BR-06)", () => {
         ]) {
             const run = await runHush(args);
             expect(run.exitCode, args.join(" ")).toBe(1);
-            const lines = errorLines(run);
-            expect(lines).toHaveLength(1);
-            expect(lines[0]).toContain("1 to 127 characters, the hush- prefix included");
-            expect(lines[0]).toContain("letters (A-Z, a-z), digits (0-9) and hyphens");
+            expect(errorMessages(run), args.join(" ")).toEqual([
+                `🙈 Error! — The name hush-${key} can't be used in Azure Key Vault.\n   A name has 1 to 127 characters, the hush- prefix included, and only letters (A-Z, a-z), digits (0-9) and hyphens.`,
+            ]);
         }
         expect(fakeKeyVault.calls).toEqual([]);
         expect(existsSync(path.join(workDir, ".env.pulled"))).toBe(false);
@@ -280,9 +287,9 @@ describe("AC-F04-6: values larger than 25,000 bytes (BR-07)", () => {
         const run = await runHush(["push", "app", ".env.large"]);
 
         expect(run.exitCode).toBe(1);
-        const lines = errorLines(run);
-        expect(lines).toHaveLength(1);
-        expect(lines[0]).toMatch(/The secret hush-app is 25,\d{3} bytes, but Azure Key Vault takes at most 25,000 bytes \(UTF-8\) per secret\./);
+        const errors = errorMessages(run);
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toMatch(/The secret hush-app is 25,\d{3} bytes, but Azure Key Vault takes at most 25,000 bytes \(UTF-8\) per secret\./);
         expect(fakeKeyVault.calls).toEqual([]);
     });
 });
@@ -325,13 +332,11 @@ describe("AC-F04-7: delete (BR-08)", () => {
 
         expect(run.exitCode).toBe(1);
         const purgeDate = fakeKeyVault.deletedSecret("hush-app")!.scheduledPurgeDate;
-        const lines = errorLines(run);
-        expect(lines).toHaveLength(1);
-        expect(lines[0]).toContain(
-            `Your secret hush-app was only scheduled for deletion: Azure Key Vault doesn't allow deleting it for good before ${DateFormatter.formatDate(
+        expect(errorMessages(run)).toEqual([
+            `🙈 Error! — Your secret hush-app was only scheduled for deletion, until ${DateFormatter.formatDate(
                 purgeDate
-            )}`
-        );
+            )}.\n   Azure Key Vault doesn't allow deleting it for good before then (purge protection is on).`,
+        ]);
         // The entry is still there until then, and so is its version.
         expect(hushrc()).toEqual({ [VERSION_NAME]: { version: 1 } });
     });
@@ -345,10 +350,10 @@ describe("AC-F04-7: delete (BR-08)", () => {
 
         expect(run.exitCode).toBe(1);
         const purgeDate = fakeKeyVault.deletedSecret("hush-app")!.scheduledPurgeDate;
-        expect(errorLines(run)).toEqual([
-            `🙈 Error! — Your secret hush-app was soft-deleted until ${DateFormatter.formatDate(
+        expect(errorMessages(run)).toEqual([
+            `🙈 Error! — Your secret hush-app was only scheduled for deletion, until ${DateFormatter.formatDate(
                 purgeDate
-            )}, but could not be deleted for good: you may not purge secrets in Azure Key Vault ${VAULT}. Purging needs the role "Key Vault Secrets Officer".`,
+            )}.\n   It could not be deleted for good: you may not purge secrets in Azure Key Vault ${VAULT}. Purging needs the role "Key Vault Secrets Officer".`,
         ]);
         expect(hushrc()).toEqual({ [VERSION_NAME]: { version: 1 } });
     });
@@ -363,11 +368,11 @@ describe("AC-F04-8: a soft-deleted name", () => {
         const run = await runHush(["push", "app", ".env"]);
 
         expect(run.exitCode).toBe(1);
-        const lines = errorLines(run);
-        expect(lines).toHaveLength(1);
-        expect(lines[0]).toContain(`its name stays taken until ${DateFormatter.formatDate(purgeDate)}`);
-        expect(lines[0]).toContain("Recover it in the Azure portal or with az keyvault secret recover");
-        expect(lines[0]).toContain("if purge protection is off, delete it for good with hush delete <key> --force");
+        const errors = errorMessages(run);
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toContain(`its name stays taken until ${DateFormatter.formatDate(purgeDate)}.`);
+        expect(errors[0]).toContain("\n   To recover it: az keyvault secret recover");
+        expect(errors[0]).toContain("\n   To delete it for good, if purge protection is off: hush delete <key> --force");
         expect(fakeKeyVault.calls.map(({ method }) => method)).not.toContain("setSecret");
     });
 
@@ -405,7 +410,7 @@ describe("AC-F04-9: not signed in to Azure", () => {
             for (const args of allButGrantRevoke) {
                 const run = await runHush(args);
                 expect(run.exitCode, args.join(" ")).toBe(1);
-                expect(errorLines(run), args.join(" ")).toEqual([
+                expect(errorMessages(run), args.join(" ")).toEqual([
                     `🙈 Error! — You are not signed in to Azure. Run ${command} and try again.`,
                 ]);
             }
@@ -429,10 +434,10 @@ describe("AC-F04-10: a missing role", () => {
         const run = await runHush(args);
 
         expect(run.exitCode).toBe(1);
-        const lines = errorLines(run);
-        expect(lines).toHaveLength(1);
-        expect(lines[0]).toContain(`Azure Key Vault ${VAULT}`);
-        expect(lines[0]).toContain(role);
+        const errors = errorMessages(run);
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toContain(`Azure Key Vault ${VAULT}`);
+        expect(errors[0]).toContain(role);
     });
 
     it("push with read but no write access names the vault and the officer role", async () => {
@@ -442,8 +447,8 @@ describe("AC-F04-10: a missing role", () => {
         const run = await runHush(["push", "app", ".env"]);
 
         expect(run.exitCode).toBe(1);
-        expect(errorLines(run)).toEqual([
-            `🙈 Error! — You may not write the secret hush-app in Azure Key Vault ${VAULT}. Pushing needs the role "Key Vault Secrets Officer".`,
+        expect(errorMessages(run)).toEqual([
+            `🙈 Error! — You may not write the secret hush-app in Azure Key Vault ${VAULT}.\n   Pushing needs the role "Key Vault Secrets Officer".`,
         ]);
     });
 });
@@ -564,8 +569,8 @@ describe("AC-F04-13: grant and revoke", () => {
         const run = await runHush([command, "app", "jane.doe"]);
 
         expect(run.exitCode).toBe(1);
-        expect(errorLines(run)).toEqual([
-            '🙈 Error! — Azure Key Vault doesn\'t support granting or revoking access through Hush!. The vault\'s operators grant access with Azure roles: "Key Vault Secrets User" for pull, cat and list, "Key Vault Secrets Officer" for push and delete.',
+        expect(errorMessages(run)).toEqual([
+            '🙈 Error! — Azure Key Vault doesn\'t support granting or revoking access through Hush!.\n   The vault\'s operators grant access with Azure roles: "Key Vault Secrets User" for pull, cat and list, "Key Vault Secrets Officer" for push and delete.',
         ]);
         expect(fakeKeyVault.calls).toEqual([]);
         expect(fakeKeyVault.clients).toEqual([]);
@@ -583,7 +588,7 @@ describe("AC-F04-15: an entry that doesn't exist", () => {
         const run = await runHush(args);
 
         expect(run.exitCode).toBe(1);
-        expect(errorLines(run)).toEqual([`🙈 Error! — ${message}`]);
+        expect(errorMessages(run)).toEqual([`🙈 Error! — ${message}`]);
     });
 });
 
@@ -631,7 +636,7 @@ describe("AC-F04-17 and NFR-01-AC1: values in an unknown format", () => {
             for (const args of [["pull", "app", ".env.pulled"], ["cat", "app"]]) {
                 const run = await runHush(args);
                 expect(run.exitCode, args.join(" ")).toBe(1);
-                expect(errorLines(run)).toEqual([
+                expect(errorMessages(run)).toEqual([
                     "🙈 Error! — The secret hush-app has an unknown format and can't be read by Hush.",
                 ]);
                 expect(run.output).not.toContain(marker);
@@ -648,7 +653,7 @@ describe("AC-F04-17 and NFR-01-AC1: values in an unknown format", () => {
 
             const push = await runHush(["push", "app", ".env"]);
             expect(push.exitCode).toBe(1);
-            expect(errorLines(push)).toEqual([
+            expect(errorMessages(push)).toEqual([
                 "🙈 Error! — The secret hush-app has an unknown format and can't be read by Hush. Use --force to overwrite it.",
             ]);
             expect(push.output).not.toContain(marker);
@@ -664,8 +669,8 @@ describe("AC-F04-18: no right to list", () => {
         const run = await runHush(["list"]);
 
         expect(run.exitCode).toBe(1);
-        expect(errorLines(run)).toEqual([
-            `🙈 Error! — You may not list the secrets in Azure Key Vault ${VAULT}. Listing needs the role "Key Vault Secrets User".`,
+        expect(errorMessages(run)).toEqual([
+            `🙈 Error! — You may not list the secrets in Azure Key Vault ${VAULT}.\n   Listing needs the role "Key Vault Secrets User".`,
         ]);
     });
 
@@ -677,9 +682,9 @@ describe("AC-F04-18: no right to list", () => {
         const run = await runHush(["list"]);
 
         expect(run.exitCode).toBe(1);
-        expect(run.output).toContain(
-            `Can't be listed: You may not list the secrets in Azure Key Vault ${VAULT}. Listing needs the role "Key Vault Secrets User".`
-        );
+        const reason = run.output.split("\n").find((line) => line.startsWith("Can't be listed:"));
+        expect(reason).toBe(`Can't be listed: You may not list the secrets in Azure Key Vault ${VAULT}.`);
+        expect(run.output).toContain(`${reason}\n   Listing needs the role "Key Vault Secrets User".`);
         expect(run.output).toContain("Backend: frankfurt (AWS eu-central-1)");
     });
 });

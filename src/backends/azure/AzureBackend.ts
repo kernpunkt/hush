@@ -19,6 +19,7 @@ import toBackendError, {
 } from "./toBackendError.js";
 import { vaultNameOf } from "./vaultSettings.js";
 import printable from "../../utils/printable.js";
+import withHints from "../../utils/withHints.js";
 
 /** BR-06: the names Key Vault accepts, the hush- prefix included. */
 const NAME = /^[0-9A-Za-z-]{1,127}$/;
@@ -124,9 +125,12 @@ class AzureBackend implements SecretBackend {
     if (!NAME.test(name)) {
       throw new BackendError(
         "invalidName",
-        `The name ${chalk.bold(
-          printable(name)
-        )} can't be used in Azure Key Vault: a name has 1 to 127 characters, the hush- prefix included, and only letters (A-Z, a-z), digits (0-9) and hyphens.`
+        withHints(
+          `The name ${chalk.bold(printable(name))} can't be used in Azure Key Vault.`,
+          `A name has ${chalk.bold(
+            "1 to 127 characters"
+          )}, the hush- prefix included, and only letters (A-Z, a-z), digits (0-9) and hyphens.`
+        )
       );
     }
   }
@@ -138,11 +142,11 @@ class AzureBackend implements SecretBackend {
     if (size > MAX_VALUE_BYTES) {
       throw new BackendError(
         "tooLarge",
-        `The secret ${chalk.bold(name)} is ${size.toLocaleString(
-          "en-US"
-        )} bytes, but Azure Key Vault takes at most ${MAX_VALUE_BYTES.toLocaleString(
-          "en-US"
-        )} bytes (UTF-8) per secret.`
+        `The secret ${chalk.bold(name)} is ${chalk.bold(
+          `${size.toLocaleString("en-US")} bytes`
+        )}, but Azure Key Vault takes at most ${chalk.bold(
+          `${MAX_VALUE_BYTES.toLocaleString("en-US")} bytes`
+        )} (UTF-8) per secret.`
       );
     }
   }
@@ -360,7 +364,11 @@ class AzureBackend implements SecretBackend {
   }
 
   public accessHint(): string {
-    return `The vault's operators grant access with Azure roles: "${READER_ROLE}" for pull, cat and list, "${WRITER_ROLE}" for push and delete.`;
+    return `The vault's operators grant access with Azure roles: ${chalk.bold(
+      `"${READER_ROLE}"`
+    )} for pull, cat and list, ${chalk.bold(
+      `"${WRITER_ROLE}"`
+    )} for push and delete.`;
   }
 }
 
