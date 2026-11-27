@@ -529,4 +529,62 @@ describe("VersionManager", () => {
       expect(writeFileSyncMock).not.toHaveBeenCalled();
     });
   });
+
+  describe("for copy: localVersion and whether updateVersionsFile wrote", () => {
+    const ireland = new AwsBackend({ region: "eu-west-1" });
+
+    it("localVersion is undefined without .hushrc.json", () => {
+      existsSyncMock.mockReturnValueOnce(false);
+
+      expect(versionManager.localVersion("hush-shop", ireland)).toBeUndefined();
+    });
+
+    it("localVersion is undefined without a version of the backend's store", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(JSON.stringify({ "hush-shop": { version: 5 } }));
+
+      expect(versionManager.localVersion("hush-shop", ireland)).toBeUndefined();
+    });
+
+    it("localVersion is the version of the backend's store", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(
+        JSON.stringify({ "hush-shop": { version: 5 }, "hush-shop@AWS eu-west-1": { version: 2 } })
+      );
+
+      expect(versionManager.localVersion("hush-shop", ireland)).toBe(2);
+    });
+
+    it("localVersion throws if .hushrc.json isn't valid JSON", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce("{ not json");
+
+      expect(() => versionManager.localVersion("hush-shop", ireland)).toThrow(SyntaxError);
+    });
+
+    it("localVersion throws if .hushrc.json can't be read", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockImplementationOnce(() => {
+        throw new Error("Permission denied");
+      });
+
+      expect(() => versionManager.localVersion("hush-shop", ireland)).toThrow("Permission denied");
+    });
+
+    it("updateVersionsFile returns true when it wrote the file", () => {
+      existsSyncMock.mockReturnValueOnce(false);
+      writeFileSyncMock.mockImplementationOnce(() => {});
+
+      expect(versionManager.updateVersionsFile("hush-shop", 1)).toBe(true);
+    });
+
+    it("updateVersionsFile returns false when writing failed", () => {
+      existsSyncMock.mockReturnValueOnce(false);
+      writeFileSyncMock.mockImplementationOnce(() => {
+        throw new Error("Read-only file system");
+      });
+
+      expect(versionManager.updateVersionsFile("hush-shop", 1)).toBe(false);
+    });
+  });
 });

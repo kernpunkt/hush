@@ -430,7 +430,7 @@ describe("error kinds and messages", () => {
 
     it.each([
         ["read", 'You may not read the secret hush-app in Azure Key Vault example-vault-1.\n   Reading needs the role "Key Vault Secrets User"; push and delete need "Key Vault Secrets Officer".'],
-        ["write", 'You may not write the secret hush-app in Azure Key Vault example-vault-1.\n   Pushing needs the role "Key Vault Secrets Officer".'],
+        ["write", 'You may not write the secret hush-app in Azure Key Vault example-vault-1.\n   Writing needs the role "Key Vault Secrets Officer".'],
         ["list", 'You may not list the secrets in Azure Key Vault example-vault-1.\n   Listing needs the role "Key Vault Secrets User".'],
         ["delete", 'You may not delete the secret hush-app in Azure Key Vault example-vault-1.\n   Deleting needs the role "Key Vault Secrets Officer".'],
     ])("AC-F04-10, AC-F04-18: a 403 on %s names the vault and the role", async (operation, message) => {

@@ -448,7 +448,7 @@ describe("AC-F04-10: a missing role", () => {
 
         expect(run.exitCode).toBe(1);
         expect(errorMessages(run)).toEqual([
-            `🙈 Error! — You may not write the secret hush-app in Azure Key Vault ${VAULT}.\n   Pushing needs the role "Key Vault Secrets Officer".`,
+            `🙈 Error! — You may not write the secret hush-app in Azure Key Vault ${VAULT}.\n   Writing needs the role "Key Vault Secrets Officer".`,
         ]);
     });
 });
