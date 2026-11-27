@@ -341,7 +341,10 @@ describe("AC-F05-8: --force over a newer entry in the target", () => {
         const copy = await runHush(["copy", "app-dev", "--from", "frankfurt", "--to", "vault", "--force"]);
 
         expect(copy.exitCode, copy.output).toBe(0);
-        expect(keySection(copy, "app-dev")).toBe("✔ app-dev: copied to vault (version 2).");
+        expect(keySection(copy, "app-dev")).toBe(
+            "✔ app-dev: copied to vault (version 2).\n" +
+                "   The version in vault went down from 7 to 2: a folder that pulled the higher version must pull again before it pushes, or its push writes over this copy without a warning."
+        );
         expect(fakeKeyVault.secret("hush-app-dev")?.value).toBe(source);
         expect(JSON.parse(fakeKeyVault.secret("hush-app-dev")!.value).version).toBe(2);
     });

@@ -235,6 +235,29 @@ describe("AC-F05-8: --force writes the source version over the target", () => {
         expect(lineOf(result.output, "app")).toBe("✔ app: copied to vault (version 2).");
     });
 
+    it("warns that folders with the higher version must pull first (PO decision)", async () => {
+        source.seed("hush-app", payload(2, "older"));
+        target.seed("hush-app", payload(9, "newer"));
+
+        const result = await copy(["app"], { force: true });
+
+        expect(result.output).toContain(
+            "✔ app: copied to vault (version 2).\n" +
+                "   The version in vault went down from 9 to 2: a folder that pulled the higher version must pull again before it pushes, or its push writes over this copy without a warning."
+        );
+    });
+
+    it("doesn't warn when the version stays or goes up", async () => {
+        source.seed("hush-app", payload(5));
+        target.seed("hush-app", payload(5));
+        source.seed("hush-next", payload(6));
+        target.seed("hush-next", payload(3));
+
+        const result = await copy(["app", "next"], { force: true });
+
+        expect(result.output).not.toContain("went down");
+    });
+
     it("writes over a target entry in an unknown format", async () => {
         source.seed("hush-app", payload(2));
         target.seed("hush-app", "not json at all");

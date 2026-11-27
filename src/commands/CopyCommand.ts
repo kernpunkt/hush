@@ -243,6 +243,17 @@ class CopyCommand {
     const lines = [
       `copied to ${this.toName()} (version ${chalk.bold(source.version)}).`,
     ];
+    if (typeof existing === "number" && existing > source.version) {
+      // A folder that pulled the higher version passes push's version
+      // check against the lower one, so it would write over this copy.
+      lines.push(
+        `The version in ${this.toName()} went down from ${chalk.bold(
+          existing
+        )} to ${chalk.bold(
+          source.version
+        )}: a folder that pulled the higher version must pull again before it pushes, or its push writes over this copy without a warning.`
+      );
+    }
     let carried: boolean;
     try {
       carried = this.carryLocalVersion(name);
