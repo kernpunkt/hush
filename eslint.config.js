@@ -51,6 +51,7 @@ export default tseslint.config(
                 "@thinkinglabs/aws-iam-policy",
                 "**/requests/*",
                 "**/backends/aws/*",
+                "**/backends/azure/*",
               ],
               message:
                 "Commands must use the backend interface (src/backends/SecretBackend.ts), not a cloud library or a backend implementation.",

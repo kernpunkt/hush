@@ -2,6 +2,9 @@ import { DeleteSecretCommand, SecretsManagerClient } from "@aws-sdk/client-secre
 import DeleteCommand from "../../../src/commands/DeleteCommand";
 import DeleteRequest from "../../../src/backends/aws/requests/DeleteRequest";
 import DateFormatter from "../../../src/utils/DateFormatter";
+import VersionManager from "../../../src/utils/VersionManager";
+import SecretBackend, { DeleteResult } from "../../../src/backends/SecretBackend";
+import { stripAnsi } from "../../../src/utils/ChalkTable";
 import {mockClient} from 'aws-sdk-client-mock';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
@@ -71,5 +74,59 @@ describe("DeleteCommand", () => {
         expect(deleteRequestSpy).toHaveBeenCalledTimes(1);
         expect(result).toContain("hush-hello-world");
         expect(result).toContain("successfully deleted.");
+    });
+});
+
+describe("DeleteCommand with a backend that reports how the deletion went", () => {
+    let removeVersionSpy: ReturnType<typeof vi.spyOn>;
+    const backendWith = (result: DeleteResult): SecretBackend => ({
+        displayName: "Example Backend",
+        read: async () => undefined,
+        write: async () => "created",
+        listNames: async () => [],
+        delete: async () => result,
+        accessHint: () => "Ask the operators.",
+    });
+    const command = (result: DeleteResult) =>
+        new DeleteCommand({ key: "hello-world", force: true }).setBackend(backendWith(result));
+
+    beforeEach(() => {
+        // Keeps .hushrc.json in the working directory as it is.
+        removeVersionSpy = vi.spyOn(VersionManager.prototype, "removeVersionFromFile").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        removeVersionSpy.mockRestore();
+    });
+
+    it("adds a line if the name may still be in use for a moment", async () => {
+        const result = stripAnsi(await command({ purgePending: true }).execute());
+
+        expect(result).toBe(
+            "Done! Your secret hush-hello-world was successfully deleted.\nIts name may still be in use for a moment before you can push it again."
+        );
+        expect(removeVersionSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("says the entry was soft-deleted and why it isn't gone, and keeps its version", async () => {
+        const result = command({
+            purgeRefused: true,
+            purgeRefusedReason: "you may not purge it.",
+            deletionDate: now,
+        }).execute();
+
+        await expect(result).rejects.toThrow(
+            `Your secret hush-hello-world was only scheduled for deletion, until ${dateString}.\n   It could not be deleted for good: you may not purge it.`
+        );
+        expect(removeVersionSpy).not.toHaveBeenCalled();
+    });
+
+    it("keeps the purge protection wording without a reason", async () => {
+        const result = command({ purgeRefused: true, deletionDate: now }).execute();
+
+        await expect(result).rejects.toThrow(
+            `Your secret hush-hello-world was only scheduled for deletion, until ${dateString}.\n   Example Backend doesn't allow deleting it for good before then (purge protection is on).`
+        );
+        expect(removeVersionSpy).not.toHaveBeenCalled();
     });
 });

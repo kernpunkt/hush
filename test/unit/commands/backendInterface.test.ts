@@ -50,13 +50,21 @@ describe("AC-F01-1: push, pull, cat, list and delete behave the same with the in
      * The same calls in the same order. Each step's output and exit code is
      * compared between both backends; error messages may name the backend,
      * so for failing steps only the exit code and the one-line shape count.
+     * The diff warning of pull names the backend too ("stored in AWS"); it
+     * is compared with the backend's name taken out.
      */
     const scenario = async (backend: SecretBackend) => {
         const results: { step: string; run: HushRun; compareOutput: boolean }[] = [];
         const step = async (name: string, args: string[], compareOutput = true) => {
             // vi.waitFor advances fake timers, so pin the clock for every step.
             vi.setSystemTime(now);
-            results.push({ step: name, run: await runHush(args, backend), compareOutput });
+            const run = await runHush(args, backend);
+            const storedIn = `stored in ${backend.shortName ?? backend.displayName} differ`;
+            results.push({
+                step: name,
+                run: { ...run, output: run.output.replace(storedIn, "stored in <backend> differ") },
+                compareOutput,
+            });
         };
 
         writeEnv(".env", 'EXAMPLE_HOST="db.example.test"\nEXAMPLE_TOKEN="example-token-1"\n');
@@ -102,6 +110,13 @@ describe("AC-F01-1: push, pull, cat, list and delete behave the same with the in
             }
         });
 
+        // Each backend's diff warning named the backend.
+        for (const results of [inMemory, aws]) {
+            expect(results.find((r) => r.step === "pull shows a diff")!.run.output).toContain(
+                "Your .env file and the .env file stored in <backend> differ:"
+            );
+        }
+
         // Make sure the scenario exercised what it claims to.
         const exitCodes = Object.fromEntries(inMemory.map((r) => [r.step, r.run.exitCode]));
         expect(exitCodes).toMatchObject({
@@ -118,16 +133,18 @@ describe("AC-F01-1: push, pull, cat, list and delete behave the same with the in
 });
 
 describe("AC-F01-2: grant and revoke with a backend that can't manage access", () => {
-    it.each(["grant", "revoke"])("%s reports it in one line with the backend's name and hint, exits 1 and doesn't call the backend", async (command) => {
+    it.each(["grant", "revoke"])("%s names the backend, then its hint on the next line, exits 1 and doesn't call the backend", async (command) => {
         const backend = new InMemoryBackend();
 
         const run = await runHush([command, "app", "someone"], backend);
 
         expect(run.exitCode).toBe(1);
-        const lines = errorLines(run);
-        expect(lines).toHaveLength(1);
-        expect(lines[0]).toContain(backend.displayName);
-        expect(lines[0]).toContain(backend.accessHint());
+        expect(errorLines(run)).toEqual([
+            `🙈 Error! — ${backend.displayName} doesn't support granting or revoking access through Hush!.`,
+        ]);
+        expect(run.output).toContain(
+            `🙈 Error! — ${backend.displayName} doesn't support granting or revoking access through Hush!.\n   ${backend.accessHint()}`
+        );
         expect(backend.calls).toEqual([]);
     });
 });

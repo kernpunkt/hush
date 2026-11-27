@@ -1,5 +1,6 @@
 import SecretBackend from "../backends/SecretBackend.js";
 import defaultBackend from "../backends/defaultBackend.js";
+import withHints from "../utils/withHints.js";
 
 abstract class BaseCommand {
   protected key: string;
@@ -26,12 +27,15 @@ abstract class BaseCommand {
   }
 
   /**
-   * The error for grant and revoke when the backend can't manage access.
-   * One line, with the backend's name and its hint.
+   * The error for grant and revoke when the backend can't manage access:
+   * the backend's name, then its hint on the next line.
    */
   protected accessNotSupportedError(): Error {
     return new Error(
-      `${this.backend.displayName} doesn't support granting or revoking access through Hush!. ${this.backend.accessHint()}`
+      withHints(
+        `${this.backend.displayName} doesn't support granting or revoking access through Hush!.`,
+        this.backend.accessHint()
+      )
     );
   }
 

@@ -30,6 +30,7 @@ err|   grant <key> <user-identifier>
 err|   revoke <key> <user-identifier>
 err|   list
 err|   cat <key>
+err|   copy [options] <keys...>
 err|   help [command]                   display help for command
 
 === 02 $ hush --help
@@ -58,6 +59,7 @@ out|   grant <key> <user-identifier>
 out|   revoke <key> <user-identifier>
 out|   list
 out|   cat <key>
+out|   copy [options] <keys...>
 out|   help [command]                   display help for command
 
 ### setup: write .env

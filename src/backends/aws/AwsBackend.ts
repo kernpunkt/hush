@@ -39,6 +39,7 @@ export type AwsBackendOptions = {
  */
 class AwsBackend implements SecretBackend {
   public readonly displayName = "AWS Secrets Manager";
+  public readonly shortName = "AWS";
   public readonly region: string;
   private secretsManagerClient?: SecretsManagerClient;
   private stsClient?: STSClient;

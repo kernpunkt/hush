@@ -3,6 +3,7 @@ import chalk from "chalk";
 import DeleteCommandInput from "../@types/DeleteCommandInput.js";
 import DateFormatter from "../utils/DateFormatter.js";
 import VersionManager from "../utils/VersionManager.js";
+import withHints from "../utils/withHints.js";
 
 export type DeleteCommandOptions = {
   force?: boolean;
@@ -24,14 +25,33 @@ class DeleteCommand extends BaseCommand {
       force: this.force,
     });
 
+    if (result.purgeRefused) {
+      // The entry still exists until then, so its version entry stays.
+      const until = chalk.bold(
+        result.deletionDate
+          ? DateFormatter.formatDate(result.deletionDate)
+          : "the end of its retention period"
+      );
+      const headline = `Your secret ${chalk.bold(
+        this.getKey()
+      )} was only scheduled for deletion, until ${until}.`;
+      const why = result.purgeRefusedReason
+        ? `It could not be deleted for good: ${result.purgeRefusedReason}`
+        : `${this.backend.displayName} doesn't allow deleting it for good before then (purge protection is on).`;
+      throw new Error(withHints(headline, why));
+    }
+
     this.versionManager.removeVersionFromFile(this.getKey(), this.backend);
 
     const dateObject = result.deletionDate;
 
     if (this.force) {
-      return `${chalk.green("Done!")} Your secret ${chalk.bold(
+      const done = `${chalk.green("Done!")} Your secret ${chalk.bold(
         this.getKey()
       )} was successfully deleted.`;
+      return result.purgePending
+        ? `${done}\nIts name may still be in use for a moment before you can push it again.`
+        : done;
     } else {
       return `${chalk.green("Done!")} Your secret ${chalk.bold(
         this.getKey()

@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import chalk from "chalk";
 import VersionEntry from "../@types/VersionEntry.js";
 import SecretPayloadManager from "./SecretPayloadManager.js";
-import SecretBackend from "../backends/SecretBackend.js";
+import SecretBackend, { entryKey } from "../backends/SecretBackend.js";
 import { isBackendError } from "../backends/BackendError.js";
 import defaultBackend from "../backends/defaultBackend.js";
 
@@ -19,7 +19,10 @@ class VersionManager {
    * with its old copy. Entries in the store of Hush! 4.1.0 (the default
    * backend, AWS eu-central-1) keep the 4.1.0 name, e.g. "hush-shop-dev";
    * entries elsewhere get the store, e.g. "hush-shop-prod@AWS eu-west-1".
-   * AWS secret names can't contain spaces, so the two never collide.
+   * AWS secret names can't contain spaces, so the two never collide. In a
+   * backend whose names ignore case (Azure Key Vault), the name is
+   * lowercased, e.g. "hush-shop@Azure my-vault" for "hush-Shop", so both
+   * spellings share one version.
    *
    * @param {string} name - The entry name, e.g. "hush-shop-prod"
    * @param {SecretBackend} backend - The backend that stores the entry
@@ -27,7 +30,8 @@ class VersionManager {
    */
   public static versionName(name: string, backend: SecretBackend): string {
     const store = VersionManager.otherStore(backend);
-    return store === undefined ? name : `${name}@${store}`;
+    const entry = entryKey(name, backend);
+    return store === undefined ? entry : `${entry}@${store}`;
   }
 
   /**
@@ -39,6 +43,18 @@ class VersionManager {
   private static label(name: string, backend?: SecretBackend): string {
     const store = backend && VersionManager.otherStore(backend);
     return store === undefined ? `"${name}"` : `"${name}" (${store})`;
+  }
+
+  /**
+   * The versions in this folder's .hushrc.json, or undefined if there is no
+   * such file. Throws the error of reading or parsing the file as it is.
+   */
+  private static readVersionsFile(): Record<string, VersionEntry> | undefined {
+    const versionsFile = path.resolve(VersionManager.VERSION_FILE);
+    if (!existsSync(versionsFile)) {
+      return undefined;
+    }
+    return JSON.parse(readFileSync(versionsFile, "utf8"));
   }
 
   /** The backend's store, or undefined for the default store of 4.1.0. */
@@ -62,15 +78,12 @@ class VersionManager {
     backend?: SecretBackend
   ): boolean {
     const key = backend ? VersionManager.versionName(name, backend) : name;
-    const versionsFile = path.resolve(VersionManager.VERSION_FILE);
-
-    if (!existsSync(versionsFile)) {
-      return true;
-    }
 
     try {
-      const fileContent = readFileSync(versionsFile, "utf8");
-      const versions: Record<string, VersionEntry> = JSON.parse(fileContent);
+      const versions = VersionManager.readVersionsFile();
+      if (versions === undefined) {
+        return true;
+      }
 
       // If secret doesn't exist remotely (currentVersion === -1), allow push
       if (currentVersion === -1) {
@@ -107,34 +120,67 @@ class VersionManager {
   }
 
   /**
+   * The version of an entry in this folder's .hushrc.json for the store of
+   * the backend, or undefined if there is no such file or it has no version
+   * for the entry.
+   *
+   * @param {string} name - The entry name, e.g. "hush-shop-prod"
+   * @param {SecretBackend} backend - The backend that stores the entry
+   * @returns {number | undefined}
+   * @throws {Error} If the file can't be read or isn't valid JSON
+   */
+  public localVersion(
+    name: string,
+    backend: SecretBackend
+  ): number | undefined {
+    const versions = VersionManager.readVersionsFile();
+    const version =
+      versions?.[VersionManager.versionName(name, backend)]?.version;
+    return typeof version === "number" ? version : undefined;
+  }
+
+  /**
    * Update .hushrc.json file with new version.
    *
    * @param {string} key - The secret key
    * @param {number} version - The new version number
-   * @throws {Error} If the versions file is corrupted or invalid
+   * @param {object} [options]
+   * @param {boolean} [options.quiet] - Print nothing, and return false
+   *   instead of throwing if the file can't be read; for a command that
+   *   reports a failure in its own words (copy)
+   * @returns {boolean} - True if the file was written, false if writing it
+   *   failed (which is only warned about) or, with quiet, reading it failed
+   * @throws {Error} If the versions file is corrupted or invalid, unless quiet
    */
-  public updateVersionsFile(key: string, version: number): void {
+  public updateVersionsFile(
+    key: string,
+    version: number,
+    options: { quiet?: boolean } = {}
+  ): boolean {
     const versionsFile = path.resolve(VersionManager.VERSION_FILE);
     let versions: Record<string, VersionEntry> = {};
 
     // Read existing versions if file exists
-    if (existsSync(versionsFile)) {
-      try {
-        const fileContent = readFileSync(versionsFile, "utf8");
-        versions = JSON.parse(fileContent);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        console.error(
-          chalk.red(
-            `⚠️  Error: Could not read or parse .hushrc.json: ${errorMessage}`
-          )
-        );
-        throw new Error(
-          ".hushrc.json is corrupted or invalid. Fix or remove the file and retry.",
-          { cause: error }
-        );
+    try {
+      const existing = VersionManager.readVersionsFile();
+      if (existing !== undefined) {
+        versions = existing;
       }
+    } catch (error) {
+      if (options.quiet) {
+        return false;
+      }
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error(
+        chalk.red(
+          `⚠️  Error: Could not read or parse .hushrc.json: ${errorMessage}`
+        )
+      );
+      throw new Error(
+        ".hushrc.json is corrupted or invalid. Fix or remove the file and retry.",
+        { cause: error }
+      );
     }
 
     // Update the version for this key
@@ -144,10 +190,14 @@ class VersionManager {
     try {
       writeFileSync(versionsFile, JSON.stringify(versions, null, 2), "utf8");
     } catch (error) {
-      console.warn(
-        chalk.yellow(`⚠️  Warning: Could not update .hushrc.json: ${error}`)
-      );
+      if (!options.quiet) {
+        console.warn(
+          chalk.yellow(`⚠️  Warning: Could not update .hushrc.json: ${error}`)
+        );
+      }
+      return false;
     }
+    return true;
   }
 
   /**
@@ -191,18 +241,16 @@ class VersionManager {
     const label = VersionManager.label(name, backend);
     const versionsFile = path.resolve(VersionManager.VERSION_FILE);
 
-    if (!existsSync(versionsFile)) {
-      console.warn(
-        chalk.yellow(
-          `⚠️  Warning: .hushrc.json file does not exist, no version to remove for key ${label}`
-        )
-      );
-      return;
-    }
-
     try {
-      const fileContent = readFileSync(versionsFile, "utf8");
-      const versions: Record<string, VersionEntry> = JSON.parse(fileContent);
+      const versions = VersionManager.readVersionsFile();
+      if (versions === undefined) {
+        console.warn(
+          chalk.yellow(
+            `⚠️  Warning: .hushrc.json file does not exist, no version to remove for key ${label}`
+          )
+        );
+        return;
+      }
 
       if (versions[key] === undefined) {
         console.warn(

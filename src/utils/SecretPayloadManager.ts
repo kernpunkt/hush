@@ -1,9 +1,10 @@
 import SecretPayload, { isSecretPayload } from "../@types/SecretPayload.js";
 
 export class UnknownSecretFormatError extends Error {
-  constructor(key?: string) {
+  constructor(key?: string, options?: ErrorOptions) {
     super(
-      `The secret${key ? ` ${key}` : ""} has an unknown format and can't be read by Hush.`
+      `The secret${key ? ` ${key}` : ""} has an unknown format and can't be read by Hush.`,
+      options
     );
     this.name = "UnknownSecretFormatError";
   }
@@ -15,7 +16,13 @@ export default class SecretPayloadManager {
   }
 
   fromSecretString(secretString: string, key?: string): SecretPayload {
-    const parsed = JSON.parse(secretString);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(secretString);
+    } catch (error) {
+      // Not the SyntaxError: its message quotes the start of the value.
+      throw new UnknownSecretFormatError(key, { cause: error });
+    }
 
     if (Array.isArray(parsed)) {
       return {

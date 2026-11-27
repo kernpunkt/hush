@@ -17,3 +17,4 @@ author:
 | [`hush grant`](/commands/grant)   | Grant access to a secret to another user.                    |
 | [`hush revoke`](/commands/revoke) | Revoke access to a secret from another user.                 |
 | [`hush delete`](/commands/delete) | Delete the given Hush! secret in its backend.                |
+| [`hush copy`](/commands/copy)     | Copy secrets from one backend of your project to another.    |

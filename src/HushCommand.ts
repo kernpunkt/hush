@@ -20,11 +20,20 @@ import SecretBackend from "./backends/SecretBackend.js";
 import BaseCommand from "./commands/BaseCommand.js";
 import ProjectBackends from "./backends/ProjectBackends.js";
 import ListAllCommand from "./commands/ListAllCommand.js";
+import CopyCommand, { CopyResult } from "./commands/CopyCommand.js";
+import printable from "./utils/printable.js";
 import {
   loadProjectConfig,
   ProjectConfigError,
   projectConfigWarnings,
 } from "./config/ProjectConfig.js";
+
+type CopyCommandOptions = {
+  from?: string;
+  to?: string;
+  dryRun?: boolean;
+  force?: boolean;
+};
 
 class HushCommand extends Command {
   private backends?: ProjectBackends;
@@ -39,6 +48,7 @@ class HushCommand extends Command {
     this.revokeCommand();
     this.listCommand();
     this.catCommand();
+    this.copyCommand();
   }
 
   /**
@@ -89,16 +99,22 @@ class HushCommand extends Command {
     console.log(`${chalk.bold("Hush! 🤫 — Error")}: ${message}`);
   }
 
-  /** Runs a command for one key, with the backend that holds the key. */
+  /**
+   * Runs a command for one key, with the backend that holds the key. That
+   * backend is handed to onResult too.
+   */
   private runCommand<R>(
     title: string,
     key: string,
     build: () => Omit<BaseCommand, "execute"> & { execute(): Promise<R> },
-    onResult: (result: R) => void
+    onResult: (result: R, backend: SecretBackend) => void
   ): void {
     const backends = this.projectBackends();
     if (backends) {
-      this.runWithBackend(backends.forKey(key), title, build, onResult);
+      const backend = backends.forKey(key);
+      this.runWithBackend(backend, title, build, (result) =>
+        onResult(result, backend)
+      );
     }
   }
 
@@ -115,18 +131,38 @@ class HushCommand extends Command {
     build: () => Omit<BaseCommand, "execute"> & { execute(): Promise<R> },
     onResult: (result: R) => void
   ): void {
-    const problem = backend.setupProblem?.();
-    if (problem) {
-      this.printSetupError(problem);
-      process.exit(1);
+    if (!this.checkSetup([backend])) {
       return;
     }
 
     // Header before building, as in 4.1.0.
-    console.log(`${chalk.bold("Hush! 🤫")} — ${title}\n`);
+    HushCommand.printHeader(title);
     const command = build();
     command.setBackend(backend);
     command.execute().then(onResult).catch(this.handleError);
+  }
+
+  /**
+   * Stops with the setup problem of the first backend that has one (e.g. no
+   * AWS profile selected): prints it and exits with 1.
+   *
+   * @returns {boolean} - True if no backend has a setup problem
+   */
+  private checkSetup(backends: SecretBackend[]): boolean {
+    for (const backend of backends) {
+      const problem = backend.setupProblem?.();
+      if (problem) {
+        this.printSetupError(problem);
+        process.exit(1);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** The header of a command, e.g. "Hush! 🤫 — Push". */
+  private static printHeader(title: string): void {
+    console.log(`${chalk.bold("Hush! 🤫")} — ${title}\n`);
   }
 
   run(argv?: readonly string[], options?: ParseOptions): this {
@@ -178,7 +214,7 @@ class HushCommand extends Command {
       }
 
       // Several backends: each one checks its setup on its own (ListAllCommand).
-      console.log(`${chalk.bold("Hush! 🤫")} — List\n`);
+      HushCommand.printHeader("List");
       new ListAllCommand(all).execute().then(onResult).catch(this.handleError);
     });
   }
@@ -207,7 +243,7 @@ class HushCommand extends Command {
       )
       .argument(
         "<user-identifier>",
-        "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
+        "AWS backends only: EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
       )
       .action(async (key: string, userIdentifier: string) => {
         this.runCommand(
@@ -230,7 +266,7 @@ class HushCommand extends Command {
       )
       .argument(
         "<user-identifier>",
-        "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
+        "AWS backends only: EITHER the ARN of an IAM user OR a username in the same AWS account to revoke access to the secret from."
       )
       .action(async (key: string, userIdentifier: string) => {
         // "Grant" as in 4.1.0.
@@ -335,13 +371,15 @@ class HushCommand extends Command {
           "Pull",
           key,
           () => new PullCommand(input),
-          (result) => {
+          (result, backend) => {
             if (typeof result === "object") {
               const changeset = result as EnvDiffResult;
+              // "AWS" for the AWS backend, as in 4.1.0.
+              const storedIn = backend.shortName ?? backend.displayName;
               console.log(
                 `${chalk.bold.yellow(
                   "⚠️ Warning!"
-                )} Your .env file and the .env file stored in AWS differ:\n`
+                )} Your .env file and the .env file stored in ${storedIn} differ:\n`
               );
               changeset.added.map((item) =>
                 console.log(chalk.green(`\t[ADD   ] ${item}`))
@@ -364,6 +402,101 @@ class HushCommand extends Command {
             process.exit(0);
           }
         );
+      });
+  }
+
+  /**
+   * What is wrong with --from and --to, checked before any backend is
+   * called (AC-F05-11), or undefined if both name different backends of
+   * the project setting.
+   */
+  private static copyOptionsProblem(
+    backends: ProjectBackends,
+    options: CopyCommandOptions
+  ): string | undefined {
+    const names = backends.all().map(({ name }) => name);
+    if (names.length < 2) {
+      return `${chalk.bold("copy")} needs a ${chalk.bold(
+        "hush.config.json"
+      )} with at least two backends to copy between.`;
+    }
+    const known = `Backends in ${chalk.bold("hush.config.json")}: ${names
+      .map((name) => chalk.bold(printable(name)))
+      .join(", ")}.`;
+    for (const option of ["from", "to"] as const) {
+      const value = options[option];
+      if (value === undefined) {
+        return `Name the backend to copy ${option} with ${chalk.bold(
+          `--${option}`
+        )}. ${known}`;
+      }
+      if (!backends.named(value)) {
+        return `${chalk.bold(`--${option}`)} names no backend of ${chalk.bold(
+          "hush.config.json"
+        )}: ${chalk.bold(printable(value))}. ${known}`;
+      }
+    }
+    if (options.from === options.to) {
+      return `${chalk.bold("--from")} and ${chalk.bold("--to")} both name ${chalk.bold(
+        printable(options.from!)
+      )}. Name two different backends.`;
+    }
+    return undefined;
+  }
+
+  private copyCommand(): void {
+    this.command("copy")
+      .argument(
+        "<keys...>",
+        "The designators of the secrets to copy. All keys get prefixed with 'hush-'"
+      )
+      .option(
+        "--from <backend>",
+        "The backend in hush.config.json to copy from."
+      )
+      .option("--to <backend>", "The backend in hush.config.json to copy to.")
+      .option(
+        "--dry-run",
+        "Only check which secrets fit into the target, without writing anything."
+      )
+      .option(
+        "-f, --force",
+        "Write over secrets that already exist in the target."
+      )
+      .action(async (keys: string[], options: CopyCommandOptions) => {
+        const backends = this.projectBackends();
+        if (!backends) {
+          return;
+        }
+        const problem = HushCommand.copyOptionsProblem(backends, options);
+        if (problem) {
+          this.printSetupError(problem);
+          process.exit(1);
+          return;
+        }
+        const from = {
+          name: options.from!,
+          backend: backends.named(options.from!)!,
+        };
+        const to = { name: options.to!, backend: backends.named(options.to!)! };
+        if (!this.checkSetup([from.backend, to.backend])) {
+          return;
+        }
+        HushCommand.printHeader(options.dryRun ? "Copy (dry run)" : "Copy");
+        new CopyCommand({
+          keys,
+          from,
+          to,
+          fromIsDefault: from.name === backends.defaultBackendName,
+          dryRun: options.dryRun === true,
+          force: options.force === true,
+        })
+          .execute()
+          .then(({ output, hasErrors }: CopyResult) => {
+            console.log(output);
+            process.exit(hasErrors ? 1 : 0);
+          })
+          .catch(this.handleError);
       });
   }
 

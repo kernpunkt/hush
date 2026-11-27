@@ -457,6 +457,17 @@ describe("VersionManager", () => {
       const backend = { displayName: "Example store" } as SecretBackend;
       expect(VersionManager.versionName("hush-shop", backend)).toBe("hush-shop@Example store");
     });
+
+    it("lowercases the name in a backend whose names ignore case, not the store", () => {
+      const backend = { displayName: "Example vault", location: "Azure Example-Vault", namesIgnoreCase: true } as SecretBackend;
+      expect(VersionManager.versionName("hush-Shop", backend)).toBe("hush-shop@Azure Example-Vault");
+    });
+
+    it("keeps the case of the name in AWS", () => {
+      expect(
+        VersionManager.versionName("hush-Shop", new AwsBackend({ region: "eu-west-1" }))
+      ).toBe("hush-Shop@AWS eu-west-1");
+    });
   });
 
   describe("with a backend: versions and warnings per store", () => {
@@ -516,6 +527,92 @@ describe("VersionManager", () => {
         '⚠️  Warning: .hushrc.json file does not exist, no version to remove for key "hush-shop" (AWS eu-west-1)',
       ]);
       expect(writeFileSyncMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("for copy: localVersion and whether updateVersionsFile wrote", () => {
+    const ireland = new AwsBackend({ region: "eu-west-1" });
+
+    it("localVersion is undefined without .hushrc.json", () => {
+      existsSyncMock.mockReturnValueOnce(false);
+
+      expect(versionManager.localVersion("hush-shop", ireland)).toBeUndefined();
+    });
+
+    it("localVersion is undefined without a version of the backend's store", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(JSON.stringify({ "hush-shop": { version: 5 } }));
+
+      expect(versionManager.localVersion("hush-shop", ireland)).toBeUndefined();
+    });
+
+    it("localVersion is the version of the backend's store", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce(
+        JSON.stringify({ "hush-shop": { version: 5 }, "hush-shop@AWS eu-west-1": { version: 2 } })
+      );
+
+      expect(versionManager.localVersion("hush-shop", ireland)).toBe(2);
+    });
+
+    it("localVersion throws if .hushrc.json isn't valid JSON", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce("{ not json");
+
+      expect(() => versionManager.localVersion("hush-shop", ireland)).toThrow(SyntaxError);
+    });
+
+    it("localVersion throws if .hushrc.json can't be read", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockImplementationOnce(() => {
+        throw new Error("Permission denied");
+      });
+
+      expect(() => versionManager.localVersion("hush-shop", ireland)).toThrow("Permission denied");
+    });
+
+    it("updateVersionsFile returns true when it wrote the file", () => {
+      existsSyncMock.mockReturnValueOnce(false);
+      writeFileSyncMock.mockImplementationOnce(() => {});
+
+      expect(versionManager.updateVersionsFile("hush-shop", 1)).toBe(true);
+    });
+
+    it("updateVersionsFile returns false when writing failed", () => {
+      existsSyncMock.mockReturnValueOnce(false);
+      writeFileSyncMock.mockImplementationOnce(() => {
+        throw new Error("Read-only file system");
+      });
+
+      expect(versionManager.updateVersionsFile("hush-shop", 1)).toBe(false);
+    });
+
+    it("updateVersionsFile with quiet prints nothing and returns false when writing failed", () => {
+      existsSyncMock.mockReturnValueOnce(false);
+      writeFileSyncMock.mockImplementationOnce(() => {
+        throw new Error("Read-only file system");
+      });
+
+      expect(versionManager.updateVersionsFile("hush-shop", 1, { quiet: true })).toBe(false);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it("updateVersionsFile with quiet prints nothing and returns false when reading failed", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce("{ not json");
+
+      expect(versionManager.updateVersionsFile("hush-shop", 1, { quiet: true })).toBe(false);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(writeFileSyncMock).not.toHaveBeenCalled();
+    });
+
+    it("updateVersionsFile with quiet returns true when it wrote the file", () => {
+      existsSyncMock.mockReturnValueOnce(false);
+      writeFileSyncMock.mockImplementationOnce(() => {});
+
+      expect(versionManager.updateVersionsFile("hush-shop", 1, { quiet: true })).toBe(true);
     });
   });
 });

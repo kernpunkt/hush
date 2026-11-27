@@ -2,9 +2,10 @@ import BaseCommand from "./BaseCommand.js";
 import SecretPayloadManager from "../utils/SecretPayloadManager.js";
 import SecretPayload from "../@types/SecretPayload.js";
 import chalk from "chalk";
-import chalkTable, { stripAnsi } from "../utils/ChalkTable.js";
+import chalkTable from "../utils/ChalkTable.js";
 import DateFormatter from "../utils/DateFormatter.js";
 import { isBackendError } from "../backends/BackendError.js";
+import { splitHints } from "../utils/withHints.js";
 
 type ListTableRow = {
   name: string;
@@ -121,11 +122,7 @@ class ListCommand extends BaseCommand {
    */
   private static reason(error: unknown): string {
     const message = error instanceof Error ? error.message : String(error);
-    const firstLine =
-      stripAnsi(message)
-        .split("\n")
-        .map((line) => line.trim())
-        .find((line) => line !== "") ?? "unknown error";
+    const firstLine = splitHints(message).headline || "unknown error";
     if (firstLine.length <= ListCommand.MAX_REASON_LENGTH) {
       return firstLine;
     }
