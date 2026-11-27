@@ -14,6 +14,10 @@ author:
 Not illustrated in a gif to not expose secret information.
 !!!
 
+!!!
+`revoke` works with **AWS backends only**. In an [Azure Key Vault](/backends/azure-key-vault), the vault's operators give access through Azure roles; `hush revoke` names the roles and ends with exit code 1.
+!!!
+
 To prevent another IAM user **in the same AWS account** from accessing your secret, use the `revoke` command like this:
 
 `yarn hush revoke joern-prod <user-identifier>`
