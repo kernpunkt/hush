@@ -602,6 +602,7 @@ describe("Decision 1: the local version is carried to the target store", () => {
             const before = readFileSync(versionsFile(), "utf8");
             chmodSync(versionsFile(), 0o444);
             const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+            const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
             try {
                 const result = await copy(["app"]);
@@ -610,8 +611,12 @@ describe("Decision 1: the local version is carried to the target store", () => {
                 expect(result.hasErrors).toBe(false);
                 expect(result.output).toContain(NOT_CARRIED);
                 expect(readFileSync(versionsFile(), "utf8")).toBe(before);
+                // Only copy's own note for the key, no warning of VersionManager.
+                const printed = [...warn.mock.calls, ...error.mock.calls].map((args) => stripAnsi(args.join(" ")));
+                expect(printed.filter((line) => line.includes("Could not update .hushrc.json"))).toEqual([]);
             } finally {
                 warn.mockRestore();
+                error.mockRestore();
                 chmodSync(versionsFile(), 0o644);
             }
         }

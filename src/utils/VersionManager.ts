@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import chalk from "chalk";
 import VersionEntry from "../@types/VersionEntry.js";
 import SecretPayloadManager from "./SecretPayloadManager.js";
-import SecretBackend from "../backends/SecretBackend.js";
+import SecretBackend, { entryKey } from "../backends/SecretBackend.js";
 import { isBackendError } from "../backends/BackendError.js";
 import defaultBackend from "../backends/defaultBackend.js";
 
@@ -30,7 +30,7 @@ class VersionManager {
    */
   public static versionName(name: string, backend: SecretBackend): string {
     const store = VersionManager.otherStore(backend);
-    const entry = backend.namesIgnoreCase ? name.toLowerCase() : name;
+    const entry = entryKey(name, backend);
     return store === undefined ? entry : `${entry}@${store}`;
   }
 
@@ -144,11 +144,19 @@ class VersionManager {
    *
    * @param {string} key - The secret key
    * @param {number} version - The new version number
+   * @param {object} [options]
+   * @param {boolean} [options.quiet] - Print nothing, and return false
+   *   instead of throwing if the file can't be read; for a command that
+   *   reports a failure in its own words (copy)
    * @returns {boolean} - True if the file was written, false if writing it
-   *   failed (which is only warned about)
-   * @throws {Error} If the versions file is corrupted or invalid
+   *   failed (which is only warned about) or, with quiet, reading it failed
+   * @throws {Error} If the versions file is corrupted or invalid, unless quiet
    */
-  public updateVersionsFile(key: string, version: number): boolean {
+  public updateVersionsFile(
+    key: string,
+    version: number,
+    options: { quiet?: boolean } = {}
+  ): boolean {
     const versionsFile = path.resolve(VersionManager.VERSION_FILE);
     let versions: Record<string, VersionEntry> = {};
 
@@ -159,6 +167,9 @@ class VersionManager {
         versions = existing;
       }
     } catch (error) {
+      if (options.quiet) {
+        return false;
+      }
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       console.error(
@@ -179,9 +190,11 @@ class VersionManager {
     try {
       writeFileSync(versionsFile, JSON.stringify(versions, null, 2), "utf8");
     } catch (error) {
-      console.warn(
-        chalk.yellow(`⚠️  Warning: Could not update .hushrc.json: ${error}`)
-      );
+      if (!options.quiet) {
+        console.warn(
+          chalk.yellow(`⚠️  Warning: Could not update .hushrc.json: ${error}`)
+        );
+      }
       return false;
     }
     return true;

@@ -586,5 +586,33 @@ describe("VersionManager", () => {
 
       expect(versionManager.updateVersionsFile("hush-shop", 1)).toBe(false);
     });
+
+    it("updateVersionsFile with quiet prints nothing and returns false when writing failed", () => {
+      existsSyncMock.mockReturnValueOnce(false);
+      writeFileSyncMock.mockImplementationOnce(() => {
+        throw new Error("Read-only file system");
+      });
+
+      expect(versionManager.updateVersionsFile("hush-shop", 1, { quiet: true })).toBe(false);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it("updateVersionsFile with quiet prints nothing and returns false when reading failed", () => {
+      existsSyncMock.mockReturnValueOnce(true);
+      readFileSyncMock.mockReturnValueOnce("{ not json");
+
+      expect(versionManager.updateVersionsFile("hush-shop", 1, { quiet: true })).toBe(false);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(writeFileSyncMock).not.toHaveBeenCalled();
+    });
+
+    it("updateVersionsFile with quiet returns true when it wrote the file", () => {
+      existsSyncMock.mockReturnValueOnce(false);
+      writeFileSyncMock.mockImplementationOnce(() => {});
+
+      expect(versionManager.updateVersionsFile("hush-shop", 1, { quiet: true })).toBe(true);
+    });
   });
 });

@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import type { NamedBackend } from "../backends/ProjectBackends.js";
 import { isBackendError } from "../backends/BackendError.js";
+import { entryKey } from "../backends/SecretBackend.js";
 import SecretPayloadManager, {
   UnknownSecretFormatError,
 } from "../utils/SecretPayloadManager.js";
@@ -128,7 +129,7 @@ class CopyCommand {
     }
     const groups = new Map<string, string[]>();
     for (const key of keys) {
-      const entry = `hush-${key}`.toLowerCase();
+      const entry = entryKey(`hush-${key}`, this.to.backend);
       groups.set(entry, [...(groups.get(entry) ?? []), key]);
     }
     for (const group of groups.values()) {
@@ -304,9 +305,11 @@ class CopyCommand {
     if (local === undefined) {
       return true;
     }
+    // Quiet: a failure shows as this key's own note, not as a warning.
     return this.versionManager.updateVersionsFile(
       VersionManager.versionName(name, this.to.backend),
-      local
+      local,
+      { quiet: true }
     );
   }
 

@@ -115,4 +115,20 @@ interface SecretBackend {
   setupProblem?(): string | undefined;
 }
 
+/**
+ * The key under which an entry name is one entry in the backend: the name
+ * as it is, or lowercased if the backend's names ignore case (see
+ * namesIgnoreCase), so "hush-Shop" and "hush-shop" share one key there.
+ *
+ * @param {string} name - The entry name, e.g. "hush-shop"
+ * @param {SecretBackend} backend - The backend that stores the entry
+ * @returns {string}
+ */
+export function entryKey(
+  name: string,
+  backend: Pick<SecretBackend, "namesIgnoreCase">
+): string {
+  return backend.namesIgnoreCase ? name.toLowerCase() : name;
+}
+
 export default SecretBackend;

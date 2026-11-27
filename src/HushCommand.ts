@@ -131,18 +131,38 @@ class HushCommand extends Command {
     build: () => Omit<BaseCommand, "execute"> & { execute(): Promise<R> },
     onResult: (result: R) => void
   ): void {
-    const problem = backend.setupProblem?.();
-    if (problem) {
-      this.printSetupError(problem);
-      process.exit(1);
+    if (!this.checkSetup([backend])) {
       return;
     }
 
     // Header before building, as in 4.1.0.
-    console.log(`${chalk.bold("Hush! 🤫")} — ${title}\n`);
+    HushCommand.printHeader(title);
     const command = build();
     command.setBackend(backend);
     command.execute().then(onResult).catch(this.handleError);
+  }
+
+  /**
+   * Stops with the setup problem of the first backend that has one (e.g. no
+   * AWS profile selected): prints it and exits with 1.
+   *
+   * @returns {boolean} - True if no backend has a setup problem
+   */
+  private checkSetup(backends: SecretBackend[]): boolean {
+    for (const backend of backends) {
+      const problem = backend.setupProblem?.();
+      if (problem) {
+        this.printSetupError(problem);
+        process.exit(1);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** The header of a command, e.g. "Hush! 🤫 — Push". */
+  private static printHeader(title: string): void {
+    console.log(`${chalk.bold("Hush! 🤫")} — ${title}\n`);
   }
 
   run(argv?: readonly string[], options?: ParseOptions): this {
@@ -194,7 +214,7 @@ class HushCommand extends Command {
       }
 
       // Several backends: each one checks its setup on its own (ListAllCommand).
-      console.log(`${chalk.bold("Hush! 🤫")} — List\n`);
+      HushCommand.printHeader("List");
       new ListAllCommand(all).execute().then(onResult).catch(this.handleError);
     });
   }
@@ -459,17 +479,10 @@ class HushCommand extends Command {
           backend: backends.named(options.from!)!,
         };
         const to = { name: options.to!, backend: backends.named(options.to!)! };
-        for (const { backend } of [from, to]) {
-          const setupProblem = backend.setupProblem?.();
-          if (setupProblem) {
-            this.printSetupError(setupProblem);
-            process.exit(1);
-            return;
-          }
+        if (!this.checkSetup([from.backend, to.backend])) {
+          return;
         }
-        console.log(
-          `${chalk.bold("Hush! 🤫")} — ${options.dryRun ? "Copy (dry run)" : "Copy"}\n`
-        );
+        HushCommand.printHeader(options.dryRun ? "Copy (dry run)" : "Copy");
         new CopyCommand({
           keys,
           from,

@@ -4,6 +4,7 @@ import SecretBackend, {
   DeleteOptions,
   DeleteResult,
   WriteResult,
+  entryKey,
 } from "../SecretBackend.js";
 import { BackendError } from "../BackendError.js";
 import toBackendError, {
@@ -174,7 +175,7 @@ class AzureBackend implements SecretBackend {
       const client = await this.client();
       try {
         const { value } = await client.getSecret(name);
-        this.seen.set(name.toLowerCase(), true);
+        this.seen.set(entryKey(name, this), true);
         return value;
       } catch (error) {
         // A soft-deleted entry reads as missing; tell the two apart.
@@ -183,7 +184,7 @@ class AzureBackend implements SecretBackend {
           if (deleted) {
             throw softDeletedError(context, purgeDateOf(deleted), error);
           }
-          this.seen.set(name.toLowerCase(), false);
+          this.seen.set(entryKey(name, this), false);
         }
         throw error;
       }
@@ -198,10 +199,11 @@ class AzureBackend implements SecretBackend {
     try {
       const client = await this.client();
       const exists =
-        this.seen.get(name.toLowerCase()) ?? (await this.exists(client, name));
+        this.seen.get(entryKey(name, this)) ??
+        (await this.exists(client, name));
       try {
         await client.setSecret(name, value);
-        this.seen.set(name.toLowerCase(), true);
+        this.seen.set(entryKey(name, this), true);
       } catch (error) {
         if (isDeletedButRecoverable(error)) {
           const deleted = await this.deletedSecret(client, name);
@@ -267,7 +269,7 @@ class AzureBackend implements SecretBackend {
   ): Promise<DeleteResult> {
     this.checkName(name);
     const context = this.context("delete", name);
-    this.seen.delete(name.toLowerCase());
+    this.seen.delete(entryKey(name, this));
     try {
       const client = await this.client();
       let deleted: DeletedSecret;
