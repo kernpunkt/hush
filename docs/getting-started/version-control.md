@@ -55,7 +55,9 @@ With a [project setting](/backends/project-setting) that puts keys into other ba
 }
 ```
 
-An [Azure Key Vault](/backends/azure-key-vault) doesn't tell names apart by case, so its entries are lowercased. So a key that moves to another backend starts with a version of its own there (unless [`hush copy`](/backends/moving-secrets) carries yours over), and `hush delete` only removes the version of the store it deleted from. Warnings name the key and its store, not the entry name, for example `for key "hush-project-prod" (AWS eu-west-1)`.
+So a key that moves to another backend starts with a version of its own there (unless [`hush copy`](/backends/moving-secrets) carries yours over), and `hush delete` only removes the version of the store it deleted from. Warnings name the key and its store, not the entry name, for example `for key "hush-project-prod" (AWS eu-west-1)`.
+
+An [Azure Key Vault](/backends/azure-key-vault) doesn't tell names apart by case, so its entries are lowercased.
 
 **Note:**
 

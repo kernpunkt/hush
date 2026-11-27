@@ -29,7 +29,7 @@ Add the vault as a backend of type `azure-key-vault` in your [project setting](/
 }
 ```
 
-- **`vaultUrl`** is the address of the vault, `https://<vault-name>.vault.azure.net`. The vault name has 3 to 24 letters, digits and hyphens. Only vaults in public Azure work; China and Government clouds use other addresses.
+- **`vaultUrl`** is the address of the vault, `https://<vault-name>.vault.azure.net`. The vault name has 3 to 24 letters, digits and hyphens; it starts with a letter, ends with a letter or a digit and has no two hyphens in a row. A `/` at the end is fine, a path after it isn't. Only vaults in public Azure work; China and Government clouds use other addresses.
 - **`tenantId`** is optional: the tenant (directory) the vault belongs to, as a GUID. Set it when you sign in as a guest in someone else's tenant. `az account show --query tenantId` shows the ID of the tenant you are signed in to.
 
 A project that only uses Azure needs **no `AWS_PROFILE`**.
@@ -78,7 +78,7 @@ export AZURE_CLIENT_SECRET=<its secret>
 The variables win over an Azure CLI sign-in. Keep the secret out of the repository and out of `hush.config.json`.
 +++
 
-Without either, every command ends with one line saying that you aren't signed in, with the `az login` command to run (including `--tenant` if the project setting names one).
+Without either, Hush! says that you aren't signed in, with the `az login` command to run (including `--tenant` if the project setting names one). Most commands end with this one line. `copy` shows it as the reason below each key it couldn't copy, and `list` with several backends shows it in place of the vault's table and still lists the other backends.
 
 ## Limits
 
@@ -86,7 +86,7 @@ A Key Vault is stricter than the AWS Secrets Manager. Hush! checks names and siz
 
 - **Names**: 1 to 127 characters, only letters, digits and hyphens. With the `hush-` prefix, a key has **at most 122 characters** and **no underscores**: `shop_dev` can't be stored, `shop-dev` can.
 - **Case**: the vault doesn't tell names apart by case. `Shop` and `shop` are the same secret.
-- **Size**: a secret holds **at most 25,000 bytes** (UTF-8). `push` refuses a larger `.env` file and names its size.
+- **Size**: a secret holds **at most 25,000 bytes** (UTF-8). This counts the secret as Hush! stores it: your variables as JSON, with the message, version and date. That is about 20 bytes more per variable than in the `.env` file, so a file well below 25,000 bytes can be too large. `push` refuses such a secret and names its size, the size of the stored secret.
 - **Deleting is soft**: `hush delete <key>` only schedules the deletion. Until the vault's retention period ends (7 to 90 days, 90 by default), the secret can be recovered and **its name stays taken**: `push` to that key fails and names the date and both ways out.
   - To use the name again right away, delete it for good with `hush delete <key> --force`.
   - If the vault has **purge protection** turned on, nobody can delete for good before the period ends. Then `--force` only schedules the deletion, names the date and ends with exit code 1.

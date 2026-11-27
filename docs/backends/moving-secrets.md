@@ -12,7 +12,7 @@ author:
 
 [`hush copy`](/commands/copy) copies secrets from one backend of your project to another, for example from the AWS Secrets Manager into an [Azure Key Vault](/backends/azure-key-vault). It writes every secret unchanged, with its message, date and version, and **only reads the source**: nothing is deleted, so you can move at your own pace and go back.
 
-This guide moves the keys `shop-dev` and `shop-prod` from AWS into a vault.
+This guide moves the keys `shop-dev`, `shop-prod` and `shop_old` from AWS into a vault.
 
 ## 1. Add the target to the project setting
 
@@ -50,7 +50,7 @@ Hush! 🤫 — Copy (dry run)
    A name has 1 to 127 characters, the hush- prefix included, and only letters (A-Z, a-z), digits (0-9) and hyphens.
 ```
 
-For every key, the dry run names its size, whether the target allows its name, whether the key is there already and whether it fits. It ends with exit code 1 if any key doesn't fit.
+For every key, the dry run names its size as stored (the `.env` variables as JSON, with message, version and date), whether the target allows its name, whether the key is there already and whether it fits. It ends with exit code 1 if any key doesn't fit.
 
 What to do with a key that doesn't fit:
 
@@ -60,7 +60,7 @@ What to do with a key that doesn't fit:
 
 ## 3. Copy
 
-Run the same command without `--dry-run`:
+Run the command without `--dry-run`, with the keys that fit. Here that is only `shop-dev`:
 
 `yarn hush copy shop-dev --from frankfurt --to vault`
 
@@ -74,13 +74,15 @@ To use vault for this key, add to hush.config.json:
    Or set "default": "vault" once all keys have moved.
 ```
 
+`shop-prod` and `shop_old` stay in AWS for now. Fix them as described in step 2, check again with `--dry-run`, and copy them the same way (`shop_old` under its new key `shop-old`).
+
 - Every key is copied on its own. A key that fails writes nothing and names the reason; the others go on, and `copy` ends with exit code 1.
 - A key that already exists in the target is left alone. **`--force`** writes the source over it. If that lowers the version in the target, `copy` warns: everyone who pulled the higher version has to `pull` again before they push, or their push writes over the copy without a warning.
-- `copy` also writes your local version of the key for the target into `.hushrc.json`, so you can `push` to the target right away.
+- `copy` also writes your local version of the key for the target into `.hushrc.json`, so you can `push` to the target right away. This only works if your `.hushrc.json` has a version of the key for the source, that is, you pulled or pushed the key in this folder before. Otherwise `copy` writes no version for the target, and `push` warns that the remote version is greater than yours and tells you to pull. Then `pull` the key once after step 4.
 
 ## 4. Change the project setting
 
-Follow the hint `copy` printed. Either list the moved keys under `keys`:
+Follow the hint `copy` printed. Either list the moved keys under `keys`, and add `shop-prod` and `shop-old` once you have copied them too:
 
 ```json
 {
@@ -99,7 +101,7 @@ or, once **all** keys have moved, make the target the default and drop `keys`:
 }
 ```
 
-Commit the change. From now on, `push`, `pull`, `cat` and `delete` use the vault for these keys. A `push` from your folder works without `--force`, because `copy` carried your version over.
+Commit the change. From now on, `push`, `pull`, `cat` and `delete` use the vault for these keys. A `push` from your folder works without `--force` if `copy` carried your version over (see step 3); otherwise pull the key once first.
 
 ## 5. Tell the team
 

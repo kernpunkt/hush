@@ -10,7 +10,7 @@ author:
 
 # Project setting: `hush.config.json`
 
-A **backend** is the service where Hush! keeps your secrets. With a `hush.config.json` file, a project decides **which backend holds which key**. Every command reads it: `push`, `pull`, `cat`, `grant`, `revoke` and `delete` use the backend of the key you give them, and `list` shows all backends of the project.
+A **backend** is the service where Hush! keeps your secrets. With a `hush.config.json` file, a project decides **which backend holds which key**. Every command reads it: `push`, `pull`, `cat`, `grant`, `revoke` and `delete` use the backend of the key you give them, `copy` uses the backends you name with `--from` and `--to`, and `list` shows all backends of the project.
 
 !!!
 **You don't need this file.** Without a `hush.config.json`, Hush! works as it always has: every key lives in the AWS Secrets Manager in `eu-central-1`, with the AWS profile from `AWS_PROFILE`.
@@ -58,10 +58,10 @@ The AWS backend uses the profile from `AWS_PROFILE`, as without a project settin
 
 **`azure-key-vault`**
 
-| Field      | Required | What it is                                                                                                                                                                                    |
-| ---------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vaultUrl` | yes      | The address of the vault, `https://<vault-name>.vault.azure.net`, with a vault name of 3 to 24 letters, digits and hyphens. Only vaults in public Azure work.                                 |
-| `tenantId` | no       | The tenant (directory) of the vault as a GUID, e.g. `00000000-1111-2222-3333-444444444444`. Set it when you sign in as a guest in another tenant; Hush! then names it in the `az login` hint. |
+| Field      | Required | What it is                                                                                                                                                                                                                                                                         |
+| ---------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vaultUrl` | yes      | The address of the vault, `https://<vault-name>.vault.azure.net`, optionally with a `/` at the end. The vault name has 3 to 24 letters, digits and hyphens, starts with a letter, ends with a letter or a digit and has no two hyphens in a row. Only vaults in public Azure work. |
+| `tenantId` | no       | The tenant (directory) of the vault as a GUID, e.g. `00000000-1111-2222-3333-444444444444`. Set it when you sign in as a guest in another tenant; Hush! then names it in the `az login` hint.                                                                                      |
 
 For example, AWS as the default and one key in a vault:
 
@@ -105,7 +105,7 @@ Hush! 🤫 — Error: hush.config.json, field backends.ireland.region: must be a
 ```
 
 - A file that isn't valid JSON, a missing `backends` or `default`, an unknown `type` and a name in `default` or `keys` that isn't in `backends` are all mistakes.
-- A `vaultUrl` that isn't the address of a vault in public Azure (`https://<vault-name>.vault.azure.net`, nothing after it) is a mistake, and so is a `tenantId` that isn't a GUID: a domain like `example.onmicrosoft.com` is refused, and the message tells you how to look up the ID.
+- A `vaultUrl` that isn't the address of a vault in public Azure (`https://<vault-name>.vault.azure.net`, with at most a `/` after it, no path) is a mistake, and so is a `tenantId` that isn't a GUID: a domain like `example.onmicrosoft.com` is refused, and the message tells you how to look up the ID.
 - A `region` that doesn't have the shape of an AWS region (words and a number, like `eu-west-1`, `us-gov-west-1` or `eusc-de-east-1`) is a mistake. Hush! checks the shape, not a list of regions, so a new AWS region works right away.
 - **Every store has one name.** Two backends that point to the same store, like two AWS backends in the same region or two spellings of the same vault address, are a mistake; a backend without `region` counts as `eu-central-1`. Otherwise `list` would show the same secrets twice.
 - **Fields Hush! doesn't know are mistakes too**, at the top level and in a backend. This keeps credentials out of the file: a field like `secretAccessKey` is refused, and Hush! doesn't repeat its value in the message.
