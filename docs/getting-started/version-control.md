@@ -15,7 +15,7 @@ Hush implements a version control system that ensures developers avoid conflicts
 
 The version control system in Hush works on three levels:
 
-1. **Secret Versioning**: Each secret in AWS SecretsManager is automatically versioned
+1. **Secret Versioning**: Each secret in its backend (AWS Secrets Manager or Azure Key Vault) is automatically versioned
 2. **Local Version Tracking**: The `.hushrc.json` file tracks local versions
 3. **Conflict Prevention**: Automatic checks before push operations
 
@@ -48,11 +48,16 @@ With a [project setting](/backends/project-setting) that puts keys into other ba
   },
   "hush-project-prod@AWS eu-west-1": {
     "version": 12
+  },
+  "hush-project-stage@Azure example-vault": {
+    "version": 3
   }
 }
 ```
 
-So a key that moves to another backend starts with a version of its own there, and `hush delete` only removes the version of the store it deleted from. Warnings name the key and its store, not the entry name, for example `for key "hush-project-prod" (AWS eu-west-1)`.
+So a key that moves to another backend starts with a version of its own there (unless [`hush copy`](/backends/moving-secrets) carries yours over), and `hush delete` only removes the version of the store it deleted from. Warnings name the key and its store, not the entry name, for example `for key "hush-project-prod" (AWS eu-west-1)`.
+
+An [Azure Key Vault](/backends/azure-key-vault) doesn't tell names apart by case, so its entries are lowercased.
 
 **Note:**
 

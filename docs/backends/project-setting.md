@@ -10,7 +10,7 @@ author:
 
 # Project setting: `hush.config.json`
 
-A **backend** is the service where Hush! keeps your secrets. With a `hush.config.json` file, a project decides **which backend holds which key**. Every command reads it: `push`, `pull`, `cat`, `grant`, `revoke` and `delete` use the backend of the key you give them, and `list` shows all backends of the project.
+A **backend** is the service where Hush! keeps your secrets. With a `hush.config.json` file, a project decides **which backend holds which key**. Every command reads it: `push`, `pull`, `cat`, `grant`, `revoke` and `delete` use the backend of the key you give them, `copy` uses the backends you name with `--from` and `--to`, and `list` shows all backends of the project.
 
 !!!
 **You don't need this file.** Without a `hush.config.json`, Hush! works as it always has: every key lives in the AWS Secrets Manager in `eu-central-1`, with the AWS profile from `AWS_PROFILE`.
@@ -56,13 +56,35 @@ Each backend type has its own fields besides `type`:
 
 The AWS backend uses the profile from `AWS_PROFILE`, as without a project setting. Credentials never go into `hush.config.json`.
 
+**`azure-key-vault`**
+
+| Field      | Required | What it is                                                                                                                                                                                                                                                                         |
+| ---------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vaultUrl` | yes      | The address of the vault, `https://<vault-name>.vault.azure.net`, optionally with a `/` at the end. The vault name has 3 to 24 letters, digits and hyphens, starts with a letter, ends with a letter or a digit and has no two hyphens in a row. Only vaults in public Azure work. |
+| `tenantId` | no       | The tenant (directory) of the vault as a GUID, e.g. `00000000-1111-2222-3333-444444444444`. Set it when you sign in as a guest in another tenant; Hush! then names it in the `az login` hint.                                                                                      |
+
+For example, AWS as the default and one key in a vault:
+
+```json
+{
+  "backends": {
+    "frankfurt": { "type": "aws-secrets-manager" },
+    "vault": {
+      "type": "azure-key-vault",
+      "vaultUrl": "https://example-vault.vault.azure.net",
+      "tenantId": "00000000-1111-2222-3333-444444444444"
+    }
+  },
+  "default": "frankfurt",
+  "keys": { "shop-prod": "vault" }
+}
+```
+
+The vault backend signs in with the Azure CLI or a technical access, not with `AWS_PROFILE`. Roles, sign-in and the vault's limits are on the [Azure Key Vault](/backends/azure-key-vault) page.
+
 ## Every key has exactly one backend
 
-A key belongs to the backend that `keys` names for it, otherwise to the `default` backend. Hush! never looks for a key in a second backend. If you move a key to another backend in `keys`, the secret doesn't move with it. To move it, for example `shop-prod`:
-
-1. With the previous setting, run `hush pull shop-prod .env`, so your `.env` file holds the newest version.
-2. Move the key in `keys` and run `hush push shop-prod .env`. This creates the secret in the new backend.
-3. If you no longer need the old secret, delete it with the previous setting: `hush delete shop-prod`.
+A key belongs to the backend that `keys` names for it, otherwise to the `default` backend. Hush! never looks for a key in a second backend. If you move a key to another backend in `keys`, the secret doesn't move with it: copy it first with [`hush copy`](/commands/copy), then change the setting. [Moving secrets to another backend](/backends/moving-secrets) walks through it.
 
 `.hushrc.json` keeps the version of a key **per store**, so the old and the new secret don't share a version, and deleting one doesn't touch the version of the other. Keys in the default AWS store (`eu-central-1`) keep the entry name they had in Hush! 4.1.0, like `hush-shop-dev`. Keys in any other store get the store added, like `hush-shop-prod@AWS eu-west-1`. See [Version control](/getting-started/version-control).
 
@@ -83,7 +105,8 @@ Hush! 🤫 — Error: hush.config.json, field backends.ireland.region: must be a
 ```
 
 - A file that isn't valid JSON, a missing `backends` or `default`, an unknown `type` and a name in `default` or `keys` that isn't in `backends` are all mistakes.
+- A `vaultUrl` that isn't the address of a vault in public Azure (`https://<vault-name>.vault.azure.net`, with at most a `/` after it, no path) is a mistake, and so is a `tenantId` that isn't a GUID: a domain like `example.onmicrosoft.com` is refused, and the message tells you how to look up the ID.
 - A `region` that doesn't have the shape of an AWS region (words and a number, like `eu-west-1`, `us-gov-west-1` or `eusc-de-east-1`) is a mistake. Hush! checks the shape, not a list of regions, so a new AWS region works right away.
-- **Every store has one name.** Two backends that point to the same store, like two AWS backends in the same region, are a mistake; a backend without `region` counts as `eu-central-1`. Otherwise `list` would show the same secrets twice.
+- **Every store has one name.** Two backends that point to the same store, like two AWS backends in the same region or two spellings of the same vault address, are a mistake; a backend without `region` counts as `eu-central-1`. Otherwise `list` would show the same secrets twice.
 - **Fields Hush! doesn't know are mistakes too**, at the top level and in a backend. This keeps credentials out of the file: a field like `secretAccessKey` is refused, and Hush! doesn't repeat its value in the message.
 - `hush --help` still works with a broken file, so you can look up the commands while you fix it.

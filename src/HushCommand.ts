@@ -223,7 +223,7 @@ class HushCommand extends Command {
       )
       .argument(
         "<user-identifier>",
-        "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
+        "AWS backends only: EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
       )
       .action(async (key: string, userIdentifier: string) => {
         this.runCommand(
@@ -246,7 +246,7 @@ class HushCommand extends Command {
       )
       .argument(
         "<user-identifier>",
-        "EITHER the ARN of an IAM user OR a username in the same AWS account to grant access to the secret to."
+        "AWS backends only: EITHER the ARN of an IAM user OR a username in the same AWS account to revoke access to the secret from."
       )
       .action(async (key: string, userIdentifier: string) => {
         // "Grant" as in 4.1.0.
