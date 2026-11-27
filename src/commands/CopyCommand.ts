@@ -27,6 +27,15 @@ export type CopyResult = {
   hasErrors: boolean;
 };
 
+// Scannable output: the verdict in color, names and commands in bold,
+// versions in bold cyan as in push, warnings in yellow.
+const copied = (): string => chalk.green.bold("copied");
+const notCopied = (): string => chalk.red.bold("Not copied");
+const fits = (): string => chalk.green.bold("fits");
+const doesntFit = (): string => chalk.red.bold("doesn't fit");
+const version = (value: number): string => chalk.bold.cyan(value);
+const warning = (text: string): string => chalk.yellow(`⚠️  ${text}`);
+
 /** What happened to one key. */
 type Outcome = {
   key: string;
@@ -140,7 +149,7 @@ class CopyCommand {
     const names = others
       .map((other) => chalk.bold(printable(other)))
       .join(", ");
-    const verdict = this.input.dryRun ? "doesn't fit" : "Not copied";
+    const verdict = this.input.dryRun ? doesntFit() : notCopied();
     return {
       key,
       ok: false,
@@ -192,10 +201,10 @@ class CopyCommand {
     }
   }
 
-  private existsText(version: number | null): string {
-    return version === null
+  private existsText(existing: number | null): string {
+    return existing === null
       ? `already in ${this.toName()}, in a format Hush! can't read`
-      : `already in ${this.toName()} with version ${chalk.bold(version)}`;
+      : `already in ${this.toName()} with version ${version(existing)}`;
   }
 
   private async copyKey(key: string): Promise<Outcome> {
@@ -211,47 +220,55 @@ class CopyCommand {
     try {
       source = await this.readSource(name);
     } catch (error) {
-      return failed(`Not copied: it can't be read in ${fromName}.`, error);
+      return failed(`${notCopied()}: it can't be read in ${fromName}.`, error);
     }
     try {
       this.to.backend.checkWrite?.(name, source.value);
     } catch (error) {
-      return failed(`Not copied: ${this.toName()} can't take it.`, error);
+      return failed(`${notCopied()}: ${this.toName()} can't take it.`, error);
     }
     let existing: number | null | undefined;
     try {
       existing = await this.readTarget(name);
     } catch (error) {
-      return failed(`Not copied: ${this.toName()} can't be read.`, error);
+      return failed(`${notCopied()}: ${this.toName()} can't be read.`, error);
     }
     if (existing !== undefined && !this.input.force) {
       return {
         key,
         ok: false,
         lines: [
-          `Not copied: it is ${this.existsText(existing)}.`,
-          `Use --force to write the version from ${fromName} over it.`,
+          `${notCopied()}: it is ${this.existsText(existing)}.`,
+          `Use ${chalk.bold("--force")} to write the version from ${fromName} over it.`,
         ],
       };
     }
     try {
       await this.to.backend.write(name, source.value);
     } catch (error) {
-      return failed(`Not copied: writing to ${this.toName()} failed.`, error);
+      return failed(
+        `${notCopied()}: writing to ${this.toName()} failed.`,
+        error
+      );
     }
 
     const lines = [
-      `copied to ${this.toName()} (version ${chalk.bold(source.version)}).`,
+      `${copied()} to ${this.toName()} (version ${version(source.version)}).`,
     ];
     if (typeof existing === "number" && existing > source.version) {
       // A folder that pulled the higher version passes push's version
       // check against the lower one, so it would write over this copy.
       lines.push(
-        `The version in ${this.toName()} went down from ${chalk.bold(
-          existing
-        )} to ${chalk.bold(
-          source.version
-        )}: a folder that pulled the higher version must pull again before it pushes, or its push writes over this copy without a warning.`
+        warning(
+          `The version in ${this.toName()} went down from ${version(
+            existing
+          )} to ${version(source.version)}.`
+        ),
+        chalk.yellow(
+          `A folder that pulled the higher version must ${chalk.bold(
+            "pull"
+          )} again before it pushes, or its push writes over this copy without a warning.`
+        )
       );
     }
     let carried: boolean;
@@ -263,7 +280,11 @@ class CopyCommand {
     if (!carried) {
       // The entry is copied; only the local version stays behind.
       lines.push(
-        "Its version in .hushrc.json was not carried over: the file can't be read or written."
+        warning(
+          `Its version in ${chalk.bold(
+            ".hushrc.json"
+          )} was not carried over: the file can't be read or written.`
+        )
       );
     }
     return { key, ok: true, lines };
@@ -303,14 +324,18 @@ class CopyCommand {
         key,
         ok: false,
         lines: [
-          "doesn't fit: the source can't be read.",
+          `${doesntFit()}: it can't be read in ${chalk.bold(
+            printable(this.from.name)
+          )}.`,
           ...reasonLines(error),
         ],
       };
     }
 
     const facts = [
-      `${Buffer.byteLength(source.value, "utf8").toLocaleString("en-US")} bytes`,
+      chalk.bold(
+        `${Buffer.byteLength(source.value, "utf8").toLocaleString("en-US")} bytes`
+      ),
     ];
     const problems: string[] = [];
 
@@ -324,7 +349,7 @@ class CopyCommand {
     facts.push(
       nameAllowed
         ? "name allowed"
-        : `name not allowed, so it can't be in ${this.toName()}`
+        : chalk.red(`name not allowed, so it can't be in ${this.toName()}`)
     );
 
     if (nameAllowed) {
@@ -338,13 +363,13 @@ class CopyCommand {
         if (existing === undefined) {
           facts.push(`not in ${this.toName()} yet`);
         } else {
-          facts.push(this.existsText(existing));
+          facts.push(chalk.yellow(this.existsText(existing)));
           if (!this.input.force) {
-            problems.push("Use --force to write over it.");
+            problems.push(`Use ${chalk.bold("--force")} to write over it.`);
           }
         }
       } catch (error) {
-        facts.push(`can't read ${this.toName()}`);
+        facts.push(chalk.red(`can't read ${this.toName()}`));
         problems.push(...reasonLines(error));
       }
     }
@@ -354,7 +379,7 @@ class CopyCommand {
       key,
       ok,
       lines: [
-        `${ok ? "fits" : "doesn't fit"}: ${facts.join(", ")}.`,
+        `${ok ? fits() : doesntFit()}: ${facts.join(", ")}.`,
         ...problems,
       ],
     };
@@ -366,16 +391,18 @@ class CopyCommand {
     const entries = keys
       .map((key) => `${JSON.stringify(key)}: ${target}`)
       .join(", ");
-    const hints = [`"keys": { ${printable(entries)} }`];
+    const hints = [chalk.bold(`"keys": { ${printable(entries)} }`)];
     if (this.input.fromIsDefault) {
       hints.push(
-        `Or set "default": ${printable(target)} once all keys have moved.`
+        `Or set ${chalk.bold(
+          `"default": ${printable(target)}`
+        )} once all keys have moved.`
       );
     }
     return withHints(
       `To use ${this.toName()} for ${
         keys.length === 1 ? "this key" : "these keys"
-      }, add to hush.config.json:`,
+      }, add to ${chalk.bold("hush.config.json")}:`,
       ...hints
     );
   }

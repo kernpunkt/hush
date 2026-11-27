@@ -243,7 +243,8 @@ describe("AC-F05-8: --force writes the source version over the target", () => {
 
         expect(result.output).toContain(
             "✔ app: copied to vault (version 2).\n" +
-                "   The version in vault went down from 9 to 2: a folder that pulled the higher version must pull again before it pushes, or its push writes over this copy without a warning."
+                "   ⚠️  The version in vault went down from 9 to 2.\n" +
+                "   A folder that pulled the higher version must pull again before it pushes, or its push writes over this copy without a warning."
         );
     });
 
@@ -475,7 +476,7 @@ describe("AC-F05-4: the dry run writes nothing and says what fits", () => {
         const result = await copy(["missing"], { dryRun: true });
 
         expect(result.hasErrors).toBe(true);
-        expect(lineOf(result.output, "missing")).toBe("✖ missing: doesn't fit: the source can't be read.");
+        expect(lineOf(result.output, "missing")).toBe("✖ missing: doesn't fit: it can't be read in aws.");
         expect(result.output).toContain("The test backend has no entry hush-missing.");
     });
 
@@ -553,14 +554,14 @@ describe("Decision 1: the local version is carried to the target store", () => {
             expect(stored(target, "hush-app")).toBe(payload(3));
             expect(result.hasErrors).toBe(false);
             expect(result.output).toContain(
-                "✔ app: copied to vault (version 3).\n   Its version in .hushrc.json was not carried over: the file can't be read or written."
+                "✔ app: copied to vault (version 3).\n   ⚠️  Its version in .hushrc.json was not carried over: the file can't be read or written."
             );
         } finally {
             update.mockRestore();
         }
     });
 
-    const NOT_CARRIED = "✔ app: copied to vault (version 3).\n   Its version in .hushrc.json was not carried over: the file can't be read or written.";
+    const NOT_CARRIED = "✔ app: copied to vault (version 3).\n   ⚠️  Its version in .hushrc.json was not carried over: the file can't be read or written.";
 
     it("says so if .hushrc.json isn't valid JSON, and leaves the file as it is", async () => {
         source.seed("hush-app", payload(3));

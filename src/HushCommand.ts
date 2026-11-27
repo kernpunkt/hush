@@ -396,24 +396,28 @@ class HushCommand extends Command {
   ): string | undefined {
     const names = backends.all().map(({ name }) => name);
     if (names.length < 2) {
-      return "copy needs a hush.config.json with at least two backends to copy between.";
+      return `${chalk.bold("copy")} needs a ${chalk.bold(
+        "hush.config.json"
+      )} with at least two backends to copy between.`;
     }
-    const known = `Backends in hush.config.json: ${names
+    const known = `Backends in ${chalk.bold("hush.config.json")}: ${names
       .map((name) => chalk.bold(printable(name)))
       .join(", ")}.`;
     for (const option of ["from", "to"] as const) {
       const value = options[option];
       if (value === undefined) {
-        return `Name the backend to copy ${option} with --${option}. ${known}`;
+        return `Name the backend to copy ${option} with ${chalk.bold(
+          `--${option}`
+        )}. ${known}`;
       }
       if (!backends.named(value)) {
-        return `--${option} names no backend of hush.config.json: ${chalk.bold(
-          printable(value)
-        )}. ${known}`;
+        return `${chalk.bold(`--${option}`)} names no backend of ${chalk.bold(
+          "hush.config.json"
+        )}: ${chalk.bold(printable(value))}. ${known}`;
       }
     }
     if (options.from === options.to) {
-      return `--from and --to both name ${chalk.bold(
+      return `${chalk.bold("--from")} and ${chalk.bold("--to")} both name ${chalk.bold(
         printable(options.from!)
       )}. Name two different backends.`;
     }
